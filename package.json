@@ -19,7 +19,7 @@
   "author": "Cedric RICARD <ricard33@gmail.com>",
   "license": "MIT",
   "engines": {
-    "node": ">=18"
+    "node": ">=22.13.0"
   },
   "lint-staged": {
     "*.js": [

@@ -35,12 +35,16 @@ When a design decision is made or changed in conversation, update `docs/SPEC.md`
 
 Decisions already settled that shape implementation work:
 
-- **Storage**: one SQLite database in the plugin's data folder, holding log entries, events, GPS track points, places, and annotations. GPX is generated on demand from track points, never stored as a file.
+- **Storage**: one SQLite database in the plugin's data folder, holding log entries, events, GPS track points, places, and annotations. GPX is generated on demand from track points, never stored as a file. Accessed via Node's built-in `node:sqlite` (hence `engines.node >= 22.13`) — deliberately not a native module, since those are painful to install on Raspberry Pi.
 - **Two UI surfaces**: a standard Signal K webapp (consultation, configuration, export) and a separate installable PWA for tablet/stylus field entry.
 - **`signalk-autostate` is an optional dependency**: when present, stopped/underway state comes from `navigation.state`; when absent, an internal SOG-threshold fallback takes over and the UI must signal degraded mode. Both paths need to work.
 - **One vessel per Signal K instance** — no multi-vessel or multi-profile concepts in the data model.
 - **Handwritten annotations are stored as vector strokes** (timestamped points with pressure), not raster. The feature ships in V2, but the data model reserves the format now so no migration is needed later.
 - **Log entry granularity**: a start → underway → stop cycle, with a configurable stop-duration threshold tolerating short stops (lock waits, lunch anchorages) within a single entry.
+
+## Database migrations
+
+`lib/database.js` holds a `MIGRATIONS` array applied in order, with the array index tracked in SQLite's `user_version`. Migrations are **append-only**: once an entry has been released, editing or reordering it would leave existing boat installations on a schema that no longer matches the code. Add a new entry instead.
 
 ## Code style
 

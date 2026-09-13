@@ -23,7 +23,7 @@ Functional references: [meri-imperiumi/signalk-logbook](https://github.com/meri-
 - **User interfaces** (two distinct surfaces):
   - **Standard Signal K webapp**: log consultation, plugin configuration, export.
   - **Dedicated, installable PWA, tablet/stylus-oriented**: real-time field entry (handwritten annotations, manoeuvre shortcuts), designed for use at the helm, with gloves or wet fingers.
-- **Storage**: a single **SQLite** database in the plugin's data folder, covering entries, events, GPS track, and annotations (including vectorized handwritten strokes). The GPS track remains exportable as GPX on demand (generated from the database, not stored as a separate file).
+- **Storage**: a single **SQLite** database in the plugin's data folder, covering entries, events, GPS track, and annotations (including vectorized handwritten strokes), accessed through Node's built-in `node:sqlite` module. The GPS track remains exportable as GPX on demand (generated from the database, not stored as a separate file).
 - **Instance scope**: one vessel per Signal K instance (standard usage for SK plugins) — no multi-profile/multi-fleet management in the data model.
 
 ## 3. Logbook model
@@ -180,6 +180,7 @@ Deferred to V2: implementation of handwritten annotations (the vector format is 
 | Topic | Decision |
 |---|---|
 | Storage | SQLite (single database: entries, events, track, annotations) |
+| SQLite driver | Node's built-in `node:sqlite` — no native compilation, which matters on Raspberry Pi. Raises the floor to Node >= 22.13 |
 | Handwritten annotation format | Vector (timestamped strokes/points + pressure), fixed in the data model now even though implementation is V2 |
 | Author / multi-crew | No author concept in V1 (V2 if the need is confirmed) |
 | signalk-autostate dependency | Optional, with internal fallback (SOG threshold) if absent |
