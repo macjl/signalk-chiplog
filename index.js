@@ -2,6 +2,7 @@ const { registerRoutes } = require('./lib/api');
 const { openDatabase } = require('./lib/database');
 const { createPassageDetector, DETECTION_DEFAULTS, TICK_INTERVAL_MS } = require('./lib/detection');
 const { ApiError } = require('./lib/errors');
+const { createTrackRecorder, SAMPLE_INTERVAL_MS, TRACK_DEFAULTS } = require('./lib/track-recorder');
 
 const DEFAULT_PLACE_MATCH_RADIUS = 200;
 
@@ -25,8 +26,10 @@ module.exports = function (app) {
   let database = null;
   let settings = null;
   let detector = null;
-  let timer = null;
+  let recorder = null;
+  let timers = [];
   let lastStatus = null;
+  let recorderFailing = false;
 
   plugin.id = 'signalk-chiplog';
   plugin.name = 'Chiplog';
@@ -50,6 +53,14 @@ module.exports = function (app) {
           'Used only without signalk-autostate: the vessel counts as under way when its average speed over ground exceeds this, and as stopped below half of it',
         default: DETECTION_DEFAULTS.fallbackUnderwaySpeed,
         minimum: 0.1
+      },
+      trackIntervalSeconds: {
+        type: 'number',
+        title: 'Track point interval (seconds)',
+        description:
+          'A track point is recorded at least this often while moving, plus extra points on turns and speed changes',
+        default: TRACK_DEFAULTS.trackIntervalSeconds,
+        minimum: 1
       },
       placeMatchRadius: {
         type: 'number',
@@ -81,6 +92,19 @@ module.exports = function (app) {
     }
   }
 
+  // Runs every second: log a failure once, not on every sample.
+  function runRecorder() {
+    try {
+      recorder.sample();
+      recorderFailing = false;
+    } catch (err) {
+      if (!recorderFailing) {
+        app.error(`Track recording failed: ${err.stack ?? err}`);
+      }
+      recorderFailing = true;
+    }
+  }
+
   plugin.start = function (config = {}) {
     try {
       const { db, migrated } = openDatabase(app.getDataDirPath());
@@ -89,6 +113,7 @@ module.exports = function (app) {
         stopClosureMinutes: config.stopClosureMinutes ?? DETECTION_DEFAULTS.stopClosureMinutes,
         fallbackUnderwaySpeed:
           config.fallbackUnderwaySpeed ?? DETECTION_DEFAULTS.fallbackUnderwaySpeed,
+        trackIntervalSeconds: config.trackIntervalSeconds ?? TRACK_DEFAULTS.trackIntervalSeconds,
         placeMatchRadius: config.placeMatchRadius ?? DEFAULT_PLACE_MATCH_RADIUS,
         usbExportPath: config.usbExportPath || null
       };
@@ -101,20 +126,23 @@ module.exports = function (app) {
       throw err;
     }
 
-    detector = createPassageDetector({
-      db: database,
-      readSelfPath: (path) => app.getSelfPath(path),
-      settings
-    });
+    const readSelfPath = (path) => app.getSelfPath(path);
+    detector = createPassageDetector({ db: database, readSelfPath, settings });
+    recorder = createTrackRecorder({ db: database, readSelfPath, settings });
     lastStatus = null;
+    recorderFailing = false;
     runDetection();
-    timer = setInterval(runDetection, TICK_INTERVAL_MS);
+    timers = [
+      setInterval(runDetection, TICK_INTERVAL_MS),
+      setInterval(runRecorder, SAMPLE_INTERVAL_MS)
+    ];
   };
 
   plugin.stop = function () {
-    clearInterval(timer);
-    timer = null;
+    timers.forEach(clearInterval);
+    timers = [];
     detector = null;
+    recorder = null;
     if (database) {
       database.close();
       database = null;

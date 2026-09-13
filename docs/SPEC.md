@@ -57,6 +57,12 @@ No notion of author per event/annotation in V1: the logbook is a single shared d
 ### 4.1 Boat track
 
 - **Combined** sampling: a point at least every X seconds (configurable fixed interval, e.g. 10–30 s by default) **and** an additional point as soon as a significant heading or speed delta is detected (manoeuvres, tacks) — ensures a faithful track during dynamic phases without inflating volume in straight lines.
+
+  As implemented (`lib/track-recorder.js`), position fixes are read once a second:
+  - an **interval point** every `trackIntervalSeconds` (15 s by default), skipped until the vessel has moved 10 m, so a wait at a lock does not pile up identical points;
+  - an extra point on a **course change of 15° or more** — only above 2 kn, since course over ground is noise at low speed — or a **speed change of 1 kn or more**, at most every 2 s.
+- **Points belong to a moving passage.** They are held in memory while no passage is open or while the open one is stopped, and attached once it moves: detection dates a departure back to when the vessel left its berth, up to 20 minutes before it opens the entry, so the held points make the track start there rather than a mile out. Up to 20 minutes of points are held.
+- **Distance** is the sum of the distances between consecutive track points, updated as points are recorded.
 - Standard **GPX** export per entry or for a date range, generated on the fly from the SQLite database.
 - **Interactive map embedded in the webapp** (track displayed on tile background), in addition to export — no delegation to freeboard-sk for display.
 
@@ -162,7 +168,7 @@ Deferred to V2: implementation of handwritten annotations (the vector format is 
 | Author / multi-crew | No author concept in V1 (V2 if the need is confirmed) |
 | signalk-autostate dependency | Optional, with internal fallback (SOG threshold) if absent |
 | Speed fallback | SOG averaged over 3 min; under way above a configurable speed (1 kn), stopped below half of it. Transitions dated from raw speed in both modes (§4.2) |
-| GPS track sampling | Configurable fixed interval + extra point on heading/speed delta |
+| GPS track sampling | Configurable fixed interval (15 s) + extra point on a 15° course or 1 kn speed change (§4.1) |
 | PDF export | Traditional logbook facsimile, delivered in V1.1 |
 | Automatic SK events (beyond engine/sail/manoeuvre) | Critical notifications, autopilot, configurable weather thresholds |
 | Multi-vessel | One vessel per Signal K instance, no multi-profiles |
@@ -174,7 +180,7 @@ Deferred to V2: implementation of handwritten annotations (the vector format is 
 ### Remaining minor points (non-blocking for starting)
 
 - Exact list of Signal K notification paths considered "critical" (MOB, engine alarm, anchor watch...).
-- Default values for configurable weather thresholds (wind, etc.) and the GPS interval.
+- Default values for configurable weather thresholds (wind, etc.).
 - Precise layout template for the facsimile PDF (to be mocked up in V1.1).
 - Precise choice of online geocoding service (public Nominatim instance vs self-hosted) and default value for the place matching radius.
 
@@ -182,6 +188,6 @@ Deferred to V2: implementation of handwritten annotations (the vector format is 
 
 1. ~~Define the precise SQLite schema (DDL) and the plugin's REST API.~~ Done — see [DATA_MODEL.md](DATA_MODEL.md) and [API.md](API.md).
 2. ~~Implement the REST API defined in [API.md](API.md) on top of the schema.~~ Done, with tests. `getOpenApi()` and the PDF export (V1.1) remain.
-3. ~~Stopped/underway and passage detection.~~ Done (§4.2). Still to build on it: engine/sail segments, track sampling (§4.1), observations, and online geocoding of place names (§4.8).
+3. ~~Stopped/underway and passage detection.~~ Done (§4.2), with track recording (§4.1). Still to build on it: engine/sail segments, observations, automatic events (§4.6), and online geocoding of place names (§4.8).
 4. Mock up the tablet entry screen (PWA) — at least the manoeuvres/text-annotations part for V1, with the handwriting canvas mockable in parallel to prepare V2.
 5. Settle the SK paths to monitor for automatic events (§4.6); the manoeuvre shortcut list is now seeded by the schema.

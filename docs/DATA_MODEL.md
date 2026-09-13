@@ -34,7 +34,7 @@ While an entry is **active**, `end_lat`/`end_lon` hold the last position seen mo
 
 The spec asks for two different things from the recorded data, so they are two tables:
 
-- **`track_points`** is dense geometry — position, SOG, COG, sampled per SPEC §4.1 (fixed interval plus extra points on heading/speed deltas). It feeds the map and the GPX export. Keeping it narrow matters: a long passage produces a lot of rows.
+- **`track_points`** is dense geometry — position, SOG, COG (true), sampled per SPEC §4.1 (fixed interval plus extra points on heading/speed deltas). It feeds the map and the GPX export. Keeping it narrow matters: a long passage produces a lot of rows — about 240 an hour under way at the default 15 s interval. Point times come from the host clock, like entry times, so they always fall within their entry. `log_entries.distance` is kept as the running sum of the distances between an entry's consecutive points.
 - **`observations`** is a sparse, wide snapshot of every instrument at one moment: wind, depth, barometer, log, engine hours. These are the rows the facsimile PDF (SPEC §4.5) renders as classic logbook lines. `reason` records why the snapshot was taken (`periodic`, `entry_start`, `entry_end`, `event`).
 
 Merging them would mean either carrying a dozen mostly-null columns on every dense sample, or losing the hourly conditions record. The split keeps each table doing one job.
