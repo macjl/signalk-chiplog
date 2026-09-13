@@ -10,11 +10,9 @@ module.exports = function (app) {
     properties: {}
   };
 
-  plugin.start = function (options) {
-  };
+  plugin.start = function (options) {};
 
-  plugin.stop = function () {
-  };
+  plugin.stop = function () {};
 
   return plugin;
 };
