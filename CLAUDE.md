@@ -9,13 +9,16 @@ All project artifacts — code, comments, documentation, commit messages — are
 ## Commands
 
 ```bash
+npm test                                           # node --test, every test/*.test.js
+node --test test/entries.test.js                   # one file
+node --test --test-name-pattern="merge" test/      # tests whose name matches
 npm run lint          # eslint .
 npm run lint:fix      # eslint . --fix
 npm run format        # prettier --write .
 npm run format:check  # prettier --check .
 ```
 
-No test framework is set up yet; `npm test` is a placeholder that exits 0.
+Tests use Node's built-in `node:test` — no framework dependency, matching the `node:sqlite` choice. `test/helpers.js` starts the plugin behind a real Express 4 app (the version signalk-server uses) with a router that mimics the server's `asPluginRouter`, recording the access level of each route. Tests seed data by writing SQL directly, since no API route creates entries.
 
 A husky `pre-commit` hook runs `lint-staged`, which applies `eslint --fix` and `prettier --write` to staged files. Commits therefore reformat staged code automatically.
 
@@ -23,11 +26,19 @@ A husky `pre-commit` hook runs `lint-staged`, which applies `eslint --fix` and `
 
 ## Project state
 
-This repository is early: the database schema exists, no feature behaviour does. The documents to read before implementing anything:
+The database schema and the REST API exist. Nothing yet **produces** data: there is no Signal K subscription, no passage detection, no track sampling — entries only appear when written to the database directly. The documents to read before implementing anything:
 
 - [docs/SPEC.md](docs/SPEC.md) — functional spec. §7 is a table of settled decisions that supersedes any assumption drawn from the feature list.
 - [docs/DATA_MODEL.md](docs/DATA_MODEL.md) — schema conventions (SI units, ISO 8601 UTC, naming) and the reasoning behind the non-obvious tables. The authoritative DDL is in `lib/database.js`.
-- [docs/API.md](docs/API.md) — the REST API contract, not yet implemented.
+- [docs/API.md](docs/API.md) — the REST API contract, which the implementation and tests follow. Update it with any behaviour change.
+
+## Code layout
+
+`lib/api.js` is the only HTTP-aware module: it parses and validates requests (`lib/validation.js`), calls the resource modules, and maps errors to responses. The resource modules (`entries`, `events`, `places`, `propulsion`, `manoeuvre-types`, `track`, `export`) take a `db` and plain values, run SQL, return `camelCase` objects, and throw `ApiError` (`lib/errors.js`) for not-found and conflict cases. Unit conversion to nautical units happens only in `lib/formats.js`, for human-facing exports.
+
+`index.js` owns the plugin lifecycle and hands the API a `getContext()` that throws `503` when the database is closed. This matters because the server calls `registerWithRouter` once — before `start()`, even while the plugin is disabled — and never removes the routes.
+
+`node:sqlite` has no transaction helper; use `withTransaction` from `lib/database.js` for any multi-statement write, and don't nest it.
 
 When a design decision is made or changed in conversation, update `docs/SPEC.md` to match; the spec is meant to stay the single source of truth rather than drift behind the code.
 

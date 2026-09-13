@@ -171,7 +171,7 @@ Deferred to V2: implementation of handwritten annotations (the vector format is 
 ## 8. Suggested next steps
 
 1. ~~Define the precise SQLite schema (DDL) and the plugin's REST API.~~ Done — see [DATA_MODEL.md](DATA_MODEL.md) and [API.md](API.md).
-2. Implement the REST API defined in [API.md](API.md) on top of the schema.
+2. ~~Implement the REST API defined in [API.md](API.md) on top of the schema.~~ Done, with tests. `getOpenApi()` and the PDF export (V1.1) remain.
 3. Prototype engine/sail + stopped/underway detection (with and without signalk-autostate) on real/simulated data.
 4. Mock up the tablet entry screen (PWA) — at least the manoeuvres/text-annotations part for V1, with the handwriting canvas mockable in parallel to prepare V2.
 5. Settle the SK paths to monitor for automatic events (§4.6); the manoeuvre shortcut list is now seeded by the schema.
