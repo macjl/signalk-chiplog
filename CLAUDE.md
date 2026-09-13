@@ -23,7 +23,11 @@ A husky `pre-commit` hook runs `lint-staged`, which applies `eslint --fix` and `
 
 ## Project state
 
-This repository is at the **specification stage**. [docs/SPEC.md](docs/SPEC.md) is the authoritative design document; `index.js` is only a plugin skeleton (no behaviour implemented). Before implementing anything, read the spec — in particular §7, a table of settled decisions that supersedes any assumption drawn from the feature list.
+This repository is early: the database schema exists, no feature behaviour does. The documents to read before implementing anything:
+
+- [docs/SPEC.md](docs/SPEC.md) — functional spec. §7 is a table of settled decisions that supersedes any assumption drawn from the feature list.
+- [docs/DATA_MODEL.md](docs/DATA_MODEL.md) — schema conventions (SI units, ISO 8601 UTC, naming) and the reasoning behind the non-obvious tables. The authoritative DDL is in `lib/database.js`.
+- [docs/API.md](docs/API.md) — the REST API contract, not yet implemented.
 
 When a design decision is made or changed in conversation, update `docs/SPEC.md` to match; the spec is meant to stay the single source of truth rather than drift behind the code.
 

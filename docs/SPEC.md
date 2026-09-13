@@ -115,49 +115,16 @@ When creating and closing an entry, Chiplog attempts to associate a **place name
 
 Technical considerations to be scoped during detailed design: local caching of geocoding responses (avoid re-querying the service for the same area), compliance with the chosen online service's usage policy (call frequency, application identification), and an option to configure/disable the online service call for privacy reasons (position sent to a third party).
 
-## 5. Data model (sketch to be refined)
+## 5. Data model and API
 
-Stored in SQLite; logical schema sketch (not yet the final DDL):
+The data model has been refined into a precise schema: the authoritative DDL lives in [`lib/database.js`](../lib/database.js), with the conventions and rationale documented in [DATA_MODEL.md](DATA_MODEL.md). Entities: `log_entries`, `track_points`, `observations`, `propulsion_segments`, `events`, `places`, `manoeuvre_types`.
 
-```
-LogEntry {
-  id
-  startTime, endTime (nullable if in progress)
-  startPosition, endPosition
-  startPlaceName, endPlaceName          // displayed/exported value
-  startPlaceId, endPlaceId (nullable)   // reference to Place if resolved via a known place
-  distance, engineDuration, sailDuration
-}
+Two points worth carrying back into this document:
 
-Place {
-  id
-  name
-  lat, lon
-  source: geocoding | manual   // manual as soon as a user correction has been applied
-  createdAt, updatedAt
-}
+- Dense track geometry (`track_points`) and sparse instrument snapshots (`observations`) are separate tables: the first feeds the map and GPX export (§4.1), the second provides the hourly condition lines the facsimile PDF renders (§4.5).
+- No author field in V1 (cf. §3.4). The exported GPX file is derived from track points, not stored as such.
 
-TrackPoint {
-  entryId
-  time, lat, lon, sog, cog, ...
-}
-
-PropulsionSegment {
-  entryId
-  type: engine|sail
-  start, end, meta (average rpm, ...)
-}
-
-Event {
-  entryId
-  time, position
-  type: manoeuvre | text_annotation | handwritten_annotation
-      | sk_alarm | autopilot | weather_threshold | manual_correction
-  payload   // JSON: text, or { strokes: [{ points: [{x,y,t,pressure}, ...] }] } for handwriting
-}
-```
-
-No author field in V1 (cf. §3.4). The exported GPX file is derived from `TrackPoint`, not stored as such.
+The plugin's REST API is specified in [API.md](API.md).
 
 ## 6. MVP scope (proposal)
 
@@ -203,7 +170,8 @@ Deferred to V2: implementation of handwritten annotations (the vector format is 
 
 ## 8. Suggested next steps
 
-1. Define the precise SQLite schema (DDL) from the §5 sketch, and the plugin's REST API.
-2. Prototype engine/sail + stopped/underway detection (with and without signalk-autostate) on real/simulated data.
-3. Mock up the tablet entry screen (PWA) — at least the manoeuvres/text-annotations part for V1, with the handwriting canvas mockable in parallel to prepare V2.
-4. Define the precise list of manoeuvre shortcuts and the SK paths to monitor for automatic events (§4.6).
+1. ~~Define the precise SQLite schema (DDL) and the plugin's REST API.~~ Done — see [DATA_MODEL.md](DATA_MODEL.md) and [API.md](API.md).
+2. Implement the REST API defined in [API.md](API.md) on top of the schema.
+3. Prototype engine/sail + stopped/underway detection (with and without signalk-autostate) on real/simulated data.
+4. Mock up the tablet entry screen (PWA) — at least the manoeuvres/text-annotations part for V1, with the handwriting canvas mockable in parallel to prepare V2.
+5. Settle the SK paths to monitor for automatic events (§4.6); the manoeuvre shortcut list is now seeded by the schema.
