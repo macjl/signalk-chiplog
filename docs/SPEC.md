@@ -129,7 +129,14 @@ In addition to engine/sail and manual manoeuvres, the log automatically captures
 - **autopilot state changes** (engaged/disengaged);
 - **configurable weather threshold crossings** (e.g. wind > X knots), to automatically trace the conditions that prompted a manoeuvre.
 
-The exact list of SK paths/notifications covered and the default threshold values remain to be refined during technical design (cf. §7).
+As implemented (`lib/event-watcher.js`, checked every second):
+
+- **Notifications.** Any Signal K notification reaching `alarm` or `emergency` is critical, whatever its path — no list of paths to maintain, and an alarm from a plugin nobody anticipated is still logged. The log records it when raised (with an instrument snapshot), on escalation, and when it clears or disappears. `warn` and `alert` are not logged. After a restart, the log itself says what was already recorded: an alarm still open is not repeated, and one that cleared meanwhile is closed.
+- **Autopilot.** Engagement, disengagement, and mode changes while engaged, from `steering.autopilot.engaged` and `.mode` (the server's Autopilot API) or, for older autopilot plugins, `steering.autopilot.state` (`standby` meaning disengaged). The target heading or wind angle goes with it. Only during a passage: an autopilot tried at the dock is not logbook material. Autopilot alarms arrive as notifications.
+- **Wind thresholds.** True wind speed averaged over two minutes, so a gust does not count, logged when it rises above each configured threshold (`windSpeedThresholds`, 20 and 30 kn by default) and when it falls back below it, with hysteresis (2 kn or 10 %, whichever is larger). The first reading after start-up only sets where the wind stands: a gale already blowing is a condition, not a crossing.
+- **Barometric drop.** A fall of `pressureDropThreshold` (4 hPa by default, 0 to disable) over three hours, logged once, and again only after the fall has eased to half that. The three hours of history are held in memory, so the check needs three hours after a restart.
+
+**Which passage an event belongs to.** The open one. Between passages, alarms and weather events go to the last passage if the vessel is still within a nautical mile of where it ended: an anchor dragging overnight belongs to the passage that brought the boat to that anchorage, and appears after its arrival. Further away, with no passage to hold them, they are not logged.
 
 ### 4.7 Reading Signal K data
 
@@ -187,6 +194,9 @@ Deferred to V2: implementation of handwritten annotations (the vector format is 
 | Author / multi-crew | No author concept in V1 (V2 if the need is confirmed) |
 | signalk-autostate dependency | Optional, with internal fallback (SOG threshold) if absent |
 | Engine/sail sources | `propulsion.*.revolutions`, then `propulsion.*.state`, then `navigation.state`, then a configurable default (`sail`); segments only cover time under way (§4.2) |
+| Critical notifications | Any notification in `alarm` or `emergency`, whatever its path (§4.6) |
+| Weather thresholds | True wind averaged over 2 min against configurable speeds (20 and 30 kn); barometric fall of 4 hPa over 3 h (§4.6) |
+| Events between passages | Attached to the last passage while within 1 nm of its arrival; otherwise not logged (§4.6) |
 | Instrument snapshots | At departure, hourly on the clock (configurable), at arrival and with each live manoeuvre (§4.5.1) |
 | Speed fallback | SOG averaged over 3 min; under way above a configurable speed (1 kn), stopped below half of it. Transitions dated from raw speed in both modes (§4.2) |
 | GPS track sampling | Configurable fixed interval (15 s) + extra point on a 15° course or 1 kn speed change (§4.1) |
@@ -200,8 +210,6 @@ Deferred to V2: implementation of handwritten annotations (the vector format is 
 
 ### Remaining minor points (non-blocking for starting)
 
-- Exact list of Signal K notification paths considered "critical" (MOB, engine alarm, anchor watch...).
-- Default values for configurable weather thresholds (wind, etc.).
 - Precise layout template for the facsimile PDF (to be mocked up in V1.1).
 - Precise choice of online geocoding service (public Nominatim instance vs self-hosted) and default value for the place matching radius.
 
@@ -209,6 +217,6 @@ Deferred to V2: implementation of handwritten annotations (the vector format is 
 
 1. ~~Define the precise SQLite schema (DDL) and the plugin's REST API.~~ Done — see [DATA_MODEL.md](DATA_MODEL.md) and [API.md](API.md).
 2. ~~Implement the REST API defined in [API.md](API.md) on top of the schema.~~ Done, with tests. `getOpenApi()` and the PDF export (V1.1) remain.
-3. ~~Stopped/underway and passage detection.~~ Done (§4.2), with track recording (§4.1), engine/sail segments and instrument snapshots (§4.5.1). Still to build on it: automatic events (§4.6) and online geocoding of place names (§4.8).
+3. ~~Stopped/underway and passage detection.~~ Done (§4.2), with track recording (§4.1), engine/sail segments, instrument snapshots (§4.5.1) and automatic events (§4.6). Still to build: online geocoding of place names (§4.8).
 4. Mock up the tablet entry screen (PWA) — at least the manoeuvres/text-annotations part for V1, with the handwriting canvas mockable in parallel to prepare V2.
 5. Settle the SK paths to monitor for automatic events (§4.6); the manoeuvre shortcut list is now seeded by the schema.

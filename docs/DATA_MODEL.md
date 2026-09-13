@@ -69,6 +69,18 @@ The timestamped timeline within an entry (SPEC §3.3): manoeuvres, annotations, 
 
 `source` distinguishes automatic events from user entries, so corrections can be told apart from detections.
 
+Events the plugin produces (SPEC §4.6), all with `source: 'auto'`:
+
+| `type` | `subtype` | `payload` |
+|---|---|---|
+| `sk_alarm` | the notification path, e.g. `notifications.mob` | `{ state, message }` — `state` is `alarm`, `emergency`, or `normal` when it cleared |
+| `autopilot` | `engaged`, `disengaged` or `mode_changed` | `{ mode, state, target }` — `target` in radians, a number or `{ headingTrue, headingMagnetic, windAngleApparent, windAngleTrue }`; `null` once disengaged |
+| `weather_threshold` | `wind_above` or `wind_below` | `{ threshold, windSpeed }` in m/s |
+| `weather_threshold` | `pressure_drop` | `{ drop, over, pressure }` — Pa, seconds, Pa |
+| `manual_correction` | `propulsion` | `{ segmentId, before, after }` |
+
+An event's `time` may fall **after its entry's `end_time`**: alarms and weather events between passages go to the passage that ended where the vessel still is.
+
 ### `places`
 
 The gazetteer behind SPEC §4.8. `source` is `geocoding` (proposed by the online lookup) or `manual` (the user corrected it, so it wins on subsequent passages).

@@ -2,6 +2,7 @@ const { registerRoutes } = require('./lib/api');
 const { openDatabase } = require('./lib/database');
 const { createPassageDetector, DETECTION_DEFAULTS, TICK_INTERVAL_MS } = require('./lib/detection');
 const { ApiError } = require('./lib/errors');
+const { createEventWatcher, CHECK_INTERVAL_MS, EVENT_DEFAULTS } = require('./lib/event-watcher');
 const { OBSERVATION_DEFAULTS } = require('./lib/observation-recorder');
 const { PROPULSION_DEFAULTS } = require('./lib/propulsion-detector');
 const { createTrackRecorder, SAMPLE_INTERVAL_MS, TRACK_DEFAULTS } = require('./lib/track-recorder');
@@ -29,10 +30,8 @@ module.exports = function (app) {
   let database = null;
   let settings = null;
   let detector = null;
-  let recorder = null;
   let timers = [];
   let lastStatus = null;
-  let recorderFailing = false;
 
   plugin.id = 'signalk-chiplog';
   plugin.name = 'Chiplog';
@@ -93,6 +92,22 @@ module.exports = function (app) {
         title: 'USB export directory',
         description:
           'Directory the logbook is written to for abandon-ship recovery, e.g. the mount point of a USB drive'
+      },
+      windSpeedThresholds: {
+        type: 'array',
+        title: 'Wind speed thresholds (knots)',
+        description:
+          'The log records when the true wind, averaged over two minutes, rises above or falls back below each of these speeds',
+        items: { type: 'number', minimum: 1 },
+        default: EVENT_DEFAULTS.windSpeedThresholds
+      },
+      pressureDropThreshold: {
+        type: 'number',
+        title: 'Barometric drop warning (hPa over 3 hours)',
+        description:
+          'The log records a pressure fall of at least this much over three hours; 0 disables it',
+        default: EVENT_DEFAULTS.pressureDropThreshold,
+        minimum: 0
       }
     }
   };
@@ -111,17 +126,20 @@ module.exports = function (app) {
     }
   }
 
-  // Runs every second: log a failure once, not on every sample.
-  function runRecorder() {
-    try {
-      recorder.sample();
-      recorderFailing = false;
-    } catch (err) {
-      if (!recorderFailing) {
-        app.error(`Track recording failed: ${err.stack ?? err}`);
+  // For work that runs every second: log a failure once, not on every run.
+  function guarded(label, work) {
+    let failing = false;
+    return () => {
+      try {
+        work();
+        failing = false;
+      } catch (err) {
+        if (!failing) {
+          app.error(`${label} failed: ${err.stack ?? err}`);
+        }
+        failing = true;
       }
-      recorderFailing = true;
-    }
+    };
   }
 
   plugin.start = function (config = {}) {
@@ -137,7 +155,9 @@ module.exports = function (app) {
           config.observationIntervalMinutes ?? OBSERVATION_DEFAULTS.observationIntervalMinutes,
         trackIntervalSeconds: config.trackIntervalSeconds ?? TRACK_DEFAULTS.trackIntervalSeconds,
         placeMatchRadius: config.placeMatchRadius ?? DEFAULT_PLACE_MATCH_RADIUS,
-        usbExportPath: config.usbExportPath || null
+        usbExportPath: config.usbExportPath || null,
+        windSpeedThresholds: config.windSpeedThresholds ?? EVENT_DEFAULTS.windSpeedThresholds,
+        pressureDropThreshold: config.pressureDropThreshold ?? EVENT_DEFAULTS.pressureDropThreshold
       };
 
       if (migrated.to > migrated.from) {
@@ -150,13 +170,25 @@ module.exports = function (app) {
 
     const readSelfPath = (path) => app.getSelfPath(path);
     detector = createPassageDetector({ db: database, readSelfPath, settings });
-    recorder = createTrackRecorder({ db: database, readSelfPath, settings });
+    const recorder = createTrackRecorder({ db: database, readSelfPath, settings });
+    const watcher = createEventWatcher({
+      db: database,
+      readSelfPath,
+      settings,
+      observe: (entryId, time) => detector.observeEvent(entryId, time)
+    });
     lastStatus = null;
-    recorderFailing = false;
     runDetection();
     timers = [
       setInterval(runDetection, TICK_INTERVAL_MS),
-      setInterval(runRecorder, SAMPLE_INTERVAL_MS)
+      setInterval(
+        guarded('Track recording', () => recorder.sample()),
+        SAMPLE_INTERVAL_MS
+      ),
+      setInterval(
+        guarded('Event watching', () => watcher.check()),
+        CHECK_INTERVAL_MS
+      )
     ];
   };
 
@@ -164,7 +196,6 @@ module.exports = function (app) {
     timers.forEach(clearInterval);
     timers = [];
     detector = null;
-    recorder = null;
     if (database) {
       database.close();
       database = null;

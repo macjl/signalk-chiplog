@@ -173,6 +173,8 @@ Correcting the **ongoing** segment holds until the engine data changes: detectio
 
 Optional `type` filter. Oldest first. Paginated.
 
+Besides what clients post, the timeline holds events the plugin logs itself — `sk_alarm`, `autopilot`, `weather_threshold` and `manual_correction`, with `source: "auto"`; their subtypes and payloads are listed in the [data model](DATA_MODEL.md#events). An alarm raised at anchor between passages belongs to the passage that ended there, so its time can be later than that entry's `endTime`.
+
 ### `POST /entries/:id/events` — `readwrite`
 
 The endpoint the tablet's manoeuvre shortcuts and annotations hit:
