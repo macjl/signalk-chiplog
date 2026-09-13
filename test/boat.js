@@ -3,6 +3,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { openDatabase } = require('../lib/database');
 const { createPassageDetector, DETECTION_DEFAULTS, TICK_INTERVAL_MS } = require('../lib/detection');
+const { OBSERVATION_DEFAULTS } = require('../lib/observation-recorder');
 const { PROPULSION_DEFAULTS } = require('../lib/propulsion-detector');
 
 const KNOT = 1852 / 3600;
@@ -57,6 +58,7 @@ function createBoat({ settings = {}, clockOffsetMs = 0 } = {}) {
         settings: {
           ...DETECTION_DEFAULTS,
           ...PROPULSION_DEFAULTS,
+          ...OBSERVATION_DEFAULTS,
           placeMatchRadius: 200,
           ...settings
         },
@@ -71,9 +73,9 @@ function createBoat({ settings = {}, clockOffsetMs = 0 } = {}) {
 
     // Advance by `minutes`, publishing on every tick. `sog` is in knots,
     // constant or a function of the tick index; `state` is navigation.state;
-    // `rpm` and `engineState` are per engine (see perEngine). Values left out
-    // are not refreshed.
-    sail(minutes, { sog, state, rpm, engineState } = {}) {
+    // `rpm` and `engineState` are per engine (see perEngine); `instruments` maps
+    // any other Signal K path to its value. Values left out are not refreshed.
+    sail(minutes, { sog, state, rpm, engineState, instruments = {} } = {}) {
       const ticks = Math.round((minutes * MINUTE) / TICK_INTERVAL_MS);
       for (let i = 0; i < ticks; i += 1) {
         boat.now += TICK_INTERVAL_MS;
@@ -103,6 +105,9 @@ function createBoat({ settings = {}, clockOffsetMs = 0 } = {}) {
             boat.publish(`propulsion.${id}.state`, value);
           }
         }
+        for (const [skPath, value] of Object.entries(instruments)) {
+          boat.publish(skPath, value);
+        }
         detector.tick();
       }
       return boat;
@@ -118,6 +123,10 @@ function createBoat({ settings = {}, clockOffsetMs = 0 } = {}) {
 
     segments() {
       return db.prepare('SELECT * FROM propulsion_segments ORDER BY start_time, id').all();
+    },
+
+    observations() {
+      return db.prepare('SELECT * FROM observations ORDER BY time, id').all();
     },
 
     close() {

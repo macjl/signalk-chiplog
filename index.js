@@ -2,6 +2,7 @@ const { registerRoutes } = require('./lib/api');
 const { openDatabase } = require('./lib/database');
 const { createPassageDetector, DETECTION_DEFAULTS, TICK_INTERVAL_MS } = require('./lib/detection');
 const { ApiError } = require('./lib/errors');
+const { OBSERVATION_DEFAULTS } = require('./lib/observation-recorder');
 const { PROPULSION_DEFAULTS } = require('./lib/propulsion-detector');
 const { createTrackRecorder, SAMPLE_INTERVAL_MS, TRACK_DEFAULTS } = require('./lib/track-recorder');
 
@@ -64,6 +65,14 @@ module.exports = function (app) {
         enum: ['sail', 'engine'],
         default: PROPULSION_DEFAULTS.defaultPropulsion
       },
+      observationIntervalMinutes: {
+        type: 'number',
+        title: 'Instrument snapshot interval (minutes)',
+        description:
+          'During a passage, instrument readings are logged on this clock boundary — on the hour by default — as well as at departure, arrival and each manoeuvre',
+        default: OBSERVATION_DEFAULTS.observationIntervalMinutes,
+        minimum: 1
+      },
       trackIntervalSeconds: {
         type: 'number',
         title: 'Track point interval (seconds)',
@@ -124,6 +133,8 @@ module.exports = function (app) {
         fallbackUnderwaySpeed:
           config.fallbackUnderwaySpeed ?? DETECTION_DEFAULTS.fallbackUnderwaySpeed,
         defaultPropulsion: config.defaultPropulsion ?? PROPULSION_DEFAULTS.defaultPropulsion,
+        observationIntervalMinutes:
+          config.observationIntervalMinutes ?? OBSERVATION_DEFAULTS.observationIntervalMinutes,
         trackIntervalSeconds: config.trackIntervalSeconds ?? TRACK_DEFAULTS.trackIntervalSeconds,
         placeMatchRadius: config.placeMatchRadius ?? DEFAULT_PLACE_MATCH_RADIUS,
         usbExportPath: config.usbExportPath || null
@@ -177,6 +188,7 @@ module.exports = function (app) {
           config: settings,
           now: () => new Date().toISOString(),
           vesselPosition: () => readVesselPosition(app),
+          observeEvent: (entryId, time) => detector.observeEvent(entryId, time),
           detection: () => ({
             mode: detector.mode(),
             motion: detector.motion(),

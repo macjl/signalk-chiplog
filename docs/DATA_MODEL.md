@@ -39,6 +39,26 @@ The spec asks for two different things from the recorded data, so they are two t
 
 Merging them would mean either carrying a dozen mostly-null columns on every dense sample, or losing the hourly conditions record. The split keeps each table doing one job.
 
+**Where observation columns come from** (`lib/observation-recorder.js`). A reading is recorded only while current — its Signal K timestamp changed within the stated age — and is `null` otherwise. Counters are the exception: their last value stays a true reading while they do not move, so they are recorded whatever their age.
+
+| Column | Signal K path | Current for |
+|---|---|---|
+| `lat`, `lon` | `navigation.position` | 2 min |
+| `sog` | `navigation.speedOverGround` | 2 min |
+| `cog` | `navigation.courseOverGroundTrue` | 2 min |
+| `heading` | `navigation.headingTrue`, else `navigation.headingMagnetic` + `navigation.magneticVariation` | 2 min (variation 15 min) |
+| `stw` | `navigation.speedThroughWater` | 2 min |
+| `twd`, `tws` | `environment.wind.directionTrue`, `environment.wind.speedTrue` | 2 min |
+| `awa`, `aws` | `environment.wind.angleApparent`, `environment.wind.speedApparent` | 2 min |
+| `depth` | `environment.depth.belowSurface`, else `environment.depth.belowTransducer` | 2 min |
+| `pressure` | `environment.outside.pressure` | 15 min |
+| `air_temp` | `environment.outside.temperature` | 15 min |
+| `water_temp` | `environment.water.temperature` | 15 min |
+| `trip_log` | `navigation.trip.log` | counter |
+| `engine_runtime` | `propulsion.main.runTime`, else the first engine that has one | counter |
+
+True wind is taken as published, not computed from apparent wind; a boat without a true-wind source can add one with the `signalk-derived-data` plugin. A snapshot in which every column would be `null` is not recorded.
+
 ### `events`
 
 The timestamped timeline within an entry (SPEC §3.3): manoeuvres, annotations, automatic Signal K events.

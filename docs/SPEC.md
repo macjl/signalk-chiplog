@@ -111,6 +111,17 @@ Two complementary mechanisms adopted for V1:
    - The PDF follows a **traditional logbook facsimile** layout (time / position / heading / wind / remarks columns, organized by day). Higher formatting effort than CSV/JSON, so delivered in **V1.1** once the rest is stabilized (cf. §6) — CSV/JSON remain available from V1.
 2. **Automatic publication to a remote server** — target undefined for V1, designed as a **generic extension point** (user-configurable webhook/API), with no fixed integration to a particular service.
 
+### 4.5.1 Instrument snapshots
+
+The logbook lines the facsimile PDF renders — and the CSV export already lists — come from instrument snapshots (`observations`; see [DATA_MODEL.md](DATA_MODEL.md) for the readings recorded). During a passage one is taken:
+
+- **at departure**, when detection opens the entry;
+- **on each clock boundary** of `observationIntervalMinutes` — on the hour by default, as on a paper log — including during a short stop, as long as the entry is open;
+- **at arrival**, when detection closes the entry — except when it closes it long after the tolerance ran out, typically after a power cut, since conditions then say nothing about that arrival;
+- **with each manoeuvre** logged as it happens, so the reef appears with the wind that called for it. A manoeuvre logged with an explicit past time gets no snapshot, and neither do annotations.
+
+A snapshot already in a periodic slot, such as one taken for a manoeuvre, stands in for the periodic one. Sensors are followed on every detection cycle, not only when a snapshot is due, so a sensor that died during the hour is recognised as such.
+
 ### 4.6 Automatically logged Signal K events
 
 In addition to engine/sail and manual manoeuvres, the log automatically captures:
@@ -176,6 +187,7 @@ Deferred to V2: implementation of handwritten annotations (the vector format is 
 | Author / multi-crew | No author concept in V1 (V2 if the need is confirmed) |
 | signalk-autostate dependency | Optional, with internal fallback (SOG threshold) if absent |
 | Engine/sail sources | `propulsion.*.revolutions`, then `propulsion.*.state`, then `navigation.state`, then a configurable default (`sail`); segments only cover time under way (§4.2) |
+| Instrument snapshots | At departure, hourly on the clock (configurable), at arrival and with each live manoeuvre (§4.5.1) |
 | Speed fallback | SOG averaged over 3 min; under way above a configurable speed (1 kn), stopped below half of it. Transitions dated from raw speed in both modes (§4.2) |
 | GPS track sampling | Configurable fixed interval (15 s) + extra point on a 15° course or 1 kn speed change (§4.1) |
 | PDF export | Traditional logbook facsimile, delivered in V1.1 |
@@ -197,6 +209,6 @@ Deferred to V2: implementation of handwritten annotations (the vector format is 
 
 1. ~~Define the precise SQLite schema (DDL) and the plugin's REST API.~~ Done — see [DATA_MODEL.md](DATA_MODEL.md) and [API.md](API.md).
 2. ~~Implement the REST API defined in [API.md](API.md) on top of the schema.~~ Done, with tests. `getOpenApi()` and the PDF export (V1.1) remain.
-3. ~~Stopped/underway and passage detection.~~ Done (§4.2), with track recording (§4.1) and engine/sail segments. Still to build on it: observations, automatic events (§4.6), and online geocoding of place names (§4.8).
+3. ~~Stopped/underway and passage detection.~~ Done (§4.2), with track recording (§4.1), engine/sail segments and instrument snapshots (§4.5.1). Still to build on it: automatic events (§4.6) and online geocoding of place names (§4.8).
 4. Mock up the tablet entry screen (PWA) — at least the manoeuvres/text-annotations part for V1, with the handwriting canvas mockable in parallel to prepare V2.
 5. Settle the SK paths to monitor for automatic events (§4.6); the manoeuvre shortcut list is now seeded by the schema.

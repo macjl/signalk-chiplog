@@ -151,7 +151,7 @@ GeoJSON is a single `Feature`: a `LineString`, a `Point` for a one-point track, 
 
 ### `GET /entries/:id/observations` — `readonly`
 
-The instrument snapshots behind the facsimile PDF, oldest first. Paginated.
+The instrument snapshots behind the facsimile PDF, oldest first. Paginated. `reason` is `entry_start`, `periodic`, `entry_end` or `event` (SPEC §4.5.1); readings that were not current when the snapshot was taken are `null`.
 
 ### `GET /entries/:id/propulsion` — `readonly`
 
@@ -187,6 +187,8 @@ The endpoint the tablet's manoeuvre shortcuts and annotations hit:
 ```
 
 Accepts `type`, `subtype`, `comment`, `payload`, `time`, `position`. `time` defaults to now and `position` to the vessel's current position, so a shortcut button is a single call with no client-side clock or GPS; pass `"position": null` to record none. Answers `201` with the event.
+
+A `manoeuvre` posted without `time` also takes an instrument snapshot (`reason: "event"`) at the event's time, so the log shows the conditions it was made in.
 
 Clients may create three types; the others are produced by the plugin itself:
 

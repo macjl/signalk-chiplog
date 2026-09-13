@@ -179,3 +179,52 @@ describe('events', () => {
     });
   });
 });
+
+describe('instrument snapshot with a manoeuvre', () => {
+  let ctx;
+  let entryId;
+
+  beforeEach(async () => {
+    const now = new Date().toISOString();
+    ctx = await startServer({
+      self: {
+        navigation: { position: { value: { latitude: 46.2, longitude: -1.3 }, timestamp: now } },
+        environment: { wind: { speedTrue: { value: 8.2, timestamp: now } } }
+      }
+    });
+    entryId = insertEntry(ctx.db, { state: 'active' });
+  });
+
+  afterEach(() => ctx.close());
+
+  const observations = async () =>
+    (await ctx.request('GET', `/entries/${entryId}/observations`)).body;
+
+  it('is taken when a manoeuvre is logged as it happens', async () => {
+    const { body: event } = await ctx.request('POST', `/entries/${entryId}/events`, {
+      type: 'manoeuvre',
+      subtype: 'reef_in'
+    });
+
+    const { total, items } = await observations();
+    assert.equal(total, 1);
+    assert.equal(items[0].reason, 'event');
+    assert.equal(items[0].time, event.time);
+    assert.equal(items[0].tws, 8.2);
+    assert.deepEqual(items[0].position, { lat: 46.2, lon: -1.3 });
+  });
+
+  it('is not taken for a manoeuvre logged after the fact, nor for an annotation', async () => {
+    await ctx.request('POST', `/entries/${entryId}/events`, {
+      type: 'manoeuvre',
+      subtype: 'tack',
+      time: at(1)
+    });
+    await ctx.request('POST', `/entries/${entryId}/events`, {
+      type: 'text_annotation',
+      comment: 'Dolphins'
+    });
+
+    assert.equal((await observations()).total, 0);
+  });
+});
