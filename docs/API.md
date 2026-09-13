@@ -56,13 +56,20 @@ The server registers plugin routes once and never removes them, so they keep ans
 What the UI needs to render its header, in one call.
 
 ```json
-{ "activeEntryId": 42, "detection": "autostate", "motion": "underway", "schemaVersion": 2 }
+{
+  "activeEntryId": 42,
+  "detection": "autostate",
+  "motion": "underway",
+  "propulsion": "engine",
+  "schemaVersion": 2
+}
 ```
 
 As of the last detection cycle, at most 15 seconds old:
 
 - `detection` is `autostate` while a current, recognised `navigation.state` is driving detection — which is what `signalk-autostate` provides — and `fallback` when the speed fallback is (SPEC §4.2). The UI must show the degraded-mode indicator in the latter case (SPEC §2).
 - `motion` is `underway`, `stopped`, or `unknown` when there is no current data to decide.
+- `propulsion` is `engine` or `sail` while under way — from engine data, `navigation.state` or the configured default (SPEC §4.2) — and `null` otherwise.
 - `activeEntryId` is `null` when no passage is open.
 
 ## Entries
@@ -148,7 +155,7 @@ The instrument snapshots behind the facsimile PDF, oldest first. Paginated.
 
 ### `GET /entries/:id/propulsion` — `readonly`
 
-The engine/sail segments, oldest first. Paginated.
+The engine/sail segments, oldest first. Paginated. They cover only time under way, so a stop leaves a gap; the ongoing segment has `endTime: null`.
 
 ### `PATCH /propulsion/:id` — `readwrite`
 
@@ -157,6 +164,8 @@ The engine/sail segments, oldest first. Paginated.
 ```
 
 Corrects a mis-detected segment (SPEC §4.2). The segment is flagged `source: "manual"`, the entry's durations are recomputed, and a `manual_correction` event is added to the timeline at the segment's start time, with the before and after in its payload. Setting the type a segment already has changes nothing.
+
+Correcting the **ongoing** segment holds until the engine data changes: detection does not revert it on its next cycle just because the sensors — or the configured default — still say otherwise.
 
 ## Events
 

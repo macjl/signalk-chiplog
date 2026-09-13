@@ -2,6 +2,7 @@ const { registerRoutes } = require('./lib/api');
 const { openDatabase } = require('./lib/database');
 const { createPassageDetector, DETECTION_DEFAULTS, TICK_INTERVAL_MS } = require('./lib/detection');
 const { ApiError } = require('./lib/errors');
+const { PROPULSION_DEFAULTS } = require('./lib/propulsion-detector');
 const { createTrackRecorder, SAMPLE_INTERVAL_MS, TRACK_DEFAULTS } = require('./lib/track-recorder');
 
 const DEFAULT_PLACE_MATCH_RADIUS = 200;
@@ -16,9 +17,10 @@ function readVesselPosition(app) {
     : null;
 }
 
-function describeDetection({ mode, motion, activeEntryId }) {
+function describeDetection({ mode, motion, propulsion, activeEntryId }) {
+  const under = propulsion === null ? '' : ` under ${propulsion}`;
   const passage = activeEntryId === null ? '' : `, passage ${activeEntryId} open`;
-  return `${MOTION_LABELS[motion]}${passage} (${MODE_LABELS[mode]})`;
+  return `${MOTION_LABELS[motion]}${under}${passage} (${MODE_LABELS[mode]})`;
 }
 
 module.exports = function (app) {
@@ -53,6 +55,14 @@ module.exports = function (app) {
           'Used only without signalk-autostate: the vessel counts as under way when its average speed over ground exceeds this, and as stopped below half of it',
         default: DETECTION_DEFAULTS.fallbackUnderwaySpeed,
         minimum: 0.1
+      },
+      defaultPropulsion: {
+        type: 'string',
+        title: 'Propulsion assumed without engine data',
+        description:
+          'Used when neither propulsion.*.revolutions, propulsion.*.state nor navigation.state says whether the engine is running',
+        enum: ['sail', 'engine'],
+        default: PROPULSION_DEFAULTS.defaultPropulsion
       },
       trackIntervalSeconds: {
         type: 'number',
@@ -113,6 +123,7 @@ module.exports = function (app) {
         stopClosureMinutes: config.stopClosureMinutes ?? DETECTION_DEFAULTS.stopClosureMinutes,
         fallbackUnderwaySpeed:
           config.fallbackUnderwaySpeed ?? DETECTION_DEFAULTS.fallbackUnderwaySpeed,
+        defaultPropulsion: config.defaultPropulsion ?? PROPULSION_DEFAULTS.defaultPropulsion,
         trackIntervalSeconds: config.trackIntervalSeconds ?? TRACK_DEFAULTS.trackIntervalSeconds,
         placeMatchRadius: config.placeMatchRadius ?? DEFAULT_PLACE_MATCH_RADIUS,
         usbExportPath: config.usbExportPath || null
@@ -166,7 +177,11 @@ module.exports = function (app) {
           config: settings,
           now: () => new Date().toISOString(),
           vesselPosition: () => readVesselPosition(app),
-          detection: () => ({ mode: detector.mode(), motion: detector.motion() })
+          detection: () => ({
+            mode: detector.mode(),
+            motion: detector.motion(),
+            propulsion: detector.propulsion()
+          })
         };
       },
       logError: (err) => app.error(`API request failed: ${err.stack ?? err}`)

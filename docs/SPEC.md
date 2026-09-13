@@ -70,6 +70,14 @@ No notion of author per event/annotation in V1: the logbook is a single shared d
 
 - Automatic engine/sail detection, logged with metadata (average RPM, duration); manual correction possible on an existing entry.
 
+**Engine or sail** (implemented in `lib/propulsion-detector.js`, evaluated with passage detection):
+
+- **Source, in order of trust.** Current `propulsion.*.revolutions` — any engine turning means engine, which covers twin-engine boats; otherwise current `propulsion.*.state` (`started`/`stopped`, as published by `signalk-alternator-engine-on`); otherwise `navigation.state` (`motoring`/`sailing`); otherwise the configured `defaultPropulsion` (`sail` by default, like signalk-autostate). Engine data is current for 2 minutes after it last changed. Engine off while under way counts as sail.
+- **Segments only cover time under way.** A passage's first segment starts at its departure; a stop ends the current segment when the vessel stopped, and moving again starts a new one when it started moving — an engine idling at a lock is not motoring time. Engine plus sail duration is therefore time under way.
+- **Durations are kept current** during a passage, the open segment counting up to now.
+- **Average RPM** is kept for engine segments, over the running engines.
+- **Corrections hold.** A manual correction of the ongoing segment lasts until the engine data actually changes, so a boat whose sensors keep reporting the old value — or that has none — keeps the correction rather than reverting on the next cycle. After a restart, an automatic segment that disagrees with the engine is split.
+
 **Stopped/underway and passages** (implemented in `lib/detection.js`), evaluated every 15 seconds:
 
 - **Decision.** `navigation.state` decides, when it is current and a recognised value: `moored`, `anchored`, `aground` and `not-under-way` mean stopped; `sailing`, `motoring` and the working statuses (fishing, towing…) mean under way. Otherwise the **speed fallback** decides: speed over ground averaged over 3 minutes, under way above the configured speed (1 kn by default) and stopped below half of it. Averaging keeps a boat swinging at anchor from starting a passage; the gap between the two thresholds keeps it from flickering.
@@ -167,6 +175,7 @@ Deferred to V2: implementation of handwritten annotations (the vector format is 
 | Handwritten annotation format | Vector (timestamped strokes/points + pressure), fixed in the data model now even though implementation is V2 |
 | Author / multi-crew | No author concept in V1 (V2 if the need is confirmed) |
 | signalk-autostate dependency | Optional, with internal fallback (SOG threshold) if absent |
+| Engine/sail sources | `propulsion.*.revolutions`, then `propulsion.*.state`, then `navigation.state`, then a configurable default (`sail`); segments only cover time under way (§4.2) |
 | Speed fallback | SOG averaged over 3 min; under way above a configurable speed (1 kn), stopped below half of it. Transitions dated from raw speed in both modes (§4.2) |
 | GPS track sampling | Configurable fixed interval (15 s) + extra point on a 15° course or 1 kn speed change (§4.1) |
 | PDF export | Traditional logbook facsimile, delivered in V1.1 |
@@ -188,6 +197,6 @@ Deferred to V2: implementation of handwritten annotations (the vector format is 
 
 1. ~~Define the precise SQLite schema (DDL) and the plugin's REST API.~~ Done — see [DATA_MODEL.md](DATA_MODEL.md) and [API.md](API.md).
 2. ~~Implement the REST API defined in [API.md](API.md) on top of the schema.~~ Done, with tests. `getOpenApi()` and the PDF export (V1.1) remain.
-3. ~~Stopped/underway and passage detection.~~ Done (§4.2), with track recording (§4.1). Still to build on it: engine/sail segments, observations, automatic events (§4.6), and online geocoding of place names (§4.8).
+3. ~~Stopped/underway and passage detection.~~ Done (§4.2), with track recording (§4.1) and engine/sail segments. Still to build on it: observations, automatic events (§4.6), and online geocoding of place names (§4.8).
 4. Mock up the tablet entry screen (PWA) — at least the manoeuvres/text-annotations part for V1, with the handwriting canvas mockable in parallel to prepare V2.
 5. Settle the SK paths to monitor for automatic events (§4.6); the manoeuvre shortcut list is now seeded by the schema.

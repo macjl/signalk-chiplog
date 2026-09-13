@@ -59,6 +59,8 @@ The index on `(lat, lon)` supports a bounding-box prefilter; the exact radius te
 
 Engine vs sail periods within an entry (SPEC §4.2), with `average_rpm` and a `source` flag marking segments a user has manually corrected.
 
+Segments cover only time **under way**: a stop ends one and moving again starts the next, so there are gaps during stops and `engine_duration + sail_duration` on the entry is time under way, not elapsed time. At most one segment is open (`end_time IS NULL`) — the ongoing one of the active entry — and it counts up to now in the entry's durations, which are rewritten on every detection cycle while under way.
+
 ### `manoeuvre_types`
 
 The shortcut list (SPEC §4.3). Built-in entries are seeded by the migration with `builtin = 1`; users may disable or reorder them (`enabled`, `sort_order`) and add their own. Seeding uses `ON CONFLICT DO NOTHING`, so a user's edits to a built-in row survive restarts.

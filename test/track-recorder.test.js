@@ -6,6 +6,7 @@ const { describe, it, afterEach } = require('node:test');
 const { openDatabase } = require('../lib/database');
 const { createPassageDetector, DETECTION_DEFAULTS, TICK_INTERVAL_MS } = require('../lib/detection');
 const { distanceBetween } = require('../lib/places');
+const { PROPULSION_DEFAULTS } = require('../lib/propulsion-detector');
 const { createTrackRecorder, TRACK_DEFAULTS } = require('../lib/track-recorder');
 
 const KNOT = 1852 / 3600;
@@ -22,6 +23,7 @@ function createVessel({ settings = {} } = {}) {
   const self = {};
   const allSettings = {
     ...DETECTION_DEFAULTS,
+    ...PROPULSION_DEFAULTS,
     ...TRACK_DEFAULTS,
     placeMatchRadius: 200,
     ...settings
