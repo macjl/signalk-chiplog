@@ -174,16 +174,25 @@ describe('entries', () => {
   });
 
   describe('POST /entries/:id/close', () => {
-    it('closes an active entry at the current vessel position', async () => {
+    it('closes at the stop detection already saw, at the current vessel position', async () => {
       const id = insertEntry(ctx.db, { state: 'active', stopped_since: at(1) });
 
       const { status, body } = await ctx.request('POST', `/entries/${id}/close`);
 
       assert.equal(status, 200);
       assert.equal(body.state, 'closed');
-      assert.ok(body.endTime);
+      assert.equal(body.endTime, at(1));
       assert.equal(body.stoppedSince, null);
       assert.deepEqual(body.endPosition, { lat: 46.5, lon: -1.79 });
+    });
+
+    it('closes now when no stop has been detected', async () => {
+      const id = insertEntry(ctx.db, { state: 'active' });
+      const before = new Date().toISOString();
+
+      const { body } = await ctx.request('POST', `/entries/${id}/close`);
+
+      assert.ok(body.endTime >= before);
     });
 
     it('answers 409 for an entry already closed', async () => {

@@ -8,21 +8,43 @@ describe('plugin', () => {
   afterEach(() => ctx?.close());
 
   describe('GET /state', () => {
-    it('reports the active entry and autostate-driven detection', async () => {
-      ctx = await startServer({ self: { navigation: { state: { value: 'sailing' } } } });
-      const id = insertEntry(ctx.db, { state: 'active' });
+    it('opens a passage from a fresh navigation.state as soon as the plugin starts', async () => {
+      ctx = await startServer({
+        self: {
+          navigation: { state: { value: 'sailing', timestamp: new Date().toISOString() } }
+        }
+      });
 
       const { status, body } = await ctx.request('GET', '/state');
 
       assert.equal(status, 200);
-      assert.deepEqual(body, { activeEntryId: id, detection: 'autostate', schemaVersion: 1 });
+      assert.equal(body.detection, 'autostate');
+      assert.equal(body.motion, 'underway');
+      assert.equal(body.schemaVersion, 2);
+      const entry = await ctx.request('GET', `/entries/${body.activeEntryId}`);
+      assert.equal(entry.body.state, 'active');
     });
 
-    it('reports fallback detection when navigation.state is absent', async () => {
-      ctx = await startServer();
+    it('ignores a navigation.state left over from long ago', async () => {
+      ctx = await startServer({
+        self: { navigation: { state: { value: 'sailing', timestamp: '2026-01-01T00:00:00.000Z' } } }
+      });
+
       const { body } = await ctx.request('GET', '/state');
-      assert.equal(body.activeEntryId, null);
-      assert.equal(body.detection, 'fallback');
+
+      assert.deepEqual(body, {
+        activeEntryId: null,
+        detection: 'fallback',
+        motion: 'unknown',
+        schemaVersion: 2
+      });
+    });
+
+    it('reports the active entry', async () => {
+      ctx = await startServer();
+      const id = insertEntry(ctx.db, { state: 'active', last_moving_at: new Date().toISOString() });
+      const { body } = await ctx.request('GET', '/state');
+      assert.equal(body.activeEntryId, id);
     });
   });
 

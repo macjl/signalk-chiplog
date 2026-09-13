@@ -56,10 +56,14 @@ The server registers plugin routes once and never removes them, so they keep ans
 What the UI needs to render its header, in one call.
 
 ```json
-{ "activeEntryId": 42, "detection": "autostate", "schemaVersion": 1 }
+{ "activeEntryId": 42, "detection": "autostate", "motion": "underway", "schemaVersion": 2 }
 ```
 
-`detection` is `autostate` when `navigation.state` is being published — which is what `signalk-autostate` does — and `fallback` otherwise, in which case the UI must show the degraded-mode indicator (SPEC §2). `activeEntryId` is `null` when no passage is open.
+As of the last detection cycle, at most 15 seconds old:
+
+- `detection` is `autostate` while a current, recognised `navigation.state` is driving detection — which is what `signalk-autostate` provides — and `fallback` when the speed fallback is (SPEC §4.2). The UI must show the degraded-mode indicator in the latter case (SPEC §2).
+- `motion` is `underway`, `stopped`, or `unknown` when there is no current data to decide.
+- `activeEntryId` is `null` when no passage is open.
 
 ## Entries
 
@@ -95,6 +99,8 @@ One entry, with the counts the detail view needs:
 }
 ```
 
+On an active entry, `endPosition` is the last position detection saw — not yet an arrival.
+
 ### `PATCH /entries/:id` — `readwrite`
 
 Accepts `startTime`, `endTime`, `startPosition`, `endPosition`, `startPlaceName`, `endPlaceName`, `distance`.
@@ -106,7 +112,9 @@ Accepts `startTime`, `endTime`, `startPosition`, `endPosition`, `startPlaceName`
 
 ### `POST /entries/:id/close` — `readwrite`
 
-Closes an open entry now, with no request body. If it has no end position yet, the vessel's current position is used. `409 entry_already_closed` if it is already closed.
+Closes an open entry, with no request body — confirming an arrival, or ending a passage detection has not ended. If detection has already seen the vessel stop (`stoppedSince`), that is the end time; otherwise it is now. The end position is the one detection recorded, or failing that the vessel's current position. `409 entry_already_closed` if it is already closed.
+
+Detection does not reopen an entry closed while the boat is still moving: the next passage starts at the next real departure.
 
 ### `POST /entries/:id/merge` — `readwrite`
 

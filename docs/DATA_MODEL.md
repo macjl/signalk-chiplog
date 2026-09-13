@@ -22,7 +22,11 @@ One row per passage (start → underway → stop), per SPEC §3.1.
 
 `state` is `active` or `closed`. A partial unique index enforces **at most one active entry** at a time — one vessel per instance, and passages are sequential, so two open entries would always be a bug.
 
-`stopped_since` supports the configurable short-stop tolerance: it is set when the vessel stops and cleared if it moves again before the threshold elapses. Only once the threshold passes does the entry close.
+`stopped_since` supports the configurable short-stop tolerance: it is set when the vessel stops and cleared if it moves again before the threshold elapses. Only once the threshold passes does the entry close, with `end_time` taken from `stopped_since`.
+
+`last_moving_at` (migration 2) is a heartbeat: passage detection refreshes it about once a minute while under way. It exists for restarts — when the plugin comes back to an open entry, it is the only record of when the boat was last seen moving, and so dates the end of a passage that stopped while the plugin was off. It is not exposed by the API.
+
+While an entry is **active**, `end_lat`/`end_lon` hold the last position seen moving, then the position where the vessel stopped; they become the arrival position when the entry closes. Clients should not present them as an arrival until `state` is `closed`.
 
 `start_place_name` / `end_place_name` are **denormalised on purpose**, alongside the `place_id` references. A logbook is a historical record: renaming a place later (SPEC §4.8) must apply to future passages, not silently rewrite what last year's entries say. The foreign keys are `ON DELETE SET NULL` for the same reason — deleting a place must not erase the name a past entry recorded.
 

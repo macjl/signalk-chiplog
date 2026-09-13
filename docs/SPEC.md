@@ -62,8 +62,18 @@ No notion of author per event/annotation in V1: the logbook is a single shared d
 
 ### 4.2 Engine/sail and stopped/underway detection
 
-- `navigation.state` (via signalk-autostate) drives stopped/underway detection.
 - Automatic engine/sail detection, logged with metadata (average RPM, duration); manual correction possible on an existing entry.
+
+**Stopped/underway and passages** (implemented in `lib/detection.js`), evaluated every 15 seconds:
+
+- **Decision.** `navigation.state` decides, when it is current and a recognised value: `moored`, `anchored`, `aground` and `not-under-way` mean stopped; `sailing`, `motoring` and the working statuses (fishing, towing…) mean under way. Otherwise the **speed fallback** decides: speed over ground averaged over 3 minutes, under way above the configured speed (1 kn by default) and stopped below half of it. Averaging keeps a boat swinging at anchor from starting a passage; the gap between the two thresholds keeps it from flickering.
+- **Dating and placing transitions.** signalk-autostate works from distance covered over a window, so it announces a departure several minutes late, when the boat has already left the harbour. Whatever decided, the departure is dated when raw speed first left standstill and placed where the vessel was last still; an arrival is dated when raw speed first dropped to standstill. This is what makes departure and arrival positions fall within a known place's radius (§4.8), which is filled in automatically.
+- **Short stops.** A stop marks the entry as stopped; moving again within the tolerance (`stopClosureMinutes`, 30 by default) resumes it; staying stopped closes it, with the end time set to when the vessel stopped — not when the tolerance ran out.
+- **Only a transition opens a passage.** An entry closed by hand while the boat is still moving is not reopened; the next real departure opens the next one.
+- **Stale data.** A value counts as current while its timestamp keeps changing — measured by the plugin's own clock rather than by comparing timestamps to it, since a Raspberry Pi without a real-time clock can boot with the wrong date. Without current data, detection neither opens nor ends a passage.
+- **Restarts.** While under way, the entry records its last movement about once a minute. If the plugin starts to find a passage open with no movement for longer than the tolerance — typically power switched off on arrival — the passage is closed at that last movement. A restart shorter than the tolerance carries on with the same passage; a longer one mid-passage splits it, which the manual merge (§3.1) repairs.
+
+Known limitation: timestamps written to the logbook come from the host's clock, so a host whose clock is wrong records wrong times. Keep the clock set from GPS (e.g. with the `signalk-set-system-time` plugin).
 
 ### 4.3 Manoeuvre shortcuts
 
@@ -151,6 +161,7 @@ Deferred to V2: implementation of handwritten annotations (the vector format is 
 | Handwritten annotation format | Vector (timestamped strokes/points + pressure), fixed in the data model now even though implementation is V2 |
 | Author / multi-crew | No author concept in V1 (V2 if the need is confirmed) |
 | signalk-autostate dependency | Optional, with internal fallback (SOG threshold) if absent |
+| Speed fallback | SOG averaged over 3 min; under way above a configurable speed (1 kn), stopped below half of it. Transitions dated from raw speed in both modes (§4.2) |
 | GPS track sampling | Configurable fixed interval + extra point on heading/speed delta |
 | PDF export | Traditional logbook facsimile, delivered in V1.1 |
 | Automatic SK events (beyond engine/sail/manoeuvre) | Critical notifications, autopilot, configurable weather thresholds |
@@ -165,13 +176,12 @@ Deferred to V2: implementation of handwritten annotations (the vector format is 
 - Exact list of Signal K notification paths considered "critical" (MOB, engine alarm, anchor watch...).
 - Default values for configurable weather thresholds (wind, etc.) and the GPS interval.
 - Precise layout template for the facsimile PDF (to be mocked up in V1.1).
-- Exact behaviour of the signalk-autostate internal fallback (default SOG threshold, hysteresis to avoid stopped/underway oscillation).
 - Precise choice of online geocoding service (public Nominatim instance vs self-hosted) and default value for the place matching radius.
 
 ## 8. Suggested next steps
 
 1. ~~Define the precise SQLite schema (DDL) and the plugin's REST API.~~ Done — see [DATA_MODEL.md](DATA_MODEL.md) and [API.md](API.md).
 2. ~~Implement the REST API defined in [API.md](API.md) on top of the schema.~~ Done, with tests. `getOpenApi()` and the PDF export (V1.1) remain.
-3. Prototype engine/sail + stopped/underway detection (with and without signalk-autostate) on real/simulated data.
+3. ~~Stopped/underway and passage detection.~~ Done (§4.2). Still to build on it: engine/sail segments, track sampling (§4.1), observations, and online geocoding of place names (§4.8).
 4. Mock up the tablet entry screen (PWA) — at least the manoeuvres/text-annotations part for V1, with the handwriting canvas mockable in parallel to prepare V2.
 5. Settle the SK paths to monitor for automatic events (§4.6); the manoeuvre shortcut list is now seeded by the schema.

@@ -26,7 +26,7 @@ A husky `pre-commit` hook runs `lint-staged`, which applies `eslint --fix` and `
 
 ## Project state
 
-The database schema and the REST API exist. Nothing yet **produces** data: there is no Signal K subscription, no passage detection, no track sampling — entries only appear when written to the database directly. The documents to read before implementing anything:
+The database schema, the REST API and passage detection exist: the plugin opens and closes logbook entries from live Signal K data. Nothing yet records what happens **within** a passage — no track points, engine/sail segments, observations or automatic events — and place names only come from already-known places (no online geocoding). The documents to read before implementing anything:
 
 - [docs/SPEC.md](docs/SPEC.md) — functional spec. §7 is a table of settled decisions that supersedes any assumption drawn from the feature list.
 - [docs/DATA_MODEL.md](docs/DATA_MODEL.md) — schema conventions (SI units, ISO 8601 UTC, naming) and the reasoning behind the non-obvious tables. The authoritative DDL is in `lib/database.js`.
@@ -35,6 +35,8 @@ The database schema and the REST API exist. Nothing yet **produces** data: there
 ## Code layout
 
 `lib/api.js` is the only HTTP-aware module: it parses and validates requests (`lib/validation.js`), calls the resource modules, and maps errors to responses. The resource modules (`entries`, `events`, `places`, `propulsion`, `manoeuvre-types`, `track`, `export`) take a `db` and plain values, run SQL, return `camelCase` objects, and throw `ApiError` (`lib/errors.js`) for not-found and conflict cases. Unit conversion to nautical units happens only in `lib/formats.js`, for human-facing exports.
+
+`lib/detection.js` is the passage state machine; SPEC §4.2 describes its behaviour. `index.js` runs its `tick()` every 15 seconds and reports the outcome as the plugin status. The detector reads Signal K through `getSelfPath` and takes an injectable clock, so `test/detection.test.js` drives it tick by tick through simulated passages rather than real time. It keeps nothing about entries in memory — it rereads the active entry every tick — so API edits (close, merge) are seen immediately. What it does keep in memory (speed samples, freshness, the previous motion) is lost on restart by design; anything needed across a restart is persisted on the entry.
 
 `index.js` owns the plugin lifecycle and hands the API a `getContext()` that throws `503` when the database is closed. This matters because the server calls `registerWithRouter` once — before `start()`, even while the plugin is disabled — and never removes the routes.
 
@@ -52,7 +54,7 @@ Decisions already settled that shape implementation work:
 
 - **Storage**: one SQLite database in the plugin's data folder, holding log entries, events, GPS track points, places, and annotations. GPX is generated on demand from track points, never stored as a file. Accessed via Node's built-in `node:sqlite` (hence `engines.node >= 22.13`) — deliberately not a native module, since those are painful to install on Raspberry Pi.
 - **Two UI surfaces**: a standard Signal K webapp (consultation, configuration, export) and a separate installable PWA for tablet/stylus field entry.
-- **`signalk-autostate` is an optional dependency**: when present, stopped/underway state comes from `navigation.state`; when absent, an internal SOG-threshold fallback takes over and the UI must signal degraded mode. Both paths need to work.
+- **`signalk-autostate` is an optional dependency**: when present, stopped/underway state comes from `navigation.state`; when absent, an internal SOG-threshold fallback takes over and the UI must signal degraded mode. Both paths need to work. autostate lags real movement by several minutes, which is why transitions are dated from raw speed whichever mode decided.
 - **One vessel per Signal K instance** — no multi-vessel or multi-profile concepts in the data model.
 - **Handwritten annotations are stored as vector strokes** (timestamped points with pressure), not raster. The feature ships in V2, but the data model reserves the format now so no migration is needed later.
 - **Log entry granularity**: a start → underway → stop cycle, with a configurable stop-duration threshold tolerating short stops (lock waits, lunch anchorages) within a single entry.
