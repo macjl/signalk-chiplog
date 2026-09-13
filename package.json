@@ -1,0 +1,20 @@
+{
+  "name": "signalk-chiplog",
+  "version": "0.1.0",
+  "description": "Automated digital logbook plugin for Signal K, with keyboard/handwritten entry on tablet",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"no tests yet\" && exit 0"
+  },
+  "keywords": [
+    "signalk-node-server-plugin",
+    "signalk",
+    "logbook"
+  ],
+  "author": "Cedric RICARD <ricard33@gmail.com>",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {}
+}
