@@ -17,7 +17,10 @@ npm run lint:fix      # eslint . --fix
 npm run format        # prettier --write .
 npm run format:check  # prettier --check .
 node scripts/vendor.js  # refresh public/vendor/ (also run by `prepare` on npm install)
+npm run demo:seed -- <data dir>  # four demo passages around La Rochelle, dated relative to now
 ```
+
+`scripts/seed-demo.js` writes straight into `<data dir>/chiplog.sqlite` (for a Signal K install: `~/.signalk/plugin-config-data/signalk-chiplog`, with the plugin stopped) and refuses a logbook that already holds passages. It covers what the webapp shows — a midnight-spanning passage, a pending place name, every event type, an active passage — so extend it alongside new UI features; `test/seed-demo.test.js` checks that coverage.
 
 Tests use Node's built-in `node:test` — no framework dependency, matching the `node:sqlite` choice. `test/helpers.js` starts the plugin behind a real Express 4 app (the version signalk-server uses) with a router that mimics the server's `asPluginRouter`, recording the access level of each route. Tests seed data by writing SQL directly, since no API route creates entries.
 
