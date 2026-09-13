@@ -5,6 +5,11 @@ const TRACK_COLOUR = '#e8590c';
 const DEPARTURE_COLOUR = '#2b8a3e';
 const ARRIVAL_COLOUR = '#c92a2a';
 
+// Signal K serves every page with `Referrer-Policy: no-referrer`, and the
+// OpenStreetMap tile servers answer a request without a Referer with an
+// "Access blocked" tile. Send the origin only, as browsers do by default.
+const TILE_REFERRER_POLICY = 'strict-origin-when-cross-origin';
+
 // Leaflet renders a string tooltip as HTML; place names are typed by the crew.
 function textTooltip(text) {
   const element = document.createElement('span');
@@ -23,10 +28,12 @@ export function TrackMap({ track, entry }) {
     const instance = L.map(container.current, { scrollWheelZoom: false });
     const streets = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
+      referrerPolicy: TILE_REFERRER_POLICY,
       attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     }).addTo(instance);
     const seamarks = L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', {
       maxZoom: 18,
+      referrerPolicy: TILE_REFERRER_POLICY,
       attribution: '© <a href="https://www.openseamap.org">OpenSeaMap</a>'
     }).addTo(instance);
     L.control.layers({ OpenStreetMap: streets }, { [t('map.seamarks')]: seamarks }).addTo(instance);
