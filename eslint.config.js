@@ -16,8 +16,27 @@ module.exports = [
       'no-unused-vars': ['warn', { args: 'none' }]
     }
   },
+  {
+    files: ['public/**/*.mjs'],
+    languageOptions: {
+      sourceType: 'module',
+      globals: {
+        ...globals.browser,
+        L: 'readonly'
+      }
+    }
+  },
+  {
+    files: ['test/**/*.mjs'],
+    languageOptions: {
+      sourceType: 'module',
+      globals: {
+        ...globals.node
+      }
+    }
+  },
   prettierConfig,
   {
-    ignores: ['node_modules/', 'docs/']
+    ignores: ['node_modules/', 'docs/', 'public/vendor/']
   }
 ];

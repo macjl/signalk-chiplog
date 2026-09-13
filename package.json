@@ -3,26 +3,36 @@
   "version": "0.1.0",
   "description": "Automated digital logbook plugin for Signal K, with keyboard/handwritten entry on tablet",
   "main": "index.js",
+  "files": [
+    "index.js",
+    "lib/",
+    "public/"
+  ],
   "scripts": {
     "test": "node --test",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepare": "husky"
+    "prepare": "husky && node scripts/vendor.js"
   },
   "keywords": [
     "signalk-node-server-plugin",
+    "signalk-webapp",
     "signalk",
     "logbook"
   ],
+  "signalk": {
+    "displayName": "Chiplog",
+    "appIcon": "./icon.svg"
+  },
   "author": "Cedric RICARD <ricard33@gmail.com>",
   "license": "MIT",
   "engines": {
     "node": ">=22.13.0"
   },
   "lint-staged": {
-    "*.js": [
+    "*.{js,mjs}": [
       "eslint --fix",
       "prettier --write"
     ],
@@ -36,8 +46,11 @@
     "eslint-config-prettier": "^10.1.8",
     "express": "^4.22.2",
     "globals": "^17.12.0",
+    "htm": "^3.1.1",
     "husky": "^9.1.7",
+    "leaflet": "^1.9.4",
     "lint-staged": "^17.5.1",
+    "preact": "^10.29.8",
     "prettier": "^3.9.6"
   }
 }

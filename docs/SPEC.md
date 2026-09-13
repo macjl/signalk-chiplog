@@ -21,7 +21,7 @@ Functional references: [meri-imperiumi/signalk-logbook](https://github.com/meri-
 - **Stopped/underway detection**: `signalk-autostate` as an **optional** dependency. If present and active, Chiplog reads `navigation.state`. If absent, a minimal internal fallback (configurable SOG speed threshold) takes over in degraded mode, with a UI indicator flagging that detection is running in simplified mode.
 - **Engine/sail detection**: automatic, based on `propulsion.*.state`/`revolutions` and `navigation.state`/`sailing` (depending on what autostate exposes), with the option to manually correct an entry afterwards.
 - **User interfaces** (two distinct surfaces):
-  - **Standard Signal K webapp**: log consultation, plugin configuration, export.
+  - **Standard Signal K webapp**: log consultation, plugin configuration, export. Implemented in `public/`, served by Signal K at `/signalk-chiplog/`: day-grouped log, passage page (map, engine/sail strip, logbook lines), corrections (place names, engine/sail, close, merge, delete) and export (downloads, USB write). Plugin configuration stays in the Signal K admin, which the webapp links to.
   - **Dedicated, installable PWA, tablet/stylus-oriented**: real-time field entry (handwritten annotations, manoeuvre shortcuts), designed for use at the helm, with gloves or wet fingers.
 - **Storage**: a single **SQLite** database in the plugin's data folder, covering entries, events, GPS track, and annotations (including vectorized handwritten strokes), accessed through Node's built-in `node:sqlite` module. The GPS track remains exportable as GPX on demand (generated from the database, not stored as a separate file).
 - **Instance scope**: one vessel per Signal K instance (standard usage for SK plugins) — no multi-profile/multi-fleet management in the data model.
@@ -205,6 +205,9 @@ Deferred to V2: implementation of handwritten annotations (the vector format is 
 | Critical notifications | Any notification in `alarm` or `emergency`, whatever its path (§4.6) |
 | Weather thresholds | True wind averaged over 2 min against configurable speeds (20 and 30 kn); barometric fall of 4 hPa over 3 h (§4.6) |
 | Events between passages | Attached to the last passage while within 1 nm of its arrival; otherwise not logged (§4.6) |
+| Webapp stack | Preact + htm as one vendored ES module, no build step, no CDN (a boat is usually offline); Leaflet for the map. The tablet PWA is to reuse it |
+| Webapp languages | English and French, chosen from the browser (`?lang=` overrides) |
+| Map tiles | OpenStreetMap with the OpenSeaMap seamark overlay, online; offline the track is still drawn on a blank map. Offline charts are V2 |
 | Instrument snapshots | At departure, hourly on the clock (configurable), at arrival and with each live manoeuvre (§4.5.1) |
 | Speed fallback | SOG averaged over 3 min; under way above a configurable speed (1 kn), stopped below half of it. Transitions dated from raw speed in both modes (§4.2) |
 | GPS track sampling | Configurable fixed interval (15 s) + extra point on a 15° course or 1 kn speed change (§4.1) |
@@ -227,5 +230,5 @@ Deferred to V2: implementation of handwritten annotations (the vector format is 
 2. ~~Implement the REST API defined in [API.md](API.md) on top of the schema.~~ Done, with tests. `getOpenApi()` and the PDF export (V1.1) remain.
 3. ~~Stopped/underway and passage detection.~~ Done (§4.2), with track recording (§4.1), engine/sail segments, instrument snapshots (§4.5.1), automatic events (§4.6) and place names with online geocoding (§4.8). The plugin's data side is complete.
 4. Mock up the tablet entry screen (PWA) — at least the manoeuvres/text-annotations part for V1, with the handwriting canvas mockable in parallel to prepare V2.
-5. Build the consultation webapp: day-grouped log, map with the track, corrections, export — including OpenStreetMap attribution for geocoded names.
+5. ~~Build the consultation webapp.~~ Done (§2). Not in it yet: a places page and manoeuvre-shortcut management.
 6. Scheduled USB export (§4.5), then the facsimile PDF (V1.1).

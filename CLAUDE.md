@@ -9,13 +9,14 @@ All project artifacts — code, comments, documentation, commit messages — are
 ## Commands
 
 ```bash
-npm test                                           # node --test, every test/*.test.js
+npm test                                           # node --test, every test/*.test.{js,mjs}
 node --test test/entries.test.js                   # one file
 node --test --test-name-pattern="merge" test/      # tests whose name matches
 npm run lint          # eslint .
 npm run lint:fix      # eslint . --fix
 npm run format        # prettier --write .
 npm run format:check  # prettier --check .
+node scripts/vendor.js  # refresh public/vendor/ (also run by `prepare` on npm install)
 ```
 
 Tests use Node's built-in `node:test` — no framework dependency, matching the `node:sqlite` choice. `test/helpers.js` starts the plugin behind a real Express 4 app (the version signalk-server uses) with a router that mimics the server's `asPluginRouter`, recording the access level of each route. Tests seed data by writing SQL directly, since no API route creates entries.
@@ -26,7 +27,7 @@ A husky `pre-commit` hook runs `lint-staged`, which applies `eslint --fix` and `
 
 ## Project state
 
-The plugin's data side is in place: it opens and closes logbook entries from live Signal K data and records their track, distance, engine/sail segments, instrument snapshots and automatic events (alarms, autopilot, weather thresholds), names departures and arrivals (known places, then online geocoding), and serves it all through the REST API. Not yet built: any UI, the scheduled USB export, and the PDF export. The documents to read before implementing anything:
+The plugin's data side is in place: it opens and closes logbook entries from live Signal K data and records their track, distance, engine/sail segments, instrument snapshots and automatic events (alarms, autopilot, weather thresholds), names departures and arrivals (known places, then online geocoding), and serves it all through the REST API. The consultation webapp exists (below). Not yet built: the tablet entry PWA, the scheduled USB export, and the PDF export. The documents to read before implementing anything:
 
 - [docs/SPEC.md](docs/SPEC.md) — functional spec. §7 is a table of settled decisions that supersedes any assumption drawn from the feature list.
 - [docs/DATA_MODEL.md](docs/DATA_MODEL.md) — schema conventions (SI units, ISO 8601 UTC, naming) and the reasoning behind the non-obvious tables. The authoritative DDL is in `lib/database.js`.
@@ -66,6 +67,17 @@ Decisions already settled that shape implementation work:
 ## Database migrations
 
 `lib/database.js` holds a `MIGRATIONS` array applied in order, with the array index tracked in SQLite's `user_version`. Migrations are **append-only**: once an entry has been released, editing or reordering it would leave existing boat installations on a schema that no longer matches the code. Add a new entry instead.
+
+## Webapp
+
+`public/` is the consultation webapp; the `signalk-webapp` keyword makes Signal K serve it at `/signalk-chiplog/`. It has **no build step**: native ES modules (`.mjs`, served as JavaScript) and Preact + htm from a single vendored file, `public/vendor/preact-htm.mjs`. Consequences to keep in mind:
+
+- No bare imports (`import 'preact'`) and no import maps — only relative paths. Third-party browser code comes from `scripts/vendor.js`, which copies it out of `node_modules`; `public/vendor/` is git-ignored but published through the `files` field in `package.json`. Never load anything from a CDN: the boat is usually offline.
+- Pure logic lives in modules that import nothing from `vendor/` (`format.mjs`, `days.mjs`, `i18n.mjs`), so `test/webapp-*.test.mjs` can import them under Node. Components are verified in a real browser against a real Signal K server, not with a DOM test framework.
+- Every user-facing string goes in **both** dictionaries of `public/js/i18n.mjs`; a test fails on a missing key or a mismatched `{placeholder}`.
+- User text is only ever rendered through htm, which escapes it. Leaflet renders string tooltips as HTML, so pass it DOM nodes for anything the crew typed (see `TrackMap.mjs`).
+- Prettier leaves `html` templates alone in `public/` (`embeddedLanguageFormatting: off`): htm drops whitespace that contains a newline, so reflowing a template changes what is displayed. Build text such as `start – end` as one string.
+- The API returns SI units; conversion for display happens only in `format.mjs`.
 
 ## Code style
 
