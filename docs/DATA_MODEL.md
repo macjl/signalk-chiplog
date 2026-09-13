@@ -83,7 +83,9 @@ An event's `time` may fall **after its entry's `end_time`**: alarms and weather 
 
 ### `places`
 
-The gazetteer behind SPEC §4.8. `source` is `geocoding` (proposed by the online lookup) or `manual` (the user corrected it, so it wins on subsequent passages).
+The gazetteer behind SPEC §4.8. `source` is `geocoding` (proposed by the online lookup) or `manual` (the user corrected it, so it wins on subsequent passages). It doubles as the geocoding cache: a departure or arrival within the radius of any place, whatever its source, is named from it without a request.
+
+On `log_entries`, `start_place_pending` and `end_place_pending` (migration 3) flag a name generated from coordinates that online geocoding has yet to answer for. They are cleared when the lookup resolves or finds nothing to name, and as soon as someone sets the name. A pending name follows a corrected position: the generated name is regenerated and the lookup redone.
 
 The index on `(lat, lon)` supports a bounding-box prefilter; the exact radius test runs in application code, since SQLite has no spatial functions here and the candidate set after the bounding box is tiny.
 

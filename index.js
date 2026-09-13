@@ -4,10 +4,15 @@ const { createPassageDetector, DETECTION_DEFAULTS, TICK_INTERVAL_MS } = require(
 const { ApiError } = require('./lib/errors');
 const { createEventWatcher, CHECK_INTERVAL_MS, EVENT_DEFAULTS } = require('./lib/event-watcher');
 const { OBSERVATION_DEFAULTS } = require('./lib/observation-recorder');
+const { createPlaceNamer, GEOCODING_DEFAULTS } = require('./lib/place-names');
 const { PROPULSION_DEFAULTS } = require('./lib/propulsion-detector');
 const { createTrackRecorder, SAMPLE_INTERVAL_MS, TRACK_DEFAULTS } = require('./lib/track-recorder');
 
+const { version } = require('./package.json');
+
 const DEFAULT_PLACE_MATCH_RADIUS = 200;
+const FIRST_NAMING_DELAY_MS = 5 * 1000;
+const NAMING_ERROR_RETRY_MS = 5 * 60 * 1000;
 
 const MOTION_LABELS = { underway: 'Under way', stopped: 'Stopped', unknown: 'Waiting for data' };
 const MODE_LABELS = { autostate: 'navigation.state', fallback: 'speed fallback' };
@@ -30,6 +35,8 @@ module.exports = function (app) {
   let database = null;
   let settings = null;
   let detector = null;
+  let namer = null;
+  let namingTimer = null;
   let timers = [];
   let lastStatus = null;
 
@@ -87,6 +94,19 @@ module.exports = function (app) {
         default: DEFAULT_PLACE_MATCH_RADIUS,
         minimum: 1
       },
+      geocodingEnabled: {
+        type: 'boolean',
+        title: 'Name departures and arrivals with online geocoding',
+        description:
+          "Sends the position of departures and arrivals that match no known place to the geocoding service below. Names come from OpenStreetMap (© OpenStreetMap contributors, ODbL). Without it, they're named after their coordinates until corrected",
+        default: GEOCODING_DEFAULTS.geocodingEnabled
+      },
+      geocodingUrl: {
+        type: 'string',
+        title: 'Geocoding service (Nominatim-compatible)',
+        description: 'The public OpenStreetMap instance by default, or a self-hosted Nominatim',
+        default: GEOCODING_DEFAULTS.geocodingUrl
+      },
       usbExportPath: {
         type: 'string',
         title: 'USB export directory',
@@ -126,6 +146,29 @@ module.exports = function (app) {
     }
   }
 
+  // Geocoding is a network call, so it runs as its own chain of timeouts rather
+  // than inside detection: each lookup says when the next one is due.
+  async function runNaming() {
+    const current = namer;
+    let result;
+    try {
+      result = await current.resolveNext();
+    } catch (err) {
+      app.error(`Place naming failed: ${err.stack ?? err}`);
+      result = { retryInMs: NAMING_ERROR_RETRY_MS };
+    }
+    if (namer !== current || result.outcome === 'stopped') {
+      return;
+    }
+    if (result.outcome === 'failed') {
+      // Expected whenever the boat is out of reach of a network.
+      app.debug(
+        `Geocoding unavailable, retrying in ${Math.round(result.retryInMs / 60000)} min: ${result.error.message}`
+      );
+    }
+    namingTimer = setTimeout(runNaming, result.retryInMs);
+  }
+
   // For work that runs every second: log a failure once, not on every run.
   function guarded(label, work) {
     let failing = false;
@@ -155,6 +198,8 @@ module.exports = function (app) {
           config.observationIntervalMinutes ?? OBSERVATION_DEFAULTS.observationIntervalMinutes,
         trackIntervalSeconds: config.trackIntervalSeconds ?? TRACK_DEFAULTS.trackIntervalSeconds,
         placeMatchRadius: config.placeMatchRadius ?? DEFAULT_PLACE_MATCH_RADIUS,
+        geocodingEnabled: config.geocodingEnabled ?? GEOCODING_DEFAULTS.geocodingEnabled,
+        geocodingUrl: config.geocodingUrl || GEOCODING_DEFAULTS.geocodingUrl,
         usbExportPath: config.usbExportPath || null,
         windSpeedThresholds: config.windSpeedThresholds ?? EVENT_DEFAULTS.windSpeedThresholds,
         pressureDropThreshold: config.pressureDropThreshold ?? EVENT_DEFAULTS.pressureDropThreshold
@@ -177,6 +222,12 @@ module.exports = function (app) {
       settings,
       observe: (entryId, time) => detector.observeEvent(entryId, time)
     });
+    namer = createPlaceNamer({
+      db: database,
+      settings,
+      userAgent: `signalk-chiplog/${version}`
+    });
+    namingTimer = setTimeout(runNaming, FIRST_NAMING_DELAY_MS);
     lastStatus = null;
     runDetection();
     timers = [
@@ -195,6 +246,9 @@ module.exports = function (app) {
   plugin.stop = function () {
     timers.forEach(clearInterval);
     timers = [];
+    clearTimeout(namingTimer);
+    namer?.stop();
+    namer = null;
     detector = null;
     if (database) {
       database.close();

@@ -155,7 +155,15 @@ When creating and closing an entry, Chiplog attempts to associate a **place name
 
 **Remembering corrections**: as soon as the user edits the proposed name (whether it came from online geocoding or the coordinate-generated name), the correction is stored as a **known place** (name + position) and will automatically be reused for any future departure/arrival position falling within the configured radius — with no further call to the online service.
 
-Technical considerations to be scoped during detailed design: local caching of geocoding responses (avoid re-querying the service for the same area), compliance with the chosen online service's usage policy (call frequency, application identification), and an option to configure/disable the online service call for privacy reasons (position sent to a third party).
+**As implemented** (`lib/place-names.js`):
+
+- **Steps 1 and 3 happen at once, step 2 later.** Detection cannot wait on the network — usually absent at sea — so a departure or arrival gets a known place's name immediately or, failing that, a name from its coordinates flagged as *pending*. A background queue then looks pending names up online, newest passage first.
+- **The service** is any Nominatim-compatible endpoint (`geocodingUrl`), the public OpenStreetMap instance by default. `geocodingEnabled` turns lookups off for privacy; pending names then keep their coordinates until corrected, and are looked up if it is turned back on. Its usage policy is respected: an identifying `User-Agent`, at most one request every 2 seconds, and a handful of requests per passage.
+- **Offline is normal.** A failed request keeps the name pending and retries after 5 minutes, doubling up to an hour, so names fill in once the boat is back in range.
+- **Choosing the name.** Near a marina Nominatim answers with the quay's road, and at sea with a bare administrative boundary; neither is a logbook place name. The name is the settlement with its district when there is one — "La Rochelle (Les Minimes)" — or a marina's or harbour's own name when that is what was found. No settlement at all is a final answer: the coordinates stay, and the position is not asked about again.
+- **The places table is the cache.** Each geocoded name becomes a place with `source: geocoding`, so the next departure or arrival within the radius is named from it with no request — and a crew correction of that name (`source: manual`) wins from then on.
+- **A lookup never overrides the crew.** A result is written only if the name is still pending *for the position that was looked up*: a name typed or removed, or a position corrected, while the request was out stays as the crew left it.
+- **Attribution.** Names from the public instance are OpenStreetMap data (© OpenStreetMap contributors, ODbL); a UI displaying them must say so.
 
 ## 5. Data model and API
 
@@ -205,18 +213,19 @@ Deferred to V2: implementation of handwritten annotations (the vector format is 
 | Multi-vessel | One vessel per Signal K instance, no multi-profiles |
 | Remote server target | Undefined for V1; designed as a generic extension point (configurable webhook/API) |
 | Automatic place names | Online geocoding (e.g. Nominatim/OSM) with fallback to already-known local places |
+| Geocoding service | Any Nominatim-compatible endpoint, public OpenStreetMap instance by default, can be disabled; looked up in the background, retried when offline (§4.8) |
 | Place matching radius | A single global configurable radius (no per-place setting in V1) |
 | Place not found (offline, first visit) | Name generated from coordinates, manually correctable |
 
 ### Remaining minor points (non-blocking for starting)
 
 - Precise layout template for the facsimile PDF (to be mocked up in V1.1).
-- Precise choice of online geocoding service (public Nominatim instance vs self-hosted) and default value for the place matching radius.
 
 ## 8. Suggested next steps
 
 1. ~~Define the precise SQLite schema (DDL) and the plugin's REST API.~~ Done — see [DATA_MODEL.md](DATA_MODEL.md) and [API.md](API.md).
 2. ~~Implement the REST API defined in [API.md](API.md) on top of the schema.~~ Done, with tests. `getOpenApi()` and the PDF export (V1.1) remain.
-3. ~~Stopped/underway and passage detection.~~ Done (§4.2), with track recording (§4.1), engine/sail segments, instrument snapshots (§4.5.1) and automatic events (§4.6). Still to build: online geocoding of place names (§4.8).
+3. ~~Stopped/underway and passage detection.~~ Done (§4.2), with track recording (§4.1), engine/sail segments, instrument snapshots (§4.5.1), automatic events (§4.6) and place names with online geocoding (§4.8). The plugin's data side is complete.
 4. Mock up the tablet entry screen (PWA) — at least the manoeuvres/text-annotations part for V1, with the handwriting canvas mockable in parallel to prepare V2.
-5. Settle the SK paths to monitor for automatic events (§4.6); the manoeuvre shortcut list is now seeded by the schema.
+5. Build the consultation webapp: day-grouped log, map with the track, corrections, export — including OpenStreetMap attribution for geocoded names.
+6. Scheduled USB export (§4.5), then the facsimile PDF (V1.1).

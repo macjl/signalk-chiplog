@@ -21,7 +21,7 @@ describe('plugin', () => {
       assert.equal(body.detection, 'autostate');
       assert.equal(body.motion, 'underway');
       assert.equal(body.propulsion, 'sail');
-      assert.equal(body.schemaVersion, 2);
+      assert.equal(body.schemaVersion, 3);
       const entry = await ctx.request('GET', `/entries/${body.activeEntryId}`);
       assert.equal(entry.body.state, 'active');
     });
@@ -38,7 +38,7 @@ describe('plugin', () => {
         detection: 'fallback',
         motion: 'unknown',
         propulsion: null,
-        schemaVersion: 2
+        schemaVersion: 3
       });
     });
 

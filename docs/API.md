@@ -97,6 +97,8 @@ One entry, with the counts the detail view needs:
   "endPlaceId": 7,
   "startPlaceName": "La Rochelle",
   "endPlaceName": "Les Sables-d'Olonne",
+  "startPlacePending": false,
+  "endPlacePending": false,
   "distance": 68500,
   "engineDuration": 4200,
   "sailDuration": 30330,
@@ -108,6 +110,8 @@ One entry, with the counts the detail view needs:
 
 On an active entry, `endPosition` is the last position detection saw — not yet an arrival.
 
+`startPlacePending`/`endPlacePending` mean the name was generated from coordinates (`"46.1234N 1.5678W"`) and online geocoding has not answered yet (SPEC §4.8); the name may still change on its own. A UI can show it as provisional. Geocoded names from the public instance are OpenStreetMap data and need its attribution.
+
 ### `PATCH /entries/:id` — `readwrite`
 
 Accepts `startTime`, `endTime`, `startPosition`, `endPosition`, `startPlaceName`, `endPlaceName`, `distance`.
@@ -116,10 +120,11 @@ Accepts `startTime`, `endTime`, `startPosition`, `endPosition`, `startPlaceName`
 - **Renaming a place here is remembered.** Per SPEC §4.8, setting `startPlaceName`/`endPlaceName` also updates the nearest known place within the configured matching radius, or creates one, marking it `source: "manual"`; the entry's `startPlaceId`/`endPlaceId` then points to it. The next passage starting or ending within the radius reuses the name without calling the geocoder. Other entries keep the names they recorded.
 - If the entry has no position on that side, the name is stored on the entry alone and no place is created.
 - `null` clears a name or a position.
+- Setting a name, or clearing it, ends any pending geocoding for that side: a lookup still on its way will not override it. Correcting the position of a side whose name is still pending regenerates that name from the new coordinates and looks it up again.
 
 ### `POST /entries/:id/close` — `readwrite`
 
-Closes an open entry, with no request body — confirming an arrival, or ending a passage detection has not ended. If detection has already seen the vessel stop (`stoppedSince`), that is the end time; otherwise it is now. The end position is the one detection recorded, or failing that the vessel's current position. `409 entry_already_closed` if it is already closed.
+Closes an open entry, with no request body — confirming an arrival, or ending a passage detection has not ended. If detection has already seen the vessel stop (`stoppedSince`), that is the end time; otherwise it is now. The end position is the one detection recorded, or failing that the vessel's current position. Unless the arrival already has a name, it is named as detection would name it: after a known place, or from its coordinates pending geocoding. `409 entry_already_closed` if it is already closed.
 
 Detection does not reopen an entry closed while the boat is still moving: the next passage starts at the next real departure.
 

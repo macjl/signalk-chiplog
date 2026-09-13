@@ -170,7 +170,7 @@ describe('passage detection', () => {
   it('does not reopen a passage closed by hand while still moving', () => {
     boat = createBoat().start().sail(10, { sog: 5 });
     const [entry] = boat.entries();
-    closeEntry(boat.db, entry.id, { now: iso(boat.now), position: null });
+    closeEntry(boat.db, entry.id, { now: iso(boat.now), position: null, placeMatchRadius: 200 });
 
     boat.sail(10, { sog: 5 });
     assert.equal(boat.entries().length, 1);

@@ -45,7 +45,8 @@ async function startServer({ config = {}, self = {} } = {}) {
   const plugin = createPlugin(app);
   const { router, permissions } = createPluginRouter();
   plugin.registerWithRouter(router);
-  plugin.start(config, () => {});
+  // Tests must never reach the public geocoding service.
+  plugin.start({ geocodingEnabled: false, ...config }, () => {});
 
   const server = express();
   server.use(express.json({ limit: '10mb' }));
