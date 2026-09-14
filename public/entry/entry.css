@@ -211,6 +211,11 @@ h2 {
   color: var(--accent);
 }
 
+.icon-button {
+  min-width: 3rem;
+  padding: 0.3rem;
+}
+
 .big-button {
   min-height: var(--target);
   padding: 0.5rem 1rem;

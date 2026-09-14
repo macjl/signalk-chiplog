@@ -20,6 +20,7 @@ const SHELL = [
   'js/strokes.mjs',
   'js/components/AccessGate.mjs',
   'js/components/Dialogs.mjs',
+  'js/components/Icons.mjs',
   'js/components/ManoeuvrePad.mjs',
   'js/components/NotePanel.mjs',
   'js/components/RecentList.mjs',

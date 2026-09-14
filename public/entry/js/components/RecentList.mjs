@@ -2,6 +2,7 @@ import { html, useState } from '../../../vendor/preact-htm.mjs';
 import { fetchAll } from '../../../js/api.mjs';
 import { useLocale, usePolling } from '../../../js/context.mjs';
 import { EventRemark } from '../../../js/components/Timeline.mjs';
+import { PencilIcon, TrashIcon } from './Icons.mjs';
 
 const REFRESH_MS = 30 * 1000;
 const SHOWN = 15;
@@ -94,14 +95,26 @@ export function RecentList({
               <${EventRemark} event=${event} manoeuvreLabels=${manoeuvreLabels} />
             </span>
             <span class="recent-actions">
-              <button type="button" class="tool-button" onClick=${() => onComment(event)}>
-                ${event.type === 'text_annotation' ? t('common.edit') : t('entry.comment')}
+              <button
+                type="button"
+                class="tool-button icon-button"
+                aria-label=${event.type === 'text_annotation' ? t('common.edit') : t('entry.comment')}
+                title=${event.type === 'text_annotation' ? t('common.edit') : t('entry.comment')}
+                onClick=${() => onComment(event)}
+              >
+                <${PencilIcon} />
               </button>
               ${
                 event.source === 'manual' &&
                 CLIENT_TYPES.has(event.type) &&
-                html`<button type="button" class="tool-button danger" onClick=${() => onDelete(event)}>
-                  ${t('entry.delete')}
+                html`<button
+                  type="button"
+                  class="tool-button icon-button danger"
+                  aria-label=${t('entry.delete')}
+                  title=${t('entry.delete')}
+                  onClick=${() => onDelete(event)}
+                >
+                  <${TrashIcon} />
                 </button>`
               }
             </span>

@@ -13,6 +13,7 @@ All notable changes to Chiplog are documented here. The format follows [Keep a C
 
 ### Changed
 
+- The tablet app's comment and delete actions on a recent entry are now icon buttons, keeping the same touch target size.
 - Times are shown on the 24-hour clock in English too.
 
 ### Fixed
