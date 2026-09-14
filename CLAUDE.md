@@ -52,6 +52,8 @@ The plugin's data side is in place: it opens and closes logbook entries from liv
 
 When a design decision is made or changed in conversation, update `docs/SPEC.md` to match; the spec is meant to stay the single source of truth rather than drift behind the code.
 
+[README.md](README.md) is the user documentation — installation, what the logbook records, both apps, settings, troubleshooting. Update it with any user-visible change: a new setting, a changed default, a new screen or behaviour. Menu names it quotes are those of the Signal K 2.x admin.
+
 ## Signal K plugin contract
 
 `index.js` exports `function (app)` returning a plugin object with `id`, `name`, `description`, `schema` (JSON Schema describing user-facing config rendered by the Signal K admin UI), `start(options)` and `stop()`. The `signalk-node-server-plugin` keyword in `package.json` is what makes the Signal K server discover the plugin — do not remove it.
