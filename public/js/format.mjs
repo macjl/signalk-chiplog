@@ -12,7 +12,8 @@ function toDegrees(radians) {
   return (radians * 180) / Math.PI;
 }
 
-export function createFormatter({ locale, units }) {
+// `timeZone` is an IANA zone for dates and times; without it, the device's own.
+export function createFormatter({ locale, units, timeZone }) {
   const number = (digits) =>
     new Intl.NumberFormat(locale, { minimumFractionDigits: digits, maximumFractionDigits: digits });
   const oneDecimal = number(1);
@@ -23,10 +24,32 @@ export function createFormatter({ locale, units }) {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
-    year: 'numeric'
+    year: 'numeric',
+    timeZone
   });
-  const shortDateFormat = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' });
-  const timeFormat = new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' });
+  const shortDateFormat = new Intl.DateTimeFormat(locale, {
+    day: 'numeric',
+    month: 'short',
+    timeZone
+  });
+  // Logbooks keep time on the 24-hour clock, whatever the language.
+  const timeFormat = new Intl.DateTimeFormat(locale, {
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+    timeZone
+  });
+  // en-CA writes dates as YYYY-MM-DD, which sorts.
+  const dayKeyFormat = new Intl.DateTimeFormat('en-CA', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    timeZone
+  });
+  const offsetFormat = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    timeZoneName: 'longOffset'
+  });
 
   function sexagesimal(value, positive, negative, width) {
     const absolute = Math.abs(value);
@@ -79,6 +102,15 @@ export function createFormatter({ locale, units }) {
         : '',
     day: (date) => dayFormat.format(date),
     shortDate: (value) => shortDateFormat.format(new Date(value)),
-    time: (value) => timeFormat.format(new Date(value))
+    time: (value) => timeFormat.format(new Date(value)),
+    // The calendar day of an instant in the formatter's time zone.
+    dayKey: (value) => dayKeyFormat.format(new Date(value)),
+    // "UTC+02:00" at that instant; daylight saving time changes it.
+    utcOffset: (value) => {
+      const zone = offsetFormat
+        .formatToParts(new Date(value))
+        .find((part) => part.type === 'timeZoneName').value;
+      return /^GMT(\+00:00)?$/.test(zone) ? 'UTC' : zone.replace('GMT', 'UTC');
+    }
   };
 }

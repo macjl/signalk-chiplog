@@ -13,6 +13,8 @@ const {
   USB_EXPORT_DEFAULTS
 } = require('./lib/usb-scheduler');
 
+const { isTimeZone, PDF_LANGUAGES } = require('./lib/logbook-pdf');
+
 const { version } = require('./package.json');
 
 const DEFAULT_PLACE_MATCH_RADIUS = 200;
@@ -27,6 +29,13 @@ function readVesselPosition(app) {
   return value && Number.isFinite(value.latitude) && Number.isFinite(value.longitude)
     ? { lat: value.latitude, lon: value.longitude }
     : null;
+}
+
+// Signal K keeps the vessel name as a plain value, not a {value, timestamp} node.
+function readVesselName(app) {
+  const name = app.getSelfPath('name');
+  const text = typeof name === 'string' ? name : name?.value;
+  return typeof text === 'string' && text.trim() !== '' ? text.trim() : null;
 }
 
 function describeDetection({ mode, motion, propulsion, activeEntryId }) {
@@ -132,6 +141,20 @@ module.exports = function (app) {
         title: 'Copy to the USB drive at each arrival',
         default: USB_EXPORT_DEFAULTS.usbExportOnArrival
       },
+      logbookLanguage: {
+        type: 'string',
+        title: 'Logbook language (PDF)',
+        description:
+          'Language of the PDF logbook written to the USB drive; downloads from the webapp use the webapp language',
+        enum: PDF_LANGUAGES,
+        default: 'en'
+      },
+      logbookTimeZone: {
+        type: 'string',
+        title: 'Ship’s time zone (PDF)',
+        description:
+          'IANA time zone the PDF logbook on the USB drive is kept in, e.g. Europe/Paris. Empty uses the server’s time zone; downloads from the webapp use the browser’s'
+      },
       windSpeedThresholds: {
         type: 'array',
         title: 'Wind speed thresholds (knots)',
@@ -207,6 +230,13 @@ module.exports = function (app) {
     };
   }
 
+  const pdfOptions = () => ({
+    language: settings.logbookLanguage,
+    timeZone: settings.logbookTimeZone ?? undefined,
+    vesselName: readVesselName(app),
+    version
+  });
+
   plugin.start = function (config = {}) {
     try {
       const { db, migrated } = openDatabase(app.getDataDirPath());
@@ -226,9 +256,20 @@ module.exports = function (app) {
         usbExportIntervalMinutes:
           config.usbExportIntervalMinutes ?? USB_EXPORT_DEFAULTS.usbExportIntervalMinutes,
         usbExportOnArrival: config.usbExportOnArrival ?? USB_EXPORT_DEFAULTS.usbExportOnArrival,
+        logbookLanguage: PDF_LANGUAGES.includes(config.logbookLanguage)
+          ? config.logbookLanguage
+          : 'en',
+        logbookTimeZone: config.logbookTimeZone || null,
         windSpeedThresholds: config.windSpeedThresholds ?? EVENT_DEFAULTS.windSpeedThresholds,
         pressureDropThreshold: config.pressureDropThreshold ?? EVENT_DEFAULTS.pressureDropThreshold
       };
+
+      if (settings.logbookTimeZone && !isTimeZone(settings.logbookTimeZone)) {
+        app.error(
+          `Unknown time zone "${settings.logbookTimeZone}" for the PDF logbook; using the server's`
+        );
+        settings.logbookTimeZone = null;
+      }
 
       if (migrated.to > migrated.from) {
         app.debug(`Database schema migrated from version ${migrated.from} to ${migrated.to}`);
@@ -255,6 +296,7 @@ module.exports = function (app) {
     usbExport = createUsbExportScheduler({
       db: database,
       settings,
+      pdfOptions,
       log: (level, message) => (level === 'error' ? app.error(message) : app.debug(message))
     });
     namingTimer = setTimeout(runNaming, FIRST_NAMING_DELAY_MS);
@@ -311,6 +353,7 @@ module.exports = function (app) {
           vesselPosition: () => readVesselPosition(app),
           observeEvent: (entryId, time) => detector.observeEvent(entryId, time),
           usbExport,
+          pdfOptions,
           detection: () => ({
             mode: detector.mode(),
             motion: detector.motion(),

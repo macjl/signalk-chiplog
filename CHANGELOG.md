@@ -4,6 +4,19 @@ All notable changes to Chiplog are documented here. The format follows [Keep a C
 
 ## [Unreleased]
 
+### Added
+
+- Facsimile PDF logbook: A4 landscape, a page per day in ship's time, with time, position, course, speed, wind, barometer, depth, engine or sail and remarks; departure and arrival lines with passage totals, day totals, handwritten notes drawn. Downloadable from the export page in the webapp's language and the device's time zone.
+- One PDF per passage in the USB copy, in the new logbook language and ship's time zone settings. Existing copies gain their PDFs at the next copy.
+
+### Changed
+
+- Times are shown on the 24-hour clock in English too.
+
+### Fixed
+
+- An alarm's message is no longer repeated as its comment in the passage log.
+
 ## [1.0.0] - 2026-09-13
 
 First release.

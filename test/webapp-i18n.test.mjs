@@ -37,3 +37,10 @@ describe('webapp translations', () => {
     assert.equal(t('passage.stoppedSince'), 'À l’arrêt depuis {time}');
   });
 });
+
+describe('PDF logbook languages', () => {
+  it('are the webapp languages', async () => {
+    const { PDF_LANGUAGES } = await import('../lib/logbook-pdf.js');
+    assert.deepEqual(PDF_LANGUAGES, LANGUAGES);
+  });
+});

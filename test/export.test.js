@@ -137,10 +137,26 @@ describe('export', () => {
       assert.equal(body.entries[0].entry.startTime, at(48));
     });
 
-    it('answers 501 for PDF, which arrives in V1.1', async () => {
-      const { status, body } = await ctx.request('GET', '/export?format=pdf');
-      assert.equal(status, 501);
-      assert.equal(body.error.code, 'not_implemented');
+    it('serves the facsimile PDF in the requested language and time zone', async () => {
+      seedPassage(ctx.db);
+
+      const { status, headers, text } = await ctx.request(
+        'GET',
+        '/export?format=pdf&lang=fr&tz=Europe/Paris'
+      );
+
+      assert.equal(status, 200);
+      assert.match(headers.get('content-type'), /^application\/pdf/);
+      assert.match(headers.get('content-disposition'), /chiplog\.pdf/);
+      assert.ok(text.startsWith('%PDF-1.4'));
+    });
+
+    it('refuses an unknown language or time zone', async () => {
+      for (const query of ['lang=de', 'tz=Mars/Olympus']) {
+        const { status, body } = await ctx.request('GET', `/export?format=pdf&${query}`);
+        assert.equal(status, 400, query);
+        assert.equal(body.error.code, 'invalid_request');
+      }
     });
   });
 
@@ -169,7 +185,7 @@ describe('export', () => {
       });
     }
 
-    it('writes JSON, CSV and GPX for each passage, named to sort by departure', async () => {
+    it('writes JSON, CSV, GPX and PDF for each passage, named to sort by departure', async () => {
       seedSecondPassage(ctx.db);
       seedPassage(ctx.db);
 
@@ -182,9 +198,11 @@ describe('export', () => {
         '2026-09-13_0800Z_La-Rochelle_Les-Sables.csv',
         '2026-09-13_0800Z_La-Rochelle_Les-Sables.gpx',
         '2026-09-13_0800Z_La-Rochelle_Les-Sables.json',
+        '2026-09-13_0800Z_La-Rochelle_Les-Sables.pdf',
         '2026-09-14_1000Z_Les-Sables_Ile-d-Yeu-Port-Joinville.csv',
         '2026-09-14_1000Z_Les-Sables_Ile-d-Yeu-Port-Joinville.gpx',
-        '2026-09-14_1000Z_Les-Sables_Ile-d-Yeu-Port-Joinville.json'
+        '2026-09-14_1000Z_Les-Sables_Ile-d-Yeu-Port-Joinville.json',
+        '2026-09-14_1000Z_Les-Sables_Ile-d-Yeu-Port-Joinville.pdf'
       ]);
       const json = JSON.parse(
         fs.readFileSync(path.join(usbDir(), '2026-09-13_0800Z_La-Rochelle_Les-Sables.json'), 'utf8')
@@ -239,11 +257,12 @@ describe('export', () => {
       await ctx.request('DELETE', `/entries/${second}`);
       const body = await exportUsb();
 
-      assert.equal(body.removed.length, 6);
+      assert.equal(body.removed.length, 8);
       assert.deepEqual(passageFiles(), [
         '2026-09-13_0800Z_La-Rochelle_Les-Sables-d-Olonne.csv',
         '2026-09-13_0800Z_La-Rochelle_Les-Sables-d-Olonne.gpx',
         '2026-09-13_0800Z_La-Rochelle_Les-Sables-d-Olonne.json',
+        '2026-09-13_0800Z_La-Rochelle_Les-Sables-d-Olonne.pdf',
         'notes.txt'
       ]);
     });
@@ -258,7 +277,8 @@ describe('export', () => {
       assert.deepEqual(passageFiles(), [
         '2026-09-13_0800Z_unnamed_underway.csv',
         '2026-09-13_0800Z_unnamed_underway.gpx',
-        '2026-09-13_0800Z_unnamed_underway.json'
+        '2026-09-13_0800Z_unnamed_underway.json',
+        '2026-09-13_0800Z_unnamed_underway.pdf'
       ]);
 
       ctx.db
@@ -270,7 +290,8 @@ describe('export', () => {
       assert.deepEqual(passageFiles(), [
         '2026-09-13_0800Z_unnamed_Saint-Martin-de-Re.csv',
         '2026-09-13_0800Z_unnamed_Saint-Martin-de-Re.gpx',
-        '2026-09-13_0800Z_unnamed_Saint-Martin-de-Re.json'
+        '2026-09-13_0800Z_unnamed_Saint-Martin-de-Re.json',
+        '2026-09-13_0800Z_unnamed_Saint-Martin-de-Re.pdf'
       ]);
     });
 
@@ -286,7 +307,7 @@ describe('export', () => {
 
       fs.rmSync(path.join(usbDir(), '2026-09-13_0800Z_La-Rochelle_Les-Sables.gpx'));
       assert.equal((await exportUsb()).written, 1);
-      assert.equal(passageFiles().length, 3);
+      assert.equal(passageFiles().length, 4);
     });
 
     it('tells passages starting in the same minute apart', async () => {
@@ -298,7 +319,7 @@ describe('export', () => {
         end_place_name: 'Les Sables'
       });
       await exportUsb();
-      assert.equal(passageFiles().length, 6);
+      assert.equal(passageFiles().length, 8);
       assert.ok(passageFiles().includes('2026-09-13_0800Z_La-Rochelle_Les-Sables_2.json'));
     });
 

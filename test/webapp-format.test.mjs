@@ -52,3 +52,30 @@ describe('display formatting', () => {
     assert.equal(english.position(null), '');
   });
 });
+
+describe('display formatting in a time zone', () => {
+  const paris = createFormatter({
+    locale: 'fr',
+    units: { knots: 'nd', nauticalMiles: 'M' },
+    timeZone: 'Europe/Paris'
+  });
+  const utc = createFormatter({
+    locale: 'en',
+    units: { knots: 'kn', nauticalMiles: 'nm' },
+    timeZone: 'UTC'
+  });
+
+  it('shows times and calendar days in that zone', () => {
+    const lateEvening = '2026-09-13T22:30:00.000Z';
+    assert.equal(paris.time(lateEvening), '00:30');
+    assert.equal(paris.dayKey(lateEvening), '2026-09-14');
+    assert.equal(utc.time(lateEvening), '22:30');
+    assert.equal(utc.dayKey(lateEvening), '2026-09-13');
+  });
+
+  it('names the UTC offset in force, daylight saving included', () => {
+    assert.equal(paris.utcOffset('2026-07-01T12:00:00Z'), 'UTC+02:00');
+    assert.equal(paris.utcOffset('2026-12-01T12:00:00Z'), 'UTC+01:00');
+    assert.equal(utc.utcOffset('2026-07-01T12:00:00Z'), 'UTC');
+  });
+});

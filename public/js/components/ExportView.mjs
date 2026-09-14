@@ -11,8 +11,13 @@ function localMidnight(value, dayOffset = 0) {
   return new Date(year, month - 1, day + dayOffset);
 }
 
-function exportUrl(format, from, to) {
+// The PDF logbook is written in the webapp's language and the device's time zone.
+function exportUrl(format, from, to, language) {
   const params = new URLSearchParams({ format });
+  if (format === 'pdf') {
+    params.set('lang', language);
+    params.set('tz', Intl.DateTimeFormat().resolvedOptions().timeZone);
+  }
   if (from) {
     params.set('from', localMidnight(from).toISOString());
   }
@@ -101,7 +106,7 @@ function UsbResult({ outcome }) {
 }
 
 export function ExportView() {
-  const { t } = useLocale();
+  const { t, language } = useLocale();
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [usb, setUsb] = useState(null);
@@ -157,17 +162,16 @@ export function ExportView() {
       <p class="muted">${t('export.allHint')}</p>
       ${invalid && html`<p class="notice notice-error">${t('export.invalidRange')}</p>`}
       <ul class="downloads">
-        ${['json', 'csv', 'gpx'].map(
+        ${['pdf', 'json', 'csv', 'gpx'].map(
           (format) =>
             html`<li key=${format}>
               ${
                 invalid
                   ? html`<span class="muted">${t(`export.${format}`)}</span>`
-                  : html`<a href=${exportUrl(format, from, to)} download>${t(`export.${format}`)}</a>`
+                  : html`<a href=${exportUrl(format, from, to, language)} download>${t(`export.${format}`)}</a>`
               }
             </li>`
         )}
-        <li><span class="muted">${t('export.pdf')}</span></li>
       </ul>
     </section>
 

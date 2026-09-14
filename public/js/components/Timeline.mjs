@@ -1,6 +1,7 @@
 import { html } from '../../vendor/preact-htm.mjs';
 import { useLocale } from '../context.mjs';
 import { dayKey } from '../days.mjs';
+import { buildRows, describeEvent } from '../log-lines.mjs';
 
 // A dot — the stroke of an i or a full stop — has a single point, which a
 // polyline only draws when given twice.
@@ -46,102 +47,16 @@ export function Strokes({ strokes, label }) {
   `;
 }
 
-function autopilotTarget(target, format) {
-  if (typeof target === 'number') {
-    return format.bearing(target);
-  }
-  const heading = target?.headingTrue ?? target?.headingMagnetic;
-  if (heading !== undefined) {
-    return format.bearing(heading);
-  }
-  const windAngle = target?.windAngleApparent ?? target?.windAngleTrue;
-  return windAngle === undefined ? '' : format.angle(windAngle);
-}
-
 export function EventRemark({ event, manoeuvreLabels }) {
   const { t, format } = useLocale();
-  const payload = event.payload ?? {};
-  const comment = event.comment ? html` — ${event.comment}` : '';
-
-  switch (event.type) {
-    case 'manoeuvre': {
-      const key = `manoeuvre.${event.subtype}`;
-      const label = t.has(key) ? t(key) : (manoeuvreLabels[event.subtype] ?? event.subtype);
-      const sailName = t.has(`sail.${payload.sail}`) ? t(`sail.${payload.sail}`) : payload.sail;
-      const sail = payload.sail ? ` (${t('event.sail', { sail: sailName })})` : '';
-      return html`<strong>${label}</strong>${sail}${comment}`;
-    }
-    case 'text_annotation':
-      return event.comment;
-    case 'handwritten_annotation':
-      return html`<${Strokes}
-          strokes=${payload.strokes ?? []}
-          label=${t('event.handwritten')}
-        />${comment}`;
-    case 'sk_alarm': {
-      const message = payload.message ?? event.subtype;
-      return payload.state === 'normal'
-        ? t('event.alarmCleared', { message })
-        : html`<strong class="alarm">${t('event.alarm', { message })}</strong>`;
-    }
-    case 'autopilot': {
-      if (event.subtype === 'disengaged') {
-        return t('event.autopilotDisengaged');
-      }
-      const mode = payload.mode ?? payload.state ?? '';
-      const target = autopilotTarget(payload.target, format);
-      const detail = [mode, target].filter(Boolean).join(' ');
-      return event.subtype === 'mode_changed'
-        ? t('event.autopilotMode', { mode: detail })
-        : `${t('event.autopilotEngaged')}${detail ? ` (${detail})` : ''}`;
-    }
-    case 'weather_threshold':
-      if (event.subtype === 'pressure_drop') {
-        return t('event.pressureDrop', { drop: format.pressure(payload.drop) });
-      }
-      return event.subtype === 'wind_above'
-        ? t('event.windAbove', {
-            threshold: format.speed(payload.threshold),
-            speed: format.speed(payload.windSpeed)
-          })
-        : t('event.windBelow', { threshold: format.speed(payload.threshold) });
-    case 'manual_correction':
-      return t('event.correction', {
-        before: t(`type.${payload.before?.type}`),
-        after: t(`type.${payload.after?.type}`)
-      });
-    default:
-      return event.comment ?? event.type;
-  }
-}
-
-// Instrument snapshots taken for an event are shown on the event's own line.
-function buildRows(events, observations) {
-  const eventSnapshots = new Map(
-    observations
-      .filter((observation) => observation.reason === 'event')
-      .map((observation) => [observation.time, observation])
-  );
-  const shown = new Set();
-  const rows = events.map((event) => {
-    const readings = eventSnapshots.get(event.time) ?? null;
-    if (readings) {
-      shown.add(readings.id);
-    }
-    return { key: `event-${event.id}`, time: event.time, event, readings };
-  });
-  for (const observation of observations) {
-    if (!shown.has(observation.id)) {
-      rows.push({
-        key: `reading-${observation.id}`,
-        time: observation.time,
-        readings: observation
-      });
-    }
-  }
-  return rows.sort(
-    (a, b) => a.time.localeCompare(b.time) || Number(Boolean(a.event)) - Number(Boolean(b.event))
-  );
+  const line = describeEvent(event, { t, format, manoeuvreLabels });
+  const comment = line.comment ? ` — ${line.comment}` : '';
+  const label =
+    line.label && html`<strong class=${line.alarm ? 'alarm' : undefined}>${line.label}</strong>`;
+  const detail = line.detail ? `${line.label ? ' ' : ''}${line.detail}` : '';
+  const strokes =
+    line.strokes && html`<${Strokes} strokes=${line.strokes} label=${t('event.handwritten')} />`;
+  return html`${label}${strokes}${detail}${comment}`;
 }
 
 export function Timeline({ events, observations, manoeuvreLabels }) {

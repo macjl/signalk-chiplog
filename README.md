@@ -121,7 +121,7 @@ Open **Chiplog** from the Signal K webapps, or `/signalk-chiplog/`. Reading need
   - close a passage in progress, e.g. to confirm an arrival;
   - merge with the previous or next passage;
   - delete a passage (admin).
-- **Export** — download the whole logbook or a date range as JSON, CSV or GPX, and write the abandon-ship copy to the USB drive now (admin).
+- **Export** — download the whole logbook or a date range as a PDF logbook to print, JSON, CSV or GPX, and write the abandon-ship copy to the USB drive now (admin). The PDF is written in the webapp's language and the device's time zone.
 
 **Helm entry** in the top bar opens the tablet entry app.
 
@@ -194,6 +194,8 @@ In the Signal K admin, **Apps & Plugins → Configuration → Chiplog**.
 | USB export directory                               | —                                     | Where the abandon-ship copy is written, e.g. `/media/usb`. Empty turns the USB copy off.                |
 | Automatic USB copy interval                        | 15 min                                | How often the USB copy is brought up to date. 0 turns the periodic copy off.                            |
 | Copy to the USB drive at each arrival              | on                                    | Brings the USB copy up to date as soon as a passage ends.                                               |
+| Logbook language (PDF)                             | en                                    | Language of the PDF logbooks on the USB drive (English or French).                                      |
+| Ship's time zone (PDF)                             | the server's                          | Time zone of the PDF logbooks on the USB drive, e.g. `Europe/Paris`.                                    |
 | Wind speed thresholds                              | 20, 30 kn                             | Logged when the 2-minute average true wind crosses them.                                                |
 | Barometric drop warning                            | 4 hPa / 3 h                           | 0 turns it off.                                                                                         |
 
@@ -210,8 +212,8 @@ None of these is required except position and speed over ground; each feature us
 
 ## Backups and abandon ship
 
-- **Download** — Export page → JSON (the complete record, including tracks and handwriting), CSV (logbook lines in nautical units, for a spreadsheet) or GPX (tracks).
-- **USB drive** — leave a USB drive plugged into the server and set the USB export directory. Chiplog then keeps a copy on it by itself: every 15 minutes and as soon as a passage ends (both configurable). **Write to the USB drive now** on the Export page makes a copy immediately. The copy fills a `chiplog/` folder on the drive with one JSON, CSV and GPX file per passage, named so that sorting by name sorts by date — e.g. `2026-09-13_0612Z_La-Rochelle_Les-Sables-d-Olonne.csv` (times in UTC; a passage in progress ends in `underway`).
+- **Download** — Export page → PDF (a paper-style logbook: a page per day with time, position, course, speed, wind, barometer, depth, engine or sail and remarks, handwritten notes included), JSON (the complete record, including tracks and handwriting), CSV (logbook lines in nautical units, for a spreadsheet) or GPX (tracks).
+- **USB drive** — leave a USB drive plugged into the server and set the USB export directory. Chiplog then keeps a copy on it by itself: every 15 minutes and as soon as a passage ends (both configurable). **Write to the USB drive now** on the Export page makes a copy immediately. The copy fills a `chiplog/` folder on the drive with one PDF, JSON, CSV and GPX file per passage, named so that sorting by name sorts by date — e.g. `2026-09-13_0612Z_La-Rochelle_Les-Sables-d-Olonne.csv` (times in UTC; a passage in progress ends in `underway`).
   - Each export writes only passages that are new or changed since the last one, and removes the files of passages deleted, merged or renamed. Other files in the folder are left alone.
   - Each file is flushed to the drive before it appears, so pulling the drive out never leaves a half-written file.
   - The Export page shows the schedule, the last copy, the next one, and the last failure if any.
@@ -270,7 +272,7 @@ The server's clock is wrong — common on a Raspberry Pi without a real-time clo
 
 ## Limitations
 
-- **Not yet:** the PDF logbook facsimile (planned for V1.1), a places page, and editing manoeuvre shortcuts from the webapps.
+- **Not yet:** a places page, and editing manoeuvre shortcuts from the webapps.
 - **Offline charts** are not provided.
 - **One vessel per Signal K server**, and no per-crew-member authorship.
 

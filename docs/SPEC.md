@@ -111,9 +111,13 @@ Known limitation: timestamps written to the logbook come from the host's clock, 
 ### 4.5 Backup / continuity in case of abandoning ship
 
 Two complementary mechanisms adopted for V1:
-1. **Automatic export to USB drive** (PDF, CSV, JSON) — **configurable** write frequency (e.g. every X minutes, or on each entry closure). Requires a USB drive to be permanently plugged into the Signal K host.
+1. **Automatic export to USB drive** (PDF, CSV, JSON, GPX) — **configurable** write frequency (e.g. every X minutes, or on each entry closure). Requires a USB drive to be permanently plugged into the Signal K host.
    - The copy holds **one file per format per passage**, named `2026-09-13_0612Z_La-Rochelle_Les-Sables-d-Olonne.json` so that sorting by name sorts by departure, in a `chiplog/` subdirectory. Each export writes only new or changed passages — a USB drive is slow and wears — and removes the files of passages deleted, merged or renamed. Written automatically every `usbExportIntervalMinutes` (15 by default; 0 turns it off) and at each arrival (`usbExportOnArrival`, on by default), and on demand from the webapp. A missing drive is logged once, shown in the plugin status and on the export page, and the copy resumes when it is back.
-   - The PDF follows a **traditional logbook facsimile** layout (time / position / heading / wind / remarks columns, organized by day). Higher formatting effort than CSV/JSON, so delivered in **V1.1** once the rest is stabilized (cf. §6) — CSV/JSON remain available from V1.
+   - The PDF follows a **traditional logbook facsimile** layout, delivered in V1.1:
+     - A4 landscape, a page per day (continued on further pages when full), in ship's time: the webapp's download uses the browser's time zone and language, the USB copy the plugin's `logbookTimeZone` (the server's by default) and `logbookLanguage`. The time zone and its UTC offset are printed on every page.
+     - Columns: time, position, course (or heading), speed over ground, wind (true, else apparent), barometer, depth, engine or sail, remarks. Departure and arrival lines carry their instrument snapshot, place, distance, duration and engine/sail times; a passage crossing midnight is announced at the top of the next day; each day ends with its distance and engine/sail times.
+     - Remarks say what the webapp says (manoeuvres with the sail, notes, alarms, autopilot, weather, corrections), from the same modules; handwritten notes are drawn from their strokes.
+     - Generated without dependency: the standard PDF Helvetica fonts, whose WinAnsi encoding covers English and French.
 2. **Automatic publication to a remote server** — target undefined for V1, designed as a **generic extension point** (user-configurable webhook/API), with no fixed integration to a particular service.
 
 ### 4.5.1 Instrument snapshots
@@ -197,7 +201,7 @@ The plugin's REST API is specified in [API.md](API.md).
 5. Manoeuvre shortcuts (basic predefined list).
 6. Automatic SK events: critical notifications, autopilot, configurable weather thresholds.
 7. Departure/arrival place names (online geocoding + known places, manual correction remembered).
-8. Manual + automatic configurable USB export (JSON/CSV from V1; facsimile PDF in V1.1).
+8. Manual + automatic configurable USB export (JSON/CSV/GPX from V1; facsimile PDF in V1.1).
 9. Day-grouped view in the consultation webapp.
 
 Brought forward from V2: handwritten annotations, in the tablet PWA (§4.4).
@@ -228,7 +232,7 @@ Deferred to V2: full shortcut customization, publication to a remote server, ded
 | Instrument snapshots | At departure, hourly on the clock (configurable), at arrival and with each live manoeuvre (§4.5.1) |
 | Speed fallback | SOG averaged over 3 min; under way above a configurable speed (1 kn), stopped below half of it. Transitions dated from raw speed in both modes (§4.2) |
 | GPS track sampling | Configurable fixed interval (15 s) + extra point on a 15° course or 1 kn speed change (§4.1) |
-| PDF export | Traditional logbook facsimile, delivered in V1.1 |
+| PDF export | Traditional logbook facsimile, A4 landscape, a page per day in ship's time, English or French; home-made PDF writer with the standard fonts, no dependency (§4.5) |
 | USB copy | One JSON, CSV and GPX file per passage, written when new or changed; every 15 min and at each arrival by default (§4.5) |
 | Automatic SK events (beyond engine/sail/manoeuvre) | Critical notifications, autopilot, configurable weather thresholds |
 | Multi-vessel | One vessel per Signal K instance, no multi-profiles |
@@ -240,13 +244,13 @@ Deferred to V2: full shortcut customization, publication to a remote server, ded
 
 ### Remaining minor points (non-blocking for starting)
 
-- Precise layout template for the facsimile PDF (to be mocked up in V1.1).
+- None at present.
 
 ## 8. Suggested next steps
 
 1. ~~Define the precise SQLite schema (DDL) and the plugin's REST API.~~ Done — see [DATA_MODEL.md](DATA_MODEL.md) and [API.md](API.md).
-2. ~~Implement the REST API defined in [API.md](API.md) on top of the schema.~~ Done, with tests. `getOpenApi()` and the PDF export (V1.1) remain.
+2. ~~Implement the REST API defined in [API.md](API.md) on top of the schema.~~ Done, with tests. `getOpenApi()` remains.
 3. ~~Stopped/underway and passage detection.~~ Done (§4.2), with track recording (§4.1), engine/sail segments, instrument snapshots (§4.5.1), automatic events (§4.6) and place names with online geocoding (§4.8). The plugin's data side is complete.
 4. ~~Build the tablet entry PWA.~~ Done (§2, §4.3, §4.4, §4.9), handwriting included.
 5. ~~Build the consultation webapp.~~ Done (§2). Not in it yet: a places page and manoeuvre-shortcut management.
-6. ~~Scheduled USB export (§4.5).~~ Done. The facsimile PDF (V1.1) remains.
+6. ~~Scheduled USB export (§4.5), then the facsimile PDF (V1.1).~~ Done.
