@@ -1,6 +1,7 @@
 import { html } from '../../../vendor/preact-htm.mjs';
 import { useLocale } from '../../../js/context.mjs';
 import { elapsedSeconds } from '../../../js/components/common.mjs';
+import { fallbackMessage } from '../../../js/status.mjs';
 
 function motionLabel(state, t) {
   if (!state) {
@@ -45,7 +46,7 @@ export function StatusHeader({ state, entry, online, queued, night, onToggleNigh
         <span class="entry-passage">${state ? passageLine(entry, t, format) : ''}</span>
         ${
           state?.detection === 'fallback' &&
-          html`<span class="entry-fallback" title=${t('status.fallback')}>⚠</span>`
+          html`<span class="entry-fallback" title=${fallbackMessage(state.stateIssue, t, format)}>⚠</span>`
         }
       </div>
       <div class="entry-tools">

@@ -93,11 +93,64 @@ describe('passage detection', () => {
       boat = createBoat().start().sail(10, { sog: 5, state: 'not defined (example)' });
       assert.equal(boat.detector.mode(), 'fallback');
       assert.equal(boat.entries().length, 1);
+      assert.deepEqual(
+        { ...boat.detector.stateIssue(), updatedAt: undefined },
+        {
+          reason: 'unrecognised',
+          source: null,
+          value: 'not defined (example)',
+          updatedAt: undefined
+        }
+      );
+    });
+
+    it("follows signalk-autostate when the boat's own AIS also reports a state", () => {
+      // An AIS transponder left at "under way using engine", updating more often.
+      boat = createBoat()
+        .start()
+        .sail(10, {
+          sog: 0,
+          stateSources: { 'signalk-autostate.XX': 'moored', 'nmea0183.AI': 'motoring' }
+        });
+
+      assert.equal(boat.detector.mode(), 'autostate');
+      assert.equal(boat.detector.motion(), 'stopped');
+      assert.equal(boat.detector.stateIssue(), null);
+      assert.equal(boat.entries().length, 0);
+    });
+
+    it('uses the only source there is, whatever it is', () => {
+      boat = createBoat()
+        .start()
+        .sail(5, { sog: 0, stateSources: { 'nmea0183.AI': 'moored' } })
+        .sail(5, { sog: 0, stateSources: { 'n2k.43': 'default' } });
+      assert.equal(boat.detector.mode(), 'fallback');
+      assert.deepEqual(
+        { ...boat.detector.stateIssue(), updatedAt: undefined },
+        { reason: 'unrecognised', source: 'n2k.43', value: 'default', updatedAt: undefined }
+      );
+    });
+
+    it('tells why it falls back to speed', () => {
+      boat = createBoat().start().sail(1, { sog: 0 });
+      assert.deepEqual(boat.detector.stateIssue(), { reason: 'absent' });
+
+      boat.sail(1, { sog: 0, stateSources: { 'signalk-autostate.XX': null } });
+      assert.equal(boat.detector.stateIssue().reason, 'pending');
+      assert.equal(boat.detector.stateIssue().source, 'signalk-autostate.XX');
     });
 
     it('falls back to speed once navigation.state stops being refreshed', () => {
-      boat = createBoat().start().sail(1, { sog: 0, state: 'moored' }).sail(25, { sog: 0 });
+      boat = createBoat().start().sail(1, { sog: 0, state: 'moored' });
+      const lastUpdate = iso(boat.now);
+      boat.sail(25, { sog: 0 });
       assert.equal(boat.detector.mode(), 'fallback');
+      assert.deepEqual(boat.detector.stateIssue(), {
+        reason: 'stale',
+        source: null,
+        value: 'moored',
+        updatedAt: lastUpdate
+      });
 
       boat.sail(5, { sog: 5 });
       assert.equal(boat.entries().length, 1);

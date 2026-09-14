@@ -33,6 +33,12 @@ export const MESSAGES = {
     'status.currentPassage': 'Current passage',
     'status.fallback':
       'Detected from speed alone: install signalk-autostate for more reliable detection.',
+    'status.fallbackPending':
+      'Detected from speed until signalk-autostate makes its first decision.',
+    'status.fallbackStale':
+      'Detected from speed alone: navigation.state from {source} has not been updated since {time}.',
+    'status.fallbackUnrecognised':
+      'Detected from speed alone: navigation.state is “{value}” (from {source}), a value Chiplog does not use.',
 
     'log.title': 'Logbook',
     'log.empty':
@@ -250,6 +256,12 @@ export const MESSAGES = {
     'status.currentPassage': 'Navigation en cours',
     'status.fallback':
       'Détection d’après la vitesse seule : installez signalk-autostate pour une détection plus fiable.',
+    'status.fallbackPending':
+      'Détection d’après la vitesse en attendant la première décision de signalk-autostate.',
+    'status.fallbackStale':
+      'Détection d’après la vitesse seule : navigation.state (source {source}) n’a pas été mis à jour depuis {time}.',
+    'status.fallbackUnrecognised':
+      'Détection d’après la vitesse seule : navigation.state vaut « {value} » (source {source}), une valeur que Chiplog n’utilise pas.',
 
     'log.title': 'Journal de bord',
     'log.empty':

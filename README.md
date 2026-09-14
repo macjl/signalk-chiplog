@@ -233,7 +233,12 @@ The plugin is disabled or failed to start. Enable it under **Apps & Plugins → 
 
 ### "Detected from speed alone"
 
-signalk-autostate is not installed or publishes no current `navigation.state`. Chiplog works, but departures and arrivals are decided from speed only. Install signalk-autostate for more reliable detection.
+Chiplog works, but departures and arrivals are decided from speed only. The message says why:
+
+- **"install signalk-autostate"** — nothing publishes `navigation.state`. Install and enable signalk-autostate.
+- **"until signalk-autostate makes its first decision"** — normal for a minute or two after the server starts.
+- **"has not been updated since…"** — the source named stopped publishing. signalk-autostate republishes every 10 minutes while it receives position and speed: check that the GPS data reaches the server, and that the plugin is enabled.
+- **"is “default” (from nmea0183.AI)"** — another device publishes a navigational status Chiplog does not use, typically the boat's own AIS transponder, and signalk-autostate's value is not there to take over. Check that signalk-autostate is enabled; Chiplog prefers its value over any other source.
 
 ### Passages are not opening
 

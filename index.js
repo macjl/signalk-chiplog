@@ -314,7 +314,8 @@ module.exports = function (app) {
           detection: () => ({
             mode: detector.mode(),
             motion: detector.motion(),
-            propulsion: detector.propulsion()
+            propulsion: detector.propulsion(),
+            stateIssue: detector.stateIssue()
           })
         };
       },

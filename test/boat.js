@@ -51,6 +51,18 @@ function createBoat({ settings = {}, clockOffsetMs = 0 } = {}) {
       self[skPath] = { value, timestamp: iso(boat.now + clockOffsetMs) };
     },
 
+    // Several sources for one path, as the server keeps them: the top-level
+    // value is the last source to update, the others remain under `values`.
+    publishSources(skPath, bySource) {
+      const node = self[skPath]?.values ? self[skPath] : { values: {} };
+      const timestamp = iso(boat.now + clockOffsetMs);
+      for (const [source, value] of Object.entries(bySource)) {
+        node.values[source] = { value, timestamp };
+        Object.assign(node, { value, timestamp, $source: source });
+      }
+      self[skPath] = node;
+    },
+
     start() {
       detector = createPassageDetector({
         db,
@@ -74,8 +86,9 @@ function createBoat({ settings = {}, clockOffsetMs = 0 } = {}) {
     // Advance by `minutes`, publishing on every tick. `sog` is in knots,
     // constant or a function of the tick index; `state` is navigation.state;
     // `rpm` and `engineState` are per engine (see perEngine); `instruments` maps
-    // any other Signal K path to its value. Values left out are not refreshed.
-    sail(minutes, { sog, state, rpm, engineState, instruments = {} } = {}) {
+    // any other Signal K path to its value; `stateSources` publishes
+    // navigation.state from several sources. Values left out are not refreshed.
+    sail(minutes, { sog, state, stateSources, rpm, engineState, instruments = {} } = {}) {
       const ticks = Math.round((minutes * MINUTE) / TICK_INTERVAL_MS);
       for (let i = 0; i < ticks; i += 1) {
         boat.now += TICK_INTERVAL_MS;
@@ -94,6 +107,9 @@ function createBoat({ settings = {}, clockOffsetMs = 0 } = {}) {
         }
         if (state !== undefined) {
           boat.publish('navigation.state', state);
+        }
+        if (stateSources !== undefined) {
+          boat.publishSources('navigation.state', stateSources);
         }
         if (rpm !== undefined) {
           for (const [id, value] of Object.entries(perEngine(rpm))) {

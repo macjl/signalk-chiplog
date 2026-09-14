@@ -61,7 +61,8 @@ What the UI needs to render its header, in one call.
   "detection": "autostate",
   "motion": "underway",
   "propulsion": "engine",
-  "schemaVersion": 2
+  "stateIssue": null,
+  "schemaVersion": 4
 }
 ```
 
@@ -71,6 +72,7 @@ As of the last detection cycle, at most 15 seconds old:
 - `motion` is `underway`, `stopped`, or `unknown` when there is no current data to decide.
 - `propulsion` is `engine` or `sail` while under way — from engine data, `navigation.state` or the configured default (SPEC §4.2) — and `null` otherwise.
 - `activeEntryId` is `null` when no passage is open.
+- `stateIssue` says why `navigation.state` is not followed, and is `null` in `autostate` mode: `{ "reason": "absent" }` when nothing publishes it; otherwise `{ reason, source, value, updatedAt }` with `reason` `pending` (a `null` value, as signalk-autostate publishes while starting), `stale` (not updated for 20 minutes) or `unrecognised` (a value such as `default`). `source` is the Signal K source reference, `null` when the server gives none. When signalk-autostate is among several sources of `navigation.state`, its value is the one used.
 
 ## Entries
 

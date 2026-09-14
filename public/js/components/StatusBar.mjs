@@ -1,6 +1,7 @@
 import { html, useState } from '../../vendor/preact-htm.mjs';
 import { get } from '../api.mjs';
 import { useLocale, usePolling } from '../context.mjs';
+import { fallbackMessage } from '../status.mjs';
 import { ErrorNotice } from './common.mjs';
 
 const REFRESH_MS = 15 * 1000;
@@ -16,7 +17,7 @@ function motionLabel(state, t) {
 }
 
 export function StatusBar() {
-  const { t } = useLocale();
+  const { t, format } = useLocale();
   const [state, setState] = useState(null);
   const [error, setError] = useState(null);
 
@@ -47,7 +48,7 @@ export function StatusBar() {
       }
       ${
         state.detection === 'fallback' &&
-        html`<span class="status-fallback">${t('status.fallback')}</span>`
+        html`<span class="status-fallback">${fallbackMessage(state.stateIssue, t, format)}</span>`
       }
     </div>
   `;
