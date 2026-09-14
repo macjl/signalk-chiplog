@@ -106,11 +106,16 @@ One entry, with the counts the detail view needs:
   "openedByEventId": null,
   "createdAt": "2026-09-13T06:12:00.000Z",
   "updatedAt": "2026-09-13T15:47:30.000Z",
-  "counts": { "trackPoints": 1187, "observations": 11, "events": 9 }
+  "counts": { "trackPoints": 1187, "observations": 11, "events": 9 },
+  "maxSpeed": 6.7,
+  "maxWindSpeed": 12.9,
+  "maxWindApparent": false
 }
 ```
 
 On an active entry, `endPosition` is the last position detection saw — not yet an arrival.
+
+`maxSpeed` is the highest speed over ground seen in the track, `null` with none. `maxWindSpeed` is the highest true wind speed seen in the instrument snapshots (SPEC §4.5.1), falling back to apparent wind — flagged by `maxWindApparent` — only for a passage with no true-wind reading at all; `null` with neither. Both are read from what is already recorded, at whatever resolution the track and the snapshot interval give — a brief gust between snapshots does not show.
 
 `startPlacePending`/`endPlacePending` mean the name was generated from coordinates (`"46.1234N 1.5678W"`) and online geocoding has not answered yet (SPEC §4.8); the name may still change on its own. A UI can show it as provisional. Geocoded names from the public instance are OpenStreetMap data and need its attribution.
 

@@ -305,6 +305,26 @@ export function PassageView({ id }) {
           <dd>${format.speed(entry.distance / underway)}</dd>
         </div>`
       }
+      ${
+        entry.maxSpeed !== null &&
+        html`<div>
+          <dt>${t('passage.maxSpeed')}</dt>
+          <dd>${format.speed(entry.maxSpeed)}</dd>
+        </div>`
+      }
+      ${
+        entry.maxWindSpeed !== null &&
+        html`<div>
+          <dt>${t('passage.maxWind')}</dt>
+          <dd>
+            ${
+              entry.maxWindApparent
+                ? `${format.speed(entry.maxWindSpeed)} ${t('timeline.apparent')}`
+                : format.speed(entry.maxWindSpeed)
+            }
+          </dd>
+        </div>`
+      }
     </dl>
 
     <section class="card">

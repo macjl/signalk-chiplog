@@ -86,6 +86,53 @@ describe('entries', () => {
       assert.deepEqual(body.counts, { trackPoints: 1, observations: 0, events: 1 });
     });
 
+    it('reports the highest speed and wind seen, preferring true wind', async () => {
+      const id = insertEntry(ctx.db);
+      insert(ctx.db, 'track_points', { entry_id: id, time: at(0), lat: 46, lon: -1, sog: 3.5 });
+      insert(ctx.db, 'track_points', { entry_id: id, time: at(1), lat: 46.1, lon: -1, sog: 6.7 });
+      insert(ctx.db, 'track_points', { entry_id: id, time: at(2), lat: 46.2, lon: -1, sog: 4.1 });
+      insert(ctx.db, 'observations', {
+        entry_id: id,
+        time: at(0),
+        reason: 'entry_start',
+        tws: 8.2,
+        aws: 9.5
+      });
+      insert(ctx.db, 'observations', {
+        entry_id: id,
+        time: at(1),
+        reason: 'periodic',
+        tws: 12.9,
+        aws: 11
+      });
+
+      const { body } = await ctx.request('GET', `/entries/${id}`);
+
+      assert.equal(body.maxSpeed, 6.7);
+      assert.equal(body.maxWindSpeed, 12.9);
+      assert.equal(body.maxWindApparent, false);
+    });
+
+    it('falls back to apparent wind when true wind was never recorded', async () => {
+      const id = insertEntry(ctx.db);
+      insert(ctx.db, 'observations', { entry_id: id, time: T0, reason: 'entry_start', aws: 9.5 });
+
+      const { body } = await ctx.request('GET', `/entries/${id}`);
+
+      assert.equal(body.maxWindSpeed, 9.5);
+      assert.equal(body.maxWindApparent, true);
+    });
+
+    it('reports no max speed or wind with nothing recorded', async () => {
+      const id = insertEntry(ctx.db);
+
+      const { body } = await ctx.request('GET', `/entries/${id}`);
+
+      assert.equal(body.maxSpeed, null);
+      assert.equal(body.maxWindSpeed, null);
+      assert.equal(body.maxWindApparent, false);
+    });
+
     it('answers 404 with an error envelope for an unknown entry', async () => {
       const { status, body } = await ctx.request('GET', '/entries/999');
       assert.equal(status, 404);
