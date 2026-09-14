@@ -42,7 +42,7 @@ On a server too old to provide `router.access()`, every route falls back to admi
 |---|---|---|
 | `400` | Malformed request | `invalid_request`, `unknown_manoeuvre_type` |
 | `404` | Unknown resource | `entry_not_found`, `event_not_found`, `place_not_found`, `propulsion_segment_not_found`, `manoeuvre_type_not_found` |
-| `409` | The request conflicts with current state | `entry_active`, `entry_already_closed`, `entries_not_consecutive`, `manoeuvre_type_exists`, `builtin_manoeuvre_type`, `usb_export_not_configured`, `usb_export_unavailable`, `constraint_violation` |
+| `409` | The request conflicts with current state | `no_passage`, `entry_active`, `entry_already_closed`, `entries_not_consecutive`, `manoeuvre_type_exists`, `builtin_manoeuvre_type`, `usb_export_not_configured`, `usb_export_unavailable`, `constraint_violation` |
 | `500` | Unexpected failure — detail goes to the server log, not the client | `internal_error` |
 | `501` | Not built yet | `not_implemented` |
 | `503` | The plugin is disabled or stopped | `plugin_not_started` |
@@ -102,6 +102,7 @@ One entry, with the counts the detail view needs:
   "distance": 68500,
   "engineDuration": 4200,
   "sailDuration": 30330,
+  "openedByEventId": null,
   "createdAt": "2026-09-13T06:12:00.000Z",
   "updatedAt": "2026-09-13T15:47:30.000Z",
   "counts": { "trackPoints": 1187, "observations": 11, "events": 9 }
@@ -180,20 +181,31 @@ Optional `type` filter. Oldest first. Paginated.
 
 Besides what clients post, the timeline holds events the plugin logs itself — `sk_alarm`, `autopilot`, `weather_threshold` and `manual_correction`, with `source: "auto"`; their subtypes and payloads are listed in the [data model](DATA_MODEL.md#events). An alarm raised at anchor between passages belongs to the passage that ended there, so its time can be later than that entry's `endTime`.
 
-### `POST /entries/:id/events` — `readwrite`
+### `POST /events` — `readwrite`
 
-The endpoint the tablet's manoeuvre shortcuts and annotations hit:
+The endpoint the tablet's manoeuvre shortcuts and annotations hit. The client does not need to know which passage is open: the server attaches the entry to
+
+1. the passage in progress;
+2. failing that, for a **departure manoeuvre** — `cast_off` or `anchor_up` — a new passage it opens at the event's time (SPEC §4.3). The passage starts stopped, at the event's position, named as detection would name it; detection carries it on as soon as the vessel moves, or closes it like any long stop if it never leaves. The start is never earlier than the previous passage's end;
+3. failing that, the last passage while the vessel is within 1 nm of its arrival — a note in the marina belongs to the passage that ended there;
+4. otherwise the request is refused with `409 no_passage`.
 
 ```json
 {
   "type": "manoeuvre",
   "subtype": "reef_in",
   "comment": "25 kn, second reef",
-  "payload": { "sail": "main" }
+  "payload": { "sail": "main" },
+  "clientRef": "3f6c1a52-8f0e-4a0e-9d43-2a1c5d4b7e10"
 }
 ```
 
-Accepts `type`, `subtype`, `comment`, `payload`, `time`, `position`. `time` defaults to now and `position` to the vessel's current position, so a shortcut button is a single call with no client-side clock or GPS; pass `"position": null` to record none. Answers `201` with the event.
+Accepts `type`, `subtype`, `comment`, `payload`, `time`, `position`, `clientRef`:
+
+- `time` defaults to now and `position` to the vessel's position at that time, so a shortcut button is a single call with no client-side clock or GPS; pass `"position": null` to record none. For a past `time` — an entry replayed from an offline queue — the position is the nearest track point within 2 minutes, else the current position if `time` is within 5 minutes of now, else none.
+- `clientRef` (1–100 characters) is an idempotency key: posting a `clientRef` already logged answers `200` with that event and changes nothing, so a retry after a lost response neither duplicates the entry nor opens a second passage.
+
+Answers `201` with the event — `entryId` says where it went — plus `"openedEntry": true` when it opened the passage.
 
 A `manoeuvre` posted without `time` also takes an instrument snapshot (`reason: "event"`) at the event's time, so the log shows the conditions it was made in.
 
@@ -205,13 +217,17 @@ Clients may create three types; the others are produced by the plugin itself:
 | `text_annotation` | `comment` |
 | `handwritten_annotation` | `payload.strokes`: `[{ "points": [{ "x", "y", "t", "pressure"? }] }]`, non-empty, numeric |
 
+### `POST /entries/:id/events` — `readwrite`
+
+The same as [`POST /events`](#post-events--readwrite), for a given entry — open or closed — with no attachment rule. `clientRef` and the snapshot behave the same; the response has no `openedEntry`.
+
 ### `PATCH /events/:id` — `readwrite`
 
 Accepts `time`, `comment`, `subtype`, `payload`, and validates the result by the same rules as creation. On an event the plugin produced (`sk_alarm`, `autopilot`, `weather_threshold`, `manual_correction`), only `comment` may change — annotating an alarm is fine, rewriting it is not.
 
 ### `DELETE /events/:id` — `readwrite`
 
-`204`.
+`204`. Deleting the departure manoeuvre that opened a passage, while the vessel has not moved yet and nothing else was logged in it, deletes that passage too: this is how a mistaken "Cast off" is undone.
 
 ## Places
 

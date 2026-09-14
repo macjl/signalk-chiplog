@@ -26,6 +26,8 @@ One row per passage (start → underway → stop), per SPEC §3.1.
 
 `last_moving_at` (migration 2) is a heartbeat: passage detection refreshes it about once a minute while under way. It exists for restarts — when the plugin comes back to an open entry, it is the only record of when the boat was last seen moving, and so dates the end of a passage that stopped while the plugin was off. It is not exposed by the API.
 
+`opened_by_event_id` (migration 4) points to the departure manoeuvre — cast off or anchor up — that opened the entry by hand before the vessel moved (SPEC §4.3). Such an entry starts with `stopped_since` equal to `start_time` and `last_moving_at` null: detection sees a stopped passage, resumes it on the first movement and closes it like any long stop if the vessel never leaves. Deleting that event while `last_moving_at` is still null and nothing else was logged deletes the entry too — the undo of a mistaken tap.
+
 While an entry is **active**, `end_lat`/`end_lon` hold the last position seen moving, then the position where the vessel stopped; they become the arrival position when the entry closes. Clients should not present them as an arrival until `state` is `closed`.
 
 `start_place_name` / `end_place_name` are **denormalised on purpose**, alongside the `place_id` references. A logbook is a historical record: renaming a place later (SPEC §4.8) must apply to future passages, not silently rewrite what last year's entries say. The foreign keys are `ON DELETE SET NULL` for the same reason — deleting a place must not erase the name a past entry recorded.
@@ -78,6 +80,8 @@ Events the plugin produces (SPEC §4.6), all with `source: 'auto'`:
 | `weather_threshold` | `wind_above` or `wind_below` | `{ threshold, windSpeed }` in m/s |
 | `weather_threshold` | `pressure_drop` | `{ drop, over, pressure }` — Pa, seconds, Pa |
 | `manual_correction` | `propulsion` | `{ segmentId, before, after }` |
+
+`client_ref` (migration 4) is an optional idempotency key chosen by the client, unique when present. The tablet sets it on every entry, so one replayed from its offline queue after a lost response returns the event already logged instead of a duplicate.
 
 An event's `time` may fall **after its entry's `end_time`**: alarms and weather events between passages go to the passage that ended where the vessel still is.
 
