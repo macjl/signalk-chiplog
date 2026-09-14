@@ -209,7 +209,9 @@ None of these is required except position and speed over ground; each feature us
 ## Backups and abandon ship
 
 - **Download** — Export page → JSON (the complete record, including tracks and handwriting), CSV (logbook lines in nautical units, for a spreadsheet) or GPX (tracks).
-- **USB drive** — set the USB export directory, then **Write to the USB drive now** on the Export page. It writes `chiplog.json`, `chiplog.csv` and `chiplog.gpx`, replacing the previous copy. Each file is flushed to the drive before it replaces the old one, so pulling the drive out never leaves a half-written file.
+- **USB drive** — set the USB export directory, then **Write to the USB drive now** on the Export page. It fills a `chiplog/` folder on the drive with one JSON, CSV and GPX file per passage, named so that sorting by name sorts by date — e.g. `2026-09-13_0612Z_La-Rochelle_Les-Sables-d-Olonne.csv` (times in UTC; a passage in progress ends in `underway`).
+  - Each export writes only passages that are new or changed since the last one, and removes the files of passages deleted, merged or renamed. Other files in the folder are left alone.
+  - Each file is flushed to the drive before it appears, so pulling the drive out never leaves a half-written file.
 - **The database** — `chiplog.sqlite` in the plugin's data folder can be copied while the plugin is stopped.
 
 ## Privacy and online services

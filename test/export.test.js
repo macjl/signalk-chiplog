@@ -145,20 +145,161 @@ describe('export', () => {
   });
 
   describe('POST /export/usb', () => {
-    it('writes JSON, CSV and GPX to the configured directory', async () => {
+    const usbDir = () => path.join(exportDir, 'chiplog');
+    const passageFiles = () =>
+      fs
+        .readdirSync(usbDir())
+        .filter((name) => !name.startsWith('.'))
+        .sort();
+    const mtimes = () =>
+      Object.fromEntries(
+        passageFiles().map((name) => [name, fs.statSync(path.join(usbDir(), name)).mtimeMs])
+      );
+    const exportUsb = async () => (await ctx.request('POST', '/export/usb')).body;
+    // Lets mtimes tell a rewrite apart on file systems with coarse timestamps.
+    const pause = () => new Promise((resolve) => setTimeout(resolve, 20));
+
+    function seedSecondPassage(db, fields = {}) {
+      return insertEntry(db, {
+        start_time: at(26),
+        end_time: at(30),
+        start_place_name: 'Les Sables',
+        end_place_name: 'Île d’Yeu (Port-Joinville)',
+        ...fields
+      });
+    }
+
+    it('writes JSON, CSV and GPX for each passage, named to sort by departure', async () => {
+      seedSecondPassage(ctx.db);
       seedPassage(ctx.db);
 
       const { status, body } = await ctx.request('POST', '/export/usb');
 
       assert.equal(status, 200);
-      assert.equal(body.entries, 1);
-      assert.deepEqual(fs.readdirSync(exportDir).sort(), [
-        'chiplog.csv',
-        'chiplog.gpx',
-        'chiplog.json'
+      assert.equal(body.directory, usbDir());
+      assert.deepEqual([body.entries, body.written, body.unchanged], [2, 2, 0]);
+      assert.deepEqual(passageFiles(), [
+        '2026-09-13_0800Z_La-Rochelle_Les-Sables.csv',
+        '2026-09-13_0800Z_La-Rochelle_Les-Sables.gpx',
+        '2026-09-13_0800Z_La-Rochelle_Les-Sables.json',
+        '2026-09-14_1000Z_Les-Sables_Ile-d-Yeu-Port-Joinville.csv',
+        '2026-09-14_1000Z_Les-Sables_Ile-d-Yeu-Port-Joinville.gpx',
+        '2026-09-14_1000Z_Les-Sables_Ile-d-Yeu-Port-Joinville.json'
       ]);
-      const json = JSON.parse(fs.readFileSync(path.join(exportDir, 'chiplog.json'), 'utf8'));
+      const json = JSON.parse(
+        fs.readFileSync(path.join(usbDir(), '2026-09-13_0800Z_La-Rochelle_Les-Sables.json'), 'utf8')
+      );
       assert.equal(json.entries.length, 1);
+      assert.equal(json.entries[0].trackPoints.length, 2);
+      const csv = fs.readFileSync(
+        path.join(usbDir(), '2026-09-14_1000Z_Les-Sables_Ile-d-Yeu-Port-Joinville.csv'),
+        'utf8'
+      );
+      assert.doesNotMatch(csv, /La Rochelle/, 'only its own passage');
+    });
+
+    it('leaves passages already on the drive alone', async () => {
+      seedPassage(ctx.db);
+      seedSecondPassage(ctx.db);
+      await exportUsb();
+      const before = mtimes();
+      await pause();
+
+      const body = await exportUsb();
+
+      assert.deepEqual([body.written, body.unchanged, body.files.length], [0, 2, 0]);
+      assert.deepEqual(mtimes(), before);
+    });
+
+    it('rewrites only a passage that changed since', async () => {
+      const first = seedPassage(ctx.db);
+      seedSecondPassage(ctx.db);
+      await exportUsb();
+      const before = mtimes();
+      await pause();
+
+      const [event] = (await ctx.request('GET', `/entries/${first}/events`)).body.items;
+      await ctx.request('PATCH', `/events/${event.id}`, { comment: 'Corrected note' });
+      const body = await exportUsb();
+
+      assert.deepEqual([body.written, body.unchanged], [1, 1]);
+      const after = mtimes();
+      for (const name of passageFiles()) {
+        assert.equal(after[name] !== before[name], name.startsWith('2026-09-13'), name);
+      }
+    });
+
+    it('removes the files of passages renamed, merged or deleted, and nothing else', async () => {
+      const first = seedPassage(ctx.db);
+      const second = seedSecondPassage(ctx.db);
+      await exportUsb();
+      fs.writeFileSync(path.join(usbDir(), 'notes.txt'), 'mine');
+
+      await ctx.request('PATCH', `/entries/${first}`, { endPlaceName: 'Les Sables-d’Olonne' });
+      await ctx.request('DELETE', `/entries/${second}`);
+      const body = await exportUsb();
+
+      assert.equal(body.removed.length, 6);
+      assert.deepEqual(passageFiles(), [
+        '2026-09-13_0800Z_La-Rochelle_Les-Sables-d-Olonne.csv',
+        '2026-09-13_0800Z_La-Rochelle_Les-Sables-d-Olonne.gpx',
+        '2026-09-13_0800Z_La-Rochelle_Les-Sables-d-Olonne.json',
+        'notes.txt'
+      ]);
+    });
+
+    it('names a passage in progress as under way until it arrives', async () => {
+      const entryId = insertEntry(ctx.db, {
+        state: 'active',
+        start_time: at(0),
+        start_place_name: null
+      });
+      await exportUsb();
+      assert.deepEqual(passageFiles(), [
+        '2026-09-13_0800Z_unnamed_underway.csv',
+        '2026-09-13_0800Z_unnamed_underway.gpx',
+        '2026-09-13_0800Z_unnamed_underway.json'
+      ]);
+
+      ctx.db
+        .prepare(
+          "UPDATE log_entries SET state = 'closed', end_time = ?, end_place_name = ? WHERE id = ?"
+        )
+        .run(at(3), 'Saint-Martin-de-Ré', entryId);
+      await exportUsb();
+      assert.deepEqual(passageFiles(), [
+        '2026-09-13_0800Z_unnamed_Saint-Martin-de-Re.csv',
+        '2026-09-13_0800Z_unnamed_Saint-Martin-de-Re.gpx',
+        '2026-09-13_0800Z_unnamed_Saint-Martin-de-Re.json'
+      ]);
+    });
+
+    it('keeps files found on the drive without a record, and rewrites missing ones', async () => {
+      seedPassage(ctx.db);
+      await exportUsb();
+      fs.rmSync(path.join(usbDir(), '.chiplog-export.json'));
+      const before = mtimes();
+      await pause();
+
+      assert.equal((await exportUsb()).written, 0);
+      assert.deepEqual(mtimes(), before);
+
+      fs.rmSync(path.join(usbDir(), '2026-09-13_0800Z_La-Rochelle_Les-Sables.gpx'));
+      assert.equal((await exportUsb()).written, 1);
+      assert.equal(passageFiles().length, 3);
+    });
+
+    it('tells passages starting in the same minute apart', async () => {
+      seedPassage(ctx.db);
+      insertEntry(ctx.db, {
+        start_time: '2026-09-13T08:00:30.000Z',
+        end_time: at(5),
+        start_place_name: 'La Rochelle',
+        end_place_name: 'Les Sables'
+      });
+      await exportUsb();
+      assert.equal(passageFiles().length, 6);
+      assert.ok(passageFiles().includes('2026-09-13_0800Z_La-Rochelle_Les-Sables_2.json'));
     });
 
     it('answers 409 when the directory is not available', async () => {

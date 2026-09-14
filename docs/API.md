@@ -282,11 +282,25 @@ Query: `format` — `json` (default), `csv`, `gpx` or `pdf`; `from`, `to` as for
 
 ### `POST /export/usb` — admin
 
-Writes `chiplog.json`, `chiplog.csv` and `chiplog.gpx` for the whole logbook to the directory set in the plugin configuration, replacing the previous files. Each file is flushed to the device and renamed into place, so pulling the drive never leaves a half-written export.
+Copies the logbook to a `chiplog/` subdirectory of the directory set in the plugin configuration, as one JSON, one CSV and one GPX file per passage, in the same formats as [`GET /export`](#get-export--readonly) restricted to that passage.
+
+- **Names sort by departure**: `<start date>_<start time>Z_<departure>_<arrival>.<format>`, in UTC, with place names reduced to ASCII letters, digits and hyphens — e.g. `2026-09-13_0612Z_La-Rochelle_Les-Sables-d-Olonne.json`. A passage in progress ends in `underway`; one with no name has `unnamed`; two passages starting in the same minute get `_2` on the later one.
+- **Incremental.** Only passages that are new or changed since the last export are written. What was exported is recorded in `chiplog/.chiplog-export.json`, with a fingerprint of each passage's content, so a correction made later — a renamed place, a switched engine period, an edited comment, an alarm added at anchor — rewrites that passage. Files already on the drive with no record are kept as they are; a missing file is written again.
+- **Obsolete files are removed**: those of passages deleted, merged or renamed. Only files named like passage files are touched in `chiplog/`.
+- Each file is flushed to the device and renamed into place, so pulling the drive never leaves a half-written export.
 
 ```json
-{ "directory": "/media/usb", "files": ["/media/usb/chiplog.json", "/media/usb/chiplog.csv", "/media/usb/chiplog.gpx"], "entries": 12 }
+{
+  "directory": "/media/usb/chiplog",
+  "entries": 12,
+  "written": 1,
+  "unchanged": 11,
+  "files": ["/media/usb/chiplog/2026-09-13_0612Z_La-Rochelle_Les-Sables-d-Olonne.json", "…csv", "…gpx"],
+  "removed": []
+}
 ```
+
+`entries` counts all passages, `written` those whose files were written, `unchanged` those left as they were; `files` and `removed` list full paths.
 
 `409 usb_export_not_configured` without a configured directory; `409 usb_export_unavailable` if it does not exist — typically, the drive is not mounted.
 

@@ -111,6 +111,7 @@ Known limitation: timestamps written to the logbook come from the host's clock, 
 
 Two complementary mechanisms adopted for V1:
 1. **Automatic export to USB drive** (PDF, CSV, JSON) — **configurable** write frequency (e.g. every X minutes, or on each entry closure). Requires a USB drive to be permanently plugged into the Signal K host.
+   - The copy holds **one file per format per passage**, named `2026-09-13_0612Z_La-Rochelle_Les-Sables-d-Olonne.json` so that sorting by name sorts by departure, in a `chiplog/` subdirectory. Each export writes only new or changed passages — a USB drive is slow and wears — and removes the files of passages deleted, merged or renamed. Available on demand; the scheduled write is still to come.
    - The PDF follows a **traditional logbook facsimile** layout (time / position / heading / wind / remarks columns, organized by day). Higher formatting effort than CSV/JSON, so delivered in **V1.1** once the rest is stabilized (cf. §6) — CSV/JSON remain available from V1.
 2. **Automatic publication to a remote server** — target undefined for V1, designed as a **generic extension point** (user-configurable webhook/API), with no fixed integration to a particular service.
 

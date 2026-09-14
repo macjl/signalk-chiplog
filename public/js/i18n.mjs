@@ -137,9 +137,10 @@ export const MESSAGES = {
     'export.pdf': 'PDF — logbook facsimile, coming in V1.1',
     'export.usbTitle': 'USB drive',
     'export.usbIntro':
-      'Write the whole logbook to the USB drive set in the plugin configuration, so it can be recovered if the vessel has to be abandoned.',
+      'Copy the logbook to the USB drive set in the plugin configuration — one JSON, CSV and GPX file per passage — so it can be recovered if the vessel has to be abandoned.',
     'export.usbWrite': 'Write to the USB drive now',
-    'export.usbWritten': 'Passages written: {count}, in {directory}',
+    'export.usbWritten':
+      '{written} passages written, {unchanged} already up to date, in {directory}',
     'export.usbNotConfigured': 'No USB drive directory is set. Add it in the plugin configuration.',
     'export.usbUnavailable':
       'The USB drive directory is not available: is the drive plugged in and mounted?',
@@ -345,9 +346,9 @@ export const MESSAGES = {
     'export.pdf': 'PDF — fac-similé du journal, prévu en V1.1',
     'export.usbTitle': 'Clé USB',
     'export.usbIntro':
-      'Écrire tout le journal sur la clé USB indiquée dans la configuration du plugin, pour le récupérer en cas d’abandon du navire.',
+      'Copier le journal sur la clé USB indiquée dans la configuration du plugin — un fichier JSON, CSV et GPX par navigation — pour le récupérer en cas d’abandon du navire.',
     'export.usbWrite': 'Écrire sur la clé USB maintenant',
-    'export.usbWritten': 'Navigations écrites : {count}, dans {directory}',
+    'export.usbWritten': '{written} navigations écrites, {unchanged} déjà à jour, dans {directory}',
     'export.usbNotConfigured':
       'Aucun dossier de clé USB n’est indiqué. Ajoutez-le dans la configuration du plugin.',
     'export.usbUnavailable':

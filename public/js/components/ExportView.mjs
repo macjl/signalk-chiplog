@@ -30,7 +30,8 @@ function UsbResult({ outcome }) {
   if (outcome.result) {
     return html`<p class="notice notice-ok">
       ${t('export.usbWritten', {
-        count: outcome.result.entries,
+        written: outcome.result.written,
+        unchanged: outcome.result.unchanged,
         directory: outcome.result.directory
       })}
     </p>`;
