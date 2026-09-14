@@ -56,6 +56,7 @@ describe('propulsion', () => {
     assert.equal(corrections.body.total, 1);
     const [correction] = corrections.body.items;
     assert.equal(correction.time, at(1));
+    assert.equal(correction.source, 'auto');
     assert.deepEqual(correction.payload, {
       segmentId,
       before: { type: 'engine' },

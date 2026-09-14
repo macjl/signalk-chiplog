@@ -114,7 +114,7 @@ Open **Chiplog** from the Signal K webapps, or `/signalk-chiplog/`. Reading need
 
 - **Status bar** — under way under sail or engine, stopped, or waiting for data, with a link to the passage in progress. A warning shows when detection works from speed alone because signalk-autostate is missing.
 - **Logbook** — passages grouped by day, newest first, with times, departure and arrival, distance, duration and an engine/sail bar. A passage across midnight appears on both days. Provisional place names are shown as such.
-- **Passage page** — summary, map of the track (OpenStreetMap with OpenSeaMap seamarks, which can be hidden), the engine and sail periods with each engine's hour counter at departure and arrival and the hours run, and the log: every reading and event in order, including handwritten notes. A passage in progress refreshes every minute.
+- **Passage page** — summary, map of the track (OpenStreetMap with OpenSeaMap seamarks, which can be hidden), the engine and sail periods with each engine's hour counter at departure and arrival and the hours run, and the log: every reading and event in order, including handwritten notes. A passage in progress refreshes every minute. Each line's comment can be edited (read/write access); a manoeuvre or note the crew logged themselves can also be deleted — automatic lines (alarms, autopilot, weather, corrections) can only be annotated.
 - **Corrections** (read/write access):
   - rename the departure or arrival;
   - switch an engine period to sail or back;

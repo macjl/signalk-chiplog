@@ -17,6 +17,7 @@ export const MESSAGES = {
     'common.save': 'Save',
     'common.cancel': 'Cancel',
     'common.edit': 'Edit',
+    'common.delete': 'Delete',
 
     'error.forbidden':
       'Your Signal K account is not allowed to do this. Sign in with an account that has the rights.',
@@ -91,6 +92,8 @@ export const MESSAGES = {
     'timeline.remarks': 'Remarks',
     'timeline.apparent': 'app.',
     'timeline.heading': 'hdg',
+    'timeline.comment': 'Comment',
+    'timeline.deleteConfirm': 'Delete this log line? This cannot be undone.',
 
     'observation.entry_start': 'Departure',
     'observation.entry_end': 'Arrival',
@@ -272,6 +275,7 @@ export const MESSAGES = {
     'common.save': 'Enregistrer',
     'common.cancel': 'Annuler',
     'common.edit': 'Modifier',
+    'common.delete': 'Supprimer',
 
     'error.forbidden':
       'Votre compte Signal K n’a pas les droits pour cette action. Connectez-vous avec un compte autorisé.',
@@ -347,6 +351,8 @@ export const MESSAGES = {
     'timeline.remarks': 'Observations',
     'timeline.apparent': 'app.',
     'timeline.heading': 'cap',
+    'timeline.comment': 'Commentaire',
+    'timeline.deleteConfirm': 'Supprimer cette ligne du journal ? C’est irréversible.',
 
     'observation.entry_start': 'Départ',
     'observation.entry_end': 'Arrivée',

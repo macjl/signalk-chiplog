@@ -534,6 +534,35 @@ main {
   margin: 0.2rem 0;
 }
 
+.timeline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.2rem;
+}
+
+.timeline-actions button {
+  padding: 0.1rem 0.3rem;
+  font-size: 0.85rem;
+}
+
+.timeline-comment-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 12rem;
+}
+
+.timeline-comment-form textarea {
+  font: inherit;
+  padding: 0.4rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  resize: vertical;
+}
+
 /* Corrections */
 
 .name-field {

@@ -1,4 +1,4 @@
-import { html } from '../../vendor/preact-htm.mjs';
+import { html, useEffect, useRef, useState } from '../../vendor/preact-htm.mjs';
 import { useLocale } from '../context.mjs';
 import { dayKey } from '../days.mjs';
 import { buildRows, describeEvent } from '../log-lines.mjs';
@@ -59,7 +59,83 @@ export function EventRemark({ event, manoeuvreLabels }) {
   return html`${label}${strokes}${detail}${comment}`;
 }
 
-export function Timeline({ events, observations, manoeuvreLabels }) {
+// A logged event's remarks, with edit-comment and delete controls — the only
+// corrections the API allows on a line (SPEC: "an edited comment"). Deleting
+// is offered only for what the crew themselves logged (`source: "manual"`);
+// automatic lines (alarms, autopilot, weather, corrections) can only be
+// annotated.
+function EventLine({ event, manoeuvreLabels, busy, onEditComment, onDelete }) {
+  const { t } = useLocale();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(event.comment ?? '');
+  const field = useRef(null);
+
+  useEffect(() => {
+    if (!editing) {
+      setDraft(event.comment ?? '');
+    }
+  }, [event.comment, editing]);
+
+  useEffect(() => {
+    if (editing) {
+      field.current?.focus();
+    }
+  }, [editing]);
+
+  if (editing) {
+    const submit = (submitEvent) => {
+      submitEvent.preventDefault();
+      const trimmed = draft.trim();
+      setEditing(false);
+      onEditComment(event, trimmed === '' ? null : trimmed);
+    };
+    return html`
+      <form class="timeline-comment-form" onSubmit=${submit}>
+        <textarea
+          ref=${field}
+          rows="2"
+          maxlength="10000"
+          value=${draft}
+          aria-label=${t('timeline.comment')}
+          onInput=${(inputEvent) => setDraft(inputEvent.currentTarget.value)}
+        ></textarea>
+        <div class="timeline-actions">
+          <button type="submit" disabled=${busy}>${t('common.save')}</button>
+          <button type="button" class="link-button" onClick=${() => setEditing(false)}>
+            ${t('common.cancel')}
+          </button>
+        </div>
+      </form>
+    `;
+  }
+
+  return html`
+    <${EventRemark} event=${event} manoeuvreLabels=${manoeuvreLabels} />
+    <div class="timeline-actions">
+      <button
+        type="button"
+        class="link-button"
+        disabled=${busy}
+        onClick=${() => setEditing(true)}
+      >
+        ${t('common.edit')}
+      </button>
+      ${
+        event.source === 'manual' &&
+        html`<button
+          type="button"
+          class="link-button danger"
+          disabled=${busy}
+          onClick=${() => onDelete(event)}
+        >
+          ${t('common.delete')}
+        </button>`
+      }
+    </div>
+  `;
+}
+
+export function Timeline({ events, observations, manoeuvreLabels, busy, onEditComment, onDelete }) {
   const { t, format } = useLocale();
   const rows = buildRows(events, observations);
   if (rows.length === 0) {
@@ -124,9 +200,12 @@ export function Timeline({ events, observations, manoeuvreLabels }) {
                 <td class="timeline-remarks">
                   ${
                     row.event
-                      ? html`<${EventRemark}
+                      ? html`<${EventLine}
                           event=${row.event}
                           manoeuvreLabels=${manoeuvreLabels}
+                          busy=${busy}
+                          onEditComment=${onEditComment}
+                          onDelete=${onDelete}
                         />`
                       : html`<span class="muted">${t(`observation.${readings.reason}`)}</span>`
                   }

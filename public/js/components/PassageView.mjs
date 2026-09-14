@@ -228,6 +228,17 @@ export function PassageView({ id }) {
       await request('DELETE', `/entries/${id}`);
       location.hash = '#/';
     });
+  const editComment = (event, comment) =>
+    act(async () => {
+      await request('PATCH', `/events/${event.id}`, { comment });
+      reload();
+    });
+  const deleteEvent = (event) =>
+    confirm(t('timeline.deleteConfirm')) &&
+    act(async () => {
+      await request('DELETE', `/events/${event.id}`);
+      reload();
+    });
 
   const sameDay =
     entry.endTime && dayKey(new Date(entry.startTime)) === dayKey(new Date(entry.endTime));
@@ -330,6 +341,9 @@ export function PassageView({ id }) {
         events=${data.events}
         observations=${data.observations}
         manoeuvreLabels=${data.manoeuvreLabels}
+        busy=${busy}
+        onEditComment=${editComment}
+        onDelete=${deleteEvent}
       />
     </section>
 

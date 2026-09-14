@@ -396,7 +396,8 @@ function seedDemoLogbook(db, { now = Date.now() } = {}) {
       segment(id, 'engine', at(1, 15, 40), end, 1700);
       log(id, start, 'manual_correction', {
         subtype: 'propulsion',
-        payload: { segmentId: corrected, before: { type: 'engine' }, after: { type: 'sail' } }
+        payload: { segmentId: corrected, before: { type: 'engine' }, after: { type: 'sail' } },
+        source: 'auto'
       });
       observe(id, 'entry_start', start + MINUTE, points);
       observe(id, 'periodic', at(1, 15), points);
