@@ -119,7 +119,7 @@ On an active entry, `endPosition` is the last position detection saw — not yet
 Accepts `startTime`, `endTime`, `startPosition`, `endPosition`, `startPlaceName`, `endPlaceName`, `distance`.
 
 - `endTime` can only be set on a closed entry — `409 entry_active` otherwise; use [close](#post-entriesidclose--readwrite). An end before the start is `400`.
-- **Renaming a place here is remembered.** Per SPEC §4.8, setting `startPlaceName`/`endPlaceName` also updates the nearest known place within the configured matching radius, or creates one, marking it `source: "manual"`; the entry's `startPlaceId`/`endPlaceId` then points to it. The next passage starting or ending within the radius reuses the name without calling the geocoder. Other entries keep the names they recorded.
+- **Renaming a place here is remembered.** Per SPEC §4.8, setting `startPlaceName`/`endPlaceName` also updates the nearest known place within the configured matching radius, or creates one, marking it `source: "manual"`; the entry's `startPlaceId`/`endPlaceId` then points to it. The next passage starting or ending within the radius reuses the name without calling the geocoder. Any other entry that already reused that place, timestamped later than the corrected side, is renamed too; one timestamped earlier keeps the name it recorded.
 - If the entry has no position on that side, the name is stored on the entry alone and no place is created.
 - `null` clears a name or a position.
 - Setting a name, or clearing it, ends any pending geocoding for that side: a lookup still on its way will not override it. Correcting the position of a side whose name is still pending regenerates that name from the new coordinates and looks it up again.

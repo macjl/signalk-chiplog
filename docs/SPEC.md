@@ -164,7 +164,7 @@ When creating and closing an entry, Chiplog attempts to associate a **place name
 
 **Matching radius**: a single global configurable parameter in the plugin settings (e.g. 200 m by default), applied to all registered places — no per-place setting in V1.
 
-**Remembering corrections**: as soon as the user edits the proposed name (whether it came from online geocoding or the coordinate-generated name), the correction is stored as a **known place** (name + position) and will automatically be reused for any future departure/arrival position falling within the configured radius — with no further call to the online service.
+**Remembering corrections**: as soon as the user edits the proposed name (whether it came from online geocoding or the coordinate-generated name), the correction is stored as a **known place** (name + position) and will automatically be reused for any future departure/arrival position falling within the configured radius — with no further call to the online service. It also renames that place on any entry already logged that reused it and is timestamped later than the one being corrected, so the log does not go on showing a name now known to be wrong; an entry timestamped earlier keeps the name it recorded.
 
 **As implemented** (`lib/place-names.js`):
 

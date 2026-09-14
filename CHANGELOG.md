@@ -17,6 +17,7 @@ All notable changes to Chiplog are documented here. The format follows [Keep a C
 
 ### Fixed
 
+- Renaming a departure or arrival now also renames that place on every later passage that already reused it, as documented; an earlier passage keeps the name it recorded.
 - An alarm's message is no longer repeated as its comment in the passage log.
 
 ## [1.0.0] - 2026-09-13

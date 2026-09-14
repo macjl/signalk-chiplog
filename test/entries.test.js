@@ -129,6 +129,52 @@ describe('entries', () => {
       assert.equal(unchanged.body.startPlaceName, 'Vieux-Port');
     });
 
+    it('renames a later entry that already reused the place, but not an earlier one', async () => {
+      const placeId = insert(ctx.db, 'places', {
+        name: 'Vieux-Port',
+        lat: 46.1591,
+        lon: -1.1522,
+        source: 'geocoding',
+        created_at: T0,
+        updated_at: T0
+      });
+      const earlier = insertEntry(ctx.db, {
+        start_time: at(-48),
+        end_time: at(-47),
+        start_place_id: placeId,
+        start_place_name: 'Vieux-Port',
+        start_lat: 46.1591,
+        start_lon: -1.1522
+      });
+      const middle = insertEntry(ctx.db, {
+        start_lat: 46.1591,
+        start_lon: -1.1522,
+        start_place_id: placeId,
+        start_place_name: 'Vieux-Port'
+      });
+      const later = insertEntry(ctx.db, {
+        start_time: at(24),
+        end_time: at(25),
+        start_place_id: placeId,
+        start_place_name: 'Vieux-Port',
+        start_lat: 46.1591,
+        start_lon: -1.1522
+      });
+
+      const { status, body } = await ctx.request('PATCH', `/entries/${middle}`, {
+        startPlaceName: 'Vieux-Port de La Rochelle'
+      });
+
+      assert.equal(status, 200);
+      assert.equal(body.startPlaceName, 'Vieux-Port de La Rochelle');
+
+      const laterEntry = await ctx.request('GET', `/entries/${later}`);
+      assert.equal(laterEntry.body.startPlaceName, 'Vieux-Port de La Rochelle');
+
+      const earlierEntry = await ctx.request('GET', `/entries/${earlier}`);
+      assert.equal(earlierEntry.body.startPlaceName, 'Vieux-Port');
+    });
+
     it('creates a separate place outside the radius', async () => {
       const first = insertEntry(ctx.db, { start_lat: 46.1591, start_lon: -1.1522 });
       const second = insertEntry(ctx.db, {
