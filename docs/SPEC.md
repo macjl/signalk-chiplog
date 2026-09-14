@@ -22,7 +22,7 @@ Functional references: [meri-imperiumi/signalk-logbook](https://github.com/meri-
 - **Engine/sail detection**: automatic, based on `propulsion.*.state`/`revolutions` and `navigation.state`/`sailing` (depending on what autostate exposes), with the option to manually correct an entry afterwards.
 - **User interfaces** (two distinct surfaces):
   - **Standard Signal K webapp**: log consultation, plugin configuration, export. Implemented in `public/`, served by Signal K at `/signalk-chiplog/`: day-grouped log, passage page (map, engine/sail strip, logbook lines), corrections (place names, engine/sail, close, merge, delete) and export (downloads, USB write). Plugin configuration stays in the Signal K admin, which the webapp links to.
-  - **Dedicated, installable PWA, tablet/stylus-oriented**: real-time field entry (handwritten annotations, manoeuvre shortcuts), designed for use at the helm, with gloves or wet fingers.
+  - **Dedicated, installable PWA, tablet/stylus-oriented**: real-time field entry (handwritten annotations, manoeuvre shortcuts), designed for use at the helm, with gloves or wet fingers. Implemented in `public/entry/`, served at `/signalk-chiplog/entry/`: manoeuvre pad (with the sail picked on a sail change), keyboard notes, a stylus canvas, the latest entries with delete and comment, undo and comment right after each entry, a night mode, and an offline queue (§4.9).
 - **Storage**: a single **SQLite** database in the plugin's data folder, covering entries, events, GPS track, and annotations (including vectorized handwritten strokes), accessed through Node's built-in `node:sqlite` module. The GPS track remains exportable as GPX on demand (generated from the database, not stored as a separate file).
 - **Instance scope**: one vessel per Signal K instance (standard usage for SK plugins) — no multi-profile/multi-fleet management in the data model.
 
@@ -83,7 +83,7 @@ No notion of author per event/annotation in V1: the logbook is a single shared d
 - **Decision.** `navigation.state` decides, when it is current and a recognised value: `moored`, `anchored`, `aground` and `not-under-way` mean stopped; `sailing`, `motoring` and the working statuses (fishing, towing…) mean under way. Otherwise the **speed fallback** decides: speed over ground averaged over 3 minutes, under way above the configured speed (1 kn by default) and stopped below half of it. Averaging keeps a boat swinging at anchor from starting a passage; the gap between the two thresholds keeps it from flickering.
 - **Dating and placing transitions.** signalk-autostate works from distance covered over a window, so it announces a departure several minutes late, when the boat has already left the harbour. Whatever decided, the departure is dated when raw speed first left standstill and placed where the vessel was last still; an arrival is dated when raw speed first dropped to standstill. This is what makes departure and arrival positions fall within a known place's radius (§4.8), which is filled in automatically.
 - **Short stops.** A stop marks the entry as stopped; moving again within the tolerance (`stopClosureMinutes`, 30 by default) resumes it; staying stopped closes it, with the end time set to when the vessel stopped — not when the tolerance ran out.
-- **Only a transition opens a passage.** An entry closed by hand while the boat is still moving is not reopened; the next real departure opens the next one.
+- **Only a transition opens a passage** — or the crew casting off (§4.3). An entry closed by hand while the boat is still moving is not reopened; the next real departure opens the next one.
 - **Stale data.** A value counts as current while its timestamp keeps changing — measured by the plugin's own clock rather than by comparing timestamps to it, since a Raspberry Pi without a real-time clock can boot with the wrong date. Without current data, detection neither opens nor ends a passage.
 - **Restarts.** While under way, the entry records its last movement about once a minute. If the plugin starts to find a passage open with no movement for longer than the tolerance — typically power switched off on arrival — the passage is closed at that last movement. A restart shorter than the tolerance carries on with the same passage; a longer one mid-passage splits it, which the manual merge (§3.1) repairs.
 
@@ -93,7 +93,10 @@ Known limitation: timestamps written to the logbook come from the host's clock, 
 
 - Approach adopted: **predefined + extensible list**.
 - Base list to be defined precisely but should cover at minimum: tacking, gybing, reefing in/out, sail change (with selection of the sail hoisted), anchoring (anchored/weighed), mooring/casting off, watch change.
-- Each shortcut logs a timestamped event + position in the current entry; the user can add an optional comment right after.
+- Each shortcut logs a timestamped event + position in the current entry; the user can add an optional comment right after, or undo it.
+- **Departure manoeuvres open the passage.** Casting off or weighing anchor with no passage open opens one at that moment — the crew knows it is leaving before the boat moves. The passage starts stopped: detection carries it on when the vessel gets under way, and closes it like any long stop if it never does. Undoing that manoeuvre before the vessel moves removes the passage.
+- **Entries without an open passage.** Other manoeuvres and notes go to the last passage while the vessel is within 1 nm of its arrival, like automatic events (§4.6); otherwise they are refused, with a message asking to cast off first.
+- A sail change records the sail hoisted: main, genoa, jib, staysail, spinnaker, gennaker, code 0, storm jib, or a name typed in.
 - The user can add their own shortcuts (name, icon, category) in V2 if not a priority for the MVP.
 
 ### 4.4 Handwritten and keyboard annotations
@@ -101,7 +104,7 @@ Known limitation: timestamps written to the logbook come from the host's clock, 
 - Keyboard entry: free-text field, timestamped, attached to the current entry (or to a specific event).
 - Handwritten entry: canvas on the tablet PWA, stylus capture.
   - **Format adopted: vector** (sequence of strokes, each stroke being a list of timestamped points with pressure/width). Allows lossless replay and resizing, and lightweight export. Image rendering (PNG) is still generated on demand for PDF/preview.
-  - The feature itself is deferred to V2 (cf. §6); the format is fixed now so the data model doesn't need to be migrated later.
+  - Implemented in the tablet PWA: pointer events at the device's full rate, pressure from a pen, undo of the last stroke, and palm rejection — once a pen has touched the canvas, fingers are ignored. Points are in canvas pixels with the canvas size stored alongside.
 - Both annotation types appear in the entry's timeline, timestamped and geolocated.
 
 ### 4.5 Backup / continuity in case of abandoning ship
@@ -165,6 +168,13 @@ When creating and closing an entry, Chiplog attempts to associate a **place name
 - **A lookup never overrides the crew.** A result is written only if the name is still pending *for the position that was looked up*: a name typed or removed, or a position corrected, while the request was out stays as the crew left it.
 - **Attribution.** Names from the public instance are OpenStreetMap data (© OpenStreetMap contributors, ODbL); a UI displaying them must say so.
 
+### 4.9 Tablet entry and the boat's network
+
+- **Offline queue.** An entry the server cannot take — no Wi-Fi, server or plugin down, access not granted yet — is kept on the tablet with the time it was made, corrected by the server's clock, and sent in order once the server answers again. Each carries an identifier, so one that reached the server before the connection dropped is not logged twice. Its position is the track's at that time. An entry the server refuses on replay (e.g. no passage to attach it to) is set aside and shown, to discard.
+- **Access.** With Signal K security on, logging needs read/write access. The tablet uses Signal K's device access requests: it asks once, an administrator approves it in the Signal K admin, and the tablet keeps the token. Signing in with a user account also works.
+- **Installing and starting offline** use a service worker, which browsers only allow over HTTPS (or on localhost). Over plain HTTP — the usual boat set-up — the app works and queues entries, but needs the server to load. Signal K's own SSL setting provides HTTPS.
+- The list of manoeuvre shortcuts is remembered on the tablet, so an app started offline has its buttons.
+
 ## 5. Data model and API
 
 The data model has been refined into a precise schema: the authoritative DDL lives in [`lib/database.js`](../lib/database.js), with the conventions and rationale documented in [DATA_MODEL.md](DATA_MODEL.md). Entities: `log_entries`, `track_points`, `observations`, `propulsion_segments`, `events`, `places`, `manoeuvre_types`.
@@ -188,7 +198,9 @@ The plugin's REST API is specified in [API.md](API.md).
 8. Manual + automatic configurable USB export (JSON/CSV from V1; facsimile PDF in V1.1).
 9. Day-grouped view in the consultation webapp.
 
-Deferred to V2: implementation of handwritten annotations (the vector format is already fixed in the data model, §4.4/§5), full shortcut customization, publication to a remote server, dedicated mobile companion app, crew profiles/permissions, advanced map (offline tiles, etc.).
+Brought forward from V2: handwritten annotations, in the tablet PWA (§4.4).
+
+Deferred to V2: full shortcut customization, publication to a remote server, dedicated mobile companion app, crew profiles/permissions, advanced map (offline tiles, etc.).
 
 *(This MVP breakdown is a proposal — to be validated with you before committing to it.)*
 
@@ -198,14 +210,17 @@ Deferred to V2: implementation of handwritten annotations (the vector format is 
 |---|---|
 | Storage | SQLite (single database: entries, events, track, annotations) |
 | SQLite driver | Node's built-in `node:sqlite` — no native compilation, which matters on Raspberry Pi. Raises the floor to Node >= 22.13 |
-| Handwritten annotation format | Vector (timestamped strokes/points + pressure), fixed in the data model now even though implementation is V2 |
+| Handwritten annotation format | Vector (timestamped strokes/points + pressure, canvas size); implemented in V1 in the tablet PWA |
 | Author / multi-crew | No author concept in V1 (V2 if the need is confirmed) |
 | signalk-autostate dependency | Optional, with internal fallback (SOG threshold) if absent |
 | Engine/sail sources | `propulsion.*.revolutions`, then `propulsion.*.state`, then `navigation.state`, then a configurable default (`sail`); segments only cover time under way (§4.2) |
 | Critical notifications | Any notification in `alarm` or `emergency`, whatever its path (§4.6) |
 | Weather thresholds | True wind averaged over 2 min against configurable speeds (20 and 30 kn); barometric fall of 4 hPa over 3 h (§4.6) |
 | Events between passages | Attached to the last passage while within 1 nm of its arrival; otherwise not logged (§4.6) |
-| Webapp stack | Preact + htm as one vendored ES module, no build step, no CDN (a boat is usually offline); Leaflet for the map. The tablet PWA is to reuse it |
+| Webapp stack | Preact + htm as one vendored ES module, no build step, no CDN (a boat is usually offline); Leaflet for the map. The tablet PWA shares it |
+| Entry with no passage open | Cast off / anchor up opens a passage; other entries go to the last passage within 1 nm of its arrival, else are refused (§4.3) |
+| Tablet offline | Entries queued on the tablet with their time and an idempotency key, replayed in order (§4.9) |
+| Tablet access | Signal K device access request, token kept on the tablet; a user login works too (§4.9) |
 | Webapp languages | English and French, chosen from the browser (`?lang=` overrides) |
 | Map tiles | OpenStreetMap with the OpenSeaMap seamark overlay, online; offline the track is still drawn on a blank map. Offline charts are V2 |
 | Instrument snapshots | At departure, hourly on the clock (configurable), at arrival and with each live manoeuvre (§4.5.1) |
@@ -229,6 +244,6 @@ Deferred to V2: implementation of handwritten annotations (the vector format is 
 1. ~~Define the precise SQLite schema (DDL) and the plugin's REST API.~~ Done — see [DATA_MODEL.md](DATA_MODEL.md) and [API.md](API.md).
 2. ~~Implement the REST API defined in [API.md](API.md) on top of the schema.~~ Done, with tests. `getOpenApi()` and the PDF export (V1.1) remain.
 3. ~~Stopped/underway and passage detection.~~ Done (§4.2), with track recording (§4.1), engine/sail segments, instrument snapshots (§4.5.1), automatic events (§4.6) and place names with online geocoding (§4.8). The plugin's data side is complete.
-4. Mock up the tablet entry screen (PWA) — at least the manoeuvres/text-annotations part for V1, with the handwriting canvas mockable in parallel to prepare V2.
+4. ~~Build the tablet entry PWA.~~ Done (§2, §4.3, §4.4, §4.9), handwriting included.
 5. ~~Build the consultation webapp.~~ Done (§2). Not in it yet: a places page and manoeuvre-shortcut management.
 6. Scheduled USB export (§4.5), then the facsimile PDF (V1.1).

@@ -6,7 +6,7 @@ The plugin registers its routes through `registerWithRouter`, so everything belo
 /plugins/signalk-chiplog/api
 ```
 
-The `/api` prefix keeps the plugin's routes clear of `GET /plugins/signalk-chiplog` and `GET`/`POST /plugins/signalk-chiplog/config`, which the Signal K server reserves, and leaves the bare path free to serve the PWA later.
+The `/api` prefix keeps the plugin's routes clear of `GET /plugins/signalk-chiplog` and `GET`/`POST /plugins/signalk-chiplog/config`, which the Signal K server reserves. The tablet PWA is a static webapp at `/signalk-chiplog/entry/` and uses this API.
 
 Implemented in [`lib/api.js`](../lib/api.js); the behaviour described here is covered by the tests in [`test/`](../test).
 

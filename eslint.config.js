@@ -27,6 +27,15 @@ module.exports = [
     }
   },
   {
+    files: ['public/**/sw.js'],
+    languageOptions: {
+      sourceType: 'script',
+      globals: {
+        ...globals.serviceworker
+      }
+    }
+  },
+  {
     files: ['test/**/*.mjs'],
     languageOptions: {
       sourceType: 'module',

@@ -1,0 +1,528 @@
+/* Entry app for a tablet at the helm: big targets for gloves and wet fingers,
+   strong contrast in sunlight, and a red night mode that spares night vision. */
+
+:root {
+  color-scheme: light dark;
+  --bg: #eef2f6;
+  --surface: #ffffff;
+  --text: #0f1b26;
+  --muted: #4f6072;
+  --border: #c9d3dd;
+  --accent: #0b5cad;
+  --accent-contrast: #ffffff;
+  --danger: #b42318;
+  --ok: #1f7a36;
+  --warn: #9a6700;
+  --queued-bg: #fff4d6;
+  --error-bg: #fde8e8;
+  --ink: #0f1b26;
+  --paper: #fbfaf5;
+  --radius: 14px;
+  --target: 4.5rem;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 18px;
+  line-height: 1.35;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b1218;
+    --surface: #152029;
+    --text: #e6edf3;
+    --muted: #9fb0c0;
+    --border: #2c3b49;
+    --accent: #5aa9ff;
+    --accent-contrast: #081018;
+    --danger: #ff7b72;
+    --ok: #56d364;
+    --warn: #e3b341;
+    --queued-bg: #3a2e10;
+    --error-bg: #3b1a1a;
+    --ink: #e6edf3;
+    --paper: #0f171e;
+  }
+}
+
+:root[data-theme='night'] {
+  color-scheme: dark;
+  --bg: #000000;
+  --surface: #0d0000;
+  --text: #ff4d4d;
+  --muted: #b33636;
+  --border: #4d0f0f;
+  --accent: #ff3b3b;
+  --accent-contrast: #000000;
+  --danger: #ff6b6b;
+  --ok: #ff4d4d;
+  --warn: #ff4d4d;
+  --queued-bg: #260000;
+  --error-bg: #330000;
+  --ink: #ff4d4d;
+  --paper: #050000;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+a {
+  color: var(--accent);
+}
+
+[hidden] {
+  display: none !important;
+}
+
+h2 {
+  margin: 0;
+}
+
+.muted,
+.hint {
+  color: var(--muted);
+}
+
+.hint {
+  margin: 0 0 0.75rem;
+}
+
+/* Header */
+
+.entry-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding: 0.6rem 1rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.entry-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.9rem;
+  min-width: 0;
+}
+
+.entry-motion {
+  font-size: 1.35rem;
+}
+
+.motion-underway {
+  color: var(--ok);
+}
+
+.entry-passage {
+  color: var(--muted);
+}
+
+.entry-fallback {
+  color: var(--warn);
+  font-size: 1.2rem;
+}
+
+.entry-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.connection {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+}
+
+.connection-dot {
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 50%;
+  background: var(--ok);
+}
+
+.connection-offline {
+  color: var(--warn);
+}
+
+.connection-offline .connection-dot {
+  background: var(--warn);
+}
+
+/* Controls */
+
+.tool-button,
+.big-button,
+.tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.tool-button {
+  min-height: 3rem;
+  padding: 0.3rem 0.9rem;
+  font-weight: 600;
+}
+
+.tool-button[aria-pressed='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.big-button {
+  min-height: var(--target);
+  padding: 0.5rem 1rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.big-button:active,
+.tool-button:active,
+.tab:active {
+  transform: scale(0.97);
+}
+
+.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+
+/* A lit red block would dazzle at night: primary actions are outlined instead. */
+:root[data-theme='night'] .primary {
+  background: #330000;
+  color: var(--text);
+}
+
+.danger {
+  color: var(--danger);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+  transform: none;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.link-button {
+  border: none;
+  background: none;
+  color: var(--accent);
+  min-height: 3rem;
+  padding: 0 0.5rem;
+  cursor: pointer;
+}
+
+/* Layout */
+
+.entry-main {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem 1rem 9rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.entry-columns {
+  display: grid;
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (min-width: 900px) {
+  .entry-columns {
+    grid-template-columns: 1.2fr 1fr;
+  }
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+}
+
+.panel-title {
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-bottom: 0.75rem;
+}
+
+/* Manoeuvres */
+
+.pad-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+  gap: 0.75rem;
+}
+
+.pad-grid .big-button {
+  min-height: 5.5rem;
+}
+
+/* Note and handwriting */
+
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.tab {
+  flex: 1;
+  min-height: 3.5rem;
+  font-weight: 700;
+}
+
+.tab[aria-selected='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: inset 0 -4px 0 var(--accent);
+}
+
+.note-form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+textarea,
+input {
+  width: 100%;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--paper);
+  padding: 0.75rem;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 9rem;
+}
+
+input {
+  min-height: 3.5rem;
+}
+
+.sketch {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.sketch-surface {
+  position: relative;
+}
+
+.sketch-canvas {
+  display: block;
+  width: 100%;
+  height: clamp(16rem, 42vh, 30rem);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--ink);
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.sketch-hint {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.sketch-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.sketch-actions .big-button {
+  flex: 1;
+}
+
+/* Recent entries */
+
+.recent-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.recent-item {
+  display: grid;
+  grid-template-columns: 4rem 1fr auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.6rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.recent-time {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.recent-what {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.recent-what .strokes {
+  display: block;
+  max-width: 14rem;
+  max-height: 6rem;
+}
+
+.recent-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.recent-pending {
+  background: var(--queued-bg);
+}
+
+.recent-failed {
+  background: var(--error-bg);
+}
+
+.recent-pending,
+.recent-failed {
+  padding-inline: 0.5rem;
+  border-radius: 8px;
+}
+
+.alarm {
+  color: var(--danger);
+}
+
+/* Toast and sheets */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(1rem + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  width: min(46rem, calc(100% - 2rem));
+  padding: 0.75rem 1rem;
+  background: var(--surface);
+  border: 2px solid var(--accent);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 30px rgb(0 0 0 / 30%);
+}
+
+.toast-text {
+  flex: 1 1 12rem;
+}
+
+.toast-queued {
+  border-color: var(--warn);
+  background: var(--queued-bg);
+}
+
+.toast-error {
+  border-color: var(--danger);
+  background: var(--error-bg);
+}
+
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgb(0 0 0 / 55%);
+}
+
+.sheet {
+  display: grid;
+  gap: 1rem;
+  width: min(40rem, 100%);
+  max-height: 100%;
+  overflow: auto;
+  padding: 1.25rem;
+  background: var(--surface);
+  border-radius: var(--radius);
+}
+
+.sail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  gap: 0.75rem;
+}
+
+.sheet-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.sheet-row > * {
+  flex: 1 1 10rem;
+}
+
+.access p {
+  margin: 0 0 1rem;
+}

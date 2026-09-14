@@ -2,7 +2,14 @@ import { html } from '../../vendor/preact-htm.mjs';
 import { useLocale } from '../context.mjs';
 import { dayKey } from '../days.mjs';
 
-function Strokes({ strokes, label }) {
+// A dot — the stroke of an i or a full stop — has a single point, which a
+// polyline only draws when given twice.
+function strokePoints(stroke) {
+  const points = (stroke.points ?? []).map((point) => `${point.x},${point.y}`);
+  return (points.length === 1 ? [points[0], points[0]] : points).join(' ');
+}
+
+export function Strokes({ strokes, label }) {
   const points = strokes.flatMap((stroke) => stroke.points ?? []);
   if (points.length === 0) {
     return null;
@@ -31,7 +38,7 @@ function Strokes({ strokes, label }) {
           (stroke, index) =>
             html`<polyline
               key=${index}
-              points=${(stroke.points ?? []).map((point) => `${point.x},${point.y}`).join(' ')}
+              points=${strokePoints(stroke)}
             />`
         )}
       </g>
@@ -51,7 +58,7 @@ function autopilotTarget(target, format) {
   return windAngle === undefined ? '' : format.angle(windAngle);
 }
 
-function EventRemark({ event, manoeuvreLabels }) {
+export function EventRemark({ event, manoeuvreLabels }) {
   const { t, format } = useLocale();
   const payload = event.payload ?? {};
   const comment = event.comment ? html` — ${event.comment}` : '';
@@ -60,7 +67,8 @@ function EventRemark({ event, manoeuvreLabels }) {
     case 'manoeuvre': {
       const key = `manoeuvre.${event.subtype}`;
       const label = t.has(key) ? t(key) : (manoeuvreLabels[event.subtype] ?? event.subtype);
-      const sail = payload.sail ? ` (${t('event.sail', { sail: payload.sail })})` : '';
+      const sailName = t.has(`sail.${payload.sail}`) ? t(`sail.${payload.sail}`) : payload.sail;
+      const sail = payload.sail ? ` (${t('event.sail', { sail: sailName })})` : '';
       return html`<strong>${label}</strong>${sail}${comment}`;
     }
     case 'text_annotation':

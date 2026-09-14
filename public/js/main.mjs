@@ -29,6 +29,7 @@ function Shell() {
           >${t('nav.log')}</a
         >
         <a href="#/export" aria-current=${current('export')}>${t('nav.export')}</a>
+        <a href="entry/">${t('nav.entry')}</a>
       </nav>
     </header>
     <${StatusBar} />

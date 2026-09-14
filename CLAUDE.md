@@ -30,7 +30,7 @@ A husky `pre-commit` hook runs `lint-staged`, which applies `eslint --fix` and `
 
 ## Project state
 
-The plugin's data side is in place: it opens and closes logbook entries from live Signal K data and records their track, distance, engine/sail segments, instrument snapshots and automatic events (alarms, autopilot, weather thresholds), names departures and arrivals (known places, then online geocoding), and serves it all through the REST API. The consultation webapp exists (below). Not yet built: the tablet entry PWA, the scheduled USB export, and the PDF export. The documents to read before implementing anything:
+The plugin's data side is in place: it opens and closes logbook entries from live Signal K data and records their track, distance, engine/sail segments, instrument snapshots and automatic events (alarms, autopilot, weather thresholds), names departures and arrivals (known places, then online geocoding), and serves it all through the REST API. The consultation webapp and the tablet entry PWA exist (below). Not yet built: the scheduled USB export and the PDF export. The documents to read before implementing anything:
 
 - [docs/SPEC.md](docs/SPEC.md) — functional spec. §7 is a table of settled decisions that supersedes any assumption drawn from the feature list.
 - [docs/DATA_MODEL.md](docs/DATA_MODEL.md) — schema conventions (SI units, ISO 8601 UTC, naming) and the reasoning behind the non-obvious tables. The authoritative DDL is in `lib/database.js`.
@@ -64,7 +64,7 @@ Decisions already settled that shape implementation work:
 - **Two UI surfaces**: a standard Signal K webapp (consultation, configuration, export) and a separate installable PWA for tablet/stylus field entry.
 - **`signalk-autostate` is an optional dependency**: when present, stopped/underway state comes from `navigation.state`; when absent, an internal SOG-threshold fallback takes over and the UI must signal degraded mode. Both paths need to work. autostate lags real movement by several minutes, which is why transitions are dated from raw speed whichever mode decided.
 - **One vessel per Signal K instance** — no multi-vessel or multi-profile concepts in the data model.
-- **Handwritten annotations are stored as vector strokes** (timestamped points with pressure), not raster. The feature ships in V2, but the data model reserves the format now so no migration is needed later.
+- **Handwritten annotations are stored as vector strokes** (timestamped points with pressure), not raster, captured by the tablet PWA.
 - **Log entry granularity**: a start → underway → stop cycle, with a configurable stop-duration threshold tolerating short stops (lock waits, lunch anchorages) within a single entry.
 
 ## Database migrations
@@ -81,6 +81,16 @@ Decisions already settled that shape implementation work:
 - User text is only ever rendered through htm, which escapes it. Leaflet renders string tooltips as HTML, so pass it DOM nodes for anything the crew typed (see `TrackMap.mjs`).
 - Prettier leaves `html` templates alone in `public/` (`embeddedLanguageFormatting: off`): htm drops whitespace that contains a newline, so reflowing a template changes what is displayed. Build text such as `start – end` as one string.
 - The API returns SI units; conversion for display happens only in `format.mjs`.
+
+## Tablet entry PWA
+
+`public/entry/` is the field-entry app, served at `/signalk-chiplog/entry/` by the same webapp mount and built the same way (no build step, shared `public/js/` modules, both dictionaries). It posts to `POST /events`, which picks the passage server-side — see docs/API.md and SPEC §4.3.
+
+- The logic is in modules free of vendor imports and tested under Node (`test/entry-modules.test.mjs`): `journal.mjs` (send now, else queue; undo and comment follow an entry whether queued or logged), `outbox.mjs` (ordered replay; transient failures keep an entry, refusals set it aside), `clock.mjs` (server clock from the `Date` header), `strokes.mjs`, `access.mjs` (Signal K device access requests). Components only wire them to the page.
+- Every entry carries a `clientRef`, and queued entries carry the time they were made. Keep both when adding an entry type: the server relies on them to avoid duplicates and to date and place replayed entries.
+- `sw.js` precaches the app shell; a test fails if a module `main.mjs` imports (directly or not) is missing from its `SHELL` list. Service workers need HTTPS or localhost, so the app must keep working without one. The Browser pane cannot register service workers at all — verify offline start-up in a real Chrome.
+- `crypto.randomUUID` is unavailable over plain HTTP, the usual boat set-up: use `randomId()` from `public/js/ids.mjs`.
+- `public/js/api.mjs` sends the device token (`public/js/auth.mjs`) when one is stored, for both apps.
 
 ## Code style
 
