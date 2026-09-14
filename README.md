@@ -40,11 +40,11 @@ English and French, chosen from the browser's language.
 
 ## Installation
 
-Chiplog is not yet published to the Signal K App Store. To install it from a copy of this repository:
+Install **Chiplog** from the Signal K App Store (**Apps & Plugins → Store**), or from the command line:
 
 ```bash
 cd ~/.signalk
-npm install /path/to/signalk-chiplog
+npm install signalk-chiplog
 ```
 
 Then restart the Signal K server, and in the Signal K admin:
@@ -287,4 +287,4 @@ The functional specification is in [docs/SPEC.md](docs/SPEC.md), the data model 
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE). Changes are listed in [CHANGELOG.md](CHANGELOG.md).

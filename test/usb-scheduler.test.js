@@ -230,12 +230,16 @@ describe('USB copy through the API', () => {
 
     await ctx.request('POST', `/entries/${entryId}/close`);
     t.mock.timers.tick(15 * 1000);
-    for (let i = 0; i < 50 && !fs.existsSync(path.join(exportDir, 'chiplog')); i += 1) {
-      await new Promise((resolve) => setImmediate(resolve));
+    // The copy runs in the background: wait for it rather than for a fixed delay,
+    // which a loaded machine outlasts.
+    let body;
+    for (const deadline = Date.now() + 5000; Date.now() < deadline;) {
+      ({ body } = await ctx.request('GET', '/export/usb'));
+      if (body.lastSuccess || body.lastError) {
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 20));
     }
-    await new Promise((resolve) => setTimeout(resolve, 50));
-
-    const { body } = await ctx.request('GET', '/export/usb');
     assert.equal(body.lastSuccess?.reason, 'arrival');
     assert.equal(
       fs

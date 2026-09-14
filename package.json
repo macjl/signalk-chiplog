@@ -1,12 +1,13 @@
 {
   "name": "signalk-chiplog",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Automated digital logbook plugin for Signal K, with keyboard/handwritten entry on tablet",
   "main": "index.js",
   "files": [
     "index.js",
     "lib/",
-    "public/"
+    "public/",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "test": "node --test",
@@ -20,6 +21,7 @@
   "keywords": [
     "signalk-node-server-plugin",
     "signalk-webapp",
+    "signalk-category-utility",
     "signalk",
     "logbook"
   ],
@@ -29,6 +31,14 @@
   },
   "author": "Cedric RICARD <ricard33@gmail.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ricard33/signalk-chiplog.git"
+  },
+  "homepage": "https://github.com/ricard33/signalk-chiplog#readme",
+  "bugs": {
+    "url": "https://github.com/ricard33/signalk-chiplog/issues"
+  },
   "engines": {
     "node": ">=22.13.0"
   },
