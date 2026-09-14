@@ -145,6 +145,15 @@ export const MESSAGES = {
     'export.usbUnavailable':
       'The USB drive directory is not available: is the drive plugged in and mounted?',
     'export.pluginConfiguration': 'Plugin configuration',
+    'export.usbScheduleBoth': 'Copied automatically every {minutes} min and at each arrival.',
+    'export.usbScheduleInterval': 'Copied automatically every {minutes} min.',
+    'export.usbScheduleArrival': 'Copied automatically at each arrival.',
+    'export.usbScheduleNone': 'No automatic copy: the drive is only written from here.',
+    'export.usbLastCopy':
+      'Last copy {time}: {written} passages written, {unchanged} already up to date.',
+    'export.usbNeverCopied': 'No copy made since the plugin started.',
+    'export.usbLastError': 'The last copy failed, {time}: {message}',
+    'export.usbNextCopy': 'Next automatic copy around {time}.',
 
     'nav.entry': 'Helm entry',
     'entry.title': 'Chiplog helm',
@@ -354,6 +363,16 @@ export const MESSAGES = {
     'export.usbUnavailable':
       'Le dossier de la clé USB est indisponible : la clé est-elle branchée et montée ?',
     'export.pluginConfiguration': 'Configuration du plugin',
+    'export.usbScheduleBoth': 'Copie automatique toutes les {minutes} min et à chaque arrivée.',
+    'export.usbScheduleInterval': 'Copie automatique toutes les {minutes} min.',
+    'export.usbScheduleArrival': 'Copie automatique à chaque arrivée.',
+    'export.usbScheduleNone':
+      'Pas de copie automatique : la clé n’est écrite que depuis cette page.',
+    'export.usbLastCopy':
+      'Dernière copie {time} : {written} navigations écrites, {unchanged} déjà à jour.',
+    'export.usbNeverCopied': 'Aucune copie depuis le démarrage du plugin.',
+    'export.usbLastError': 'La dernière copie a échoué, {time} : {message}',
+    'export.usbNextCopy': 'Prochaine copie automatique vers {time}.',
 
     'nav.entry': 'Saisie à bord',
     'entry.title': 'Chiplog à bord',

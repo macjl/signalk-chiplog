@@ -7,6 +7,11 @@ const { OBSERVATION_DEFAULTS } = require('./lib/observation-recorder');
 const { createPlaceNamer, GEOCODING_DEFAULTS } = require('./lib/place-names');
 const { PROPULSION_DEFAULTS } = require('./lib/propulsion-detector');
 const { createTrackRecorder, SAMPLE_INTERVAL_MS, TRACK_DEFAULTS } = require('./lib/track-recorder');
+const {
+  createUsbExportScheduler,
+  CHECK_INTERVAL_MS: USB_CHECK_INTERVAL_MS,
+  USB_EXPORT_DEFAULTS
+} = require('./lib/usb-scheduler');
 
 const { version } = require('./package.json');
 
@@ -36,6 +41,7 @@ module.exports = function (app) {
   let settings = null;
   let detector = null;
   let namer = null;
+  let usbExport = null;
   let namingTimer = null;
   let timers = [];
   let lastStatus = null;
@@ -111,7 +117,20 @@ module.exports = function (app) {
         type: 'string',
         title: 'USB export directory',
         description:
-          'Directory the logbook is written to for abandon-ship recovery, e.g. the mount point of a USB drive'
+          'Directory the logbook is copied to for abandon-ship recovery, e.g. the mount point of a USB drive. Leave empty to turn the USB copy off'
+      },
+      usbExportIntervalMinutes: {
+        type: 'number',
+        title: 'Automatic USB copy interval (minutes)',
+        description:
+          'Passages new or changed since the last copy are written to the USB drive this often; 0 turns the periodic copy off',
+        default: USB_EXPORT_DEFAULTS.usbExportIntervalMinutes,
+        minimum: 0
+      },
+      usbExportOnArrival: {
+        type: 'boolean',
+        title: 'Copy to the USB drive at each arrival',
+        default: USB_EXPORT_DEFAULTS.usbExportOnArrival
       },
       windSpeedThresholds: {
         type: 'array',
@@ -134,7 +153,10 @@ module.exports = function (app) {
 
   function runDetection() {
     try {
-      const status = describeDetection(detector.tick());
+      const outcome = detector.tick();
+      usbExport.afterDetection(outcome);
+      const usbError = usbExport.status().lastError;
+      const status = `${describeDetection(outcome)}${usbError ? ` — USB copy failing: ${usbError.message}` : ''}`;
       if (status !== lastStatus) {
         app.setPluginStatus(status);
         lastStatus = status;
@@ -201,6 +223,9 @@ module.exports = function (app) {
         geocodingEnabled: config.geocodingEnabled ?? GEOCODING_DEFAULTS.geocodingEnabled,
         geocodingUrl: config.geocodingUrl || GEOCODING_DEFAULTS.geocodingUrl,
         usbExportPath: config.usbExportPath || null,
+        usbExportIntervalMinutes:
+          config.usbExportIntervalMinutes ?? USB_EXPORT_DEFAULTS.usbExportIntervalMinutes,
+        usbExportOnArrival: config.usbExportOnArrival ?? USB_EXPORT_DEFAULTS.usbExportOnArrival,
         windSpeedThresholds: config.windSpeedThresholds ?? EVENT_DEFAULTS.windSpeedThresholds,
         pressureDropThreshold: config.pressureDropThreshold ?? EVENT_DEFAULTS.pressureDropThreshold
       };
@@ -227,6 +252,11 @@ module.exports = function (app) {
       settings,
       userAgent: `signalk-chiplog/${version}`
     });
+    usbExport = createUsbExportScheduler({
+      db: database,
+      settings,
+      log: (level, message) => (level === 'error' ? app.error(message) : app.debug(message))
+    });
     namingTimer = setTimeout(runNaming, FIRST_NAMING_DELAY_MS);
     lastStatus = null;
     runDetection();
@@ -239,6 +269,10 @@ module.exports = function (app) {
       setInterval(
         guarded('Event watching', () => watcher.check()),
         CHECK_INTERVAL_MS
+      ),
+      setInterval(
+        guarded('USB copy scheduling', () => usbExport.tick()),
+        USB_CHECK_INTERVAL_MS
       )
     ];
   };
@@ -249,6 +283,8 @@ module.exports = function (app) {
     clearTimeout(namingTimer);
     namer?.stop();
     namer = null;
+    usbExport?.stop();
+    usbExport = null;
     detector = null;
     if (database) {
       database.close();
@@ -274,6 +310,7 @@ module.exports = function (app) {
           now: () => new Date().toISOString(),
           vesselPosition: () => readVesselPosition(app),
           observeEvent: (entryId, time) => detector.observeEvent(entryId, time),
+          usbExport,
           detection: () => ({
             mode: detector.mode(),
             motion: detector.motion(),

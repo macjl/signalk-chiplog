@@ -280,6 +280,27 @@ Query: `format` — `json` (default), `csv`, `gpx` or `pdf`; `from`, `to` as for
 - **`gpx`** — one track per entry.
 - **`pdf`** — `501 not_implemented`; the facsimile arrives in V1.1.
 
+### `GET /export/usb` — `readonly`
+
+What the USB copy is set to do and how it last went, for the export screen.
+
+```json
+{
+  "directory": "/media/usb",
+  "configured": true,
+  "intervalMinutes": 15,
+  "onArrival": true,
+  "running": false,
+  "nextAt": "2026-09-13T16:00:12.000Z",
+  "lastSuccess": { "at": "2026-09-13T15:45:12.310Z", "reason": "scheduled", "entries": 12, "written": 1, "unchanged": 11, "removed": 0 },
+  "lastError": null
+}
+```
+
+- The copy runs by itself every `intervalMinutes` (the first one a minute after the plugin starts, leaving the drive time to mount) and, with `onArrival`, when a passage closes — by detection or by hand. `nextAt` is `null` without a periodic copy or a directory.
+- `reason` is `scheduled`, `arrival` or `manual`. `lastError` — `{ at, reason, code, message }` — is the failure of the latest copy, cleared by the next one that succeeds; a failed copy leaves `lastSuccess` as it was. Both are kept in memory and start empty when the plugin starts.
+- Copies never overlap: a copy requested while one is running waits for it, and requests made meanwhile share a single copy after it.
+
 ### `POST /export/usb` — admin
 
 Copies the logbook to a `chiplog/` subdirectory of the directory set in the plugin configuration, as one JSON, one CSV and one GPX file per passage, in the same formats as [`GET /export`](#get-export--readonly) restricted to that passage.
@@ -302,7 +323,7 @@ Copies the logbook to a `chiplog/` subdirectory of the directory set in the plug
 
 `entries` counts all passages, `written` those whose files were written, `unchanged` those left as they were; `files` and `removed` list full paths.
 
-`409 usb_export_not_configured` without a configured directory; `409 usb_export_unavailable` if it does not exist — typically, the drive is not mounted.
+`409 usb_export_not_configured` without a configured directory; `409 usb_export_unavailable` if it does not exist — typically, the drive is not mounted. The copy made here is the same as the automatic one, and waits for one already running.
 
 ## Not yet provided
 

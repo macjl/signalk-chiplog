@@ -593,3 +593,11 @@ main {
     height: 280px;
   }
 }
+
+.usb-status {
+  list-style: none;
+  display: grid;
+  gap: 0.35rem;
+  margin: 0 0 1rem;
+  padding: 0;
+}

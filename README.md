@@ -191,7 +191,9 @@ In the Signal K admin, **Apps & Plugins → Configuration → Chiplog**.
 | Place matching radius                              | 200 m                                 | A departure or arrival this close to a known place takes its name.                                      |
 | Name departures and arrivals with online geocoding | on                                    | Turn off to never send positions online; places are then named after their coordinates until corrected. |
 | Geocoding service                                  | `https://nominatim.openstreetmap.org` | Any Nominatim-compatible service, e.g. a self-hosted one.                                               |
-| USB export directory                               | —                                     | Where the abandon-ship copy is written, e.g. `/media/usb`.                                              |
+| USB export directory                               | —                                     | Where the abandon-ship copy is written, e.g. `/media/usb`. Empty turns the USB copy off.                |
+| Automatic USB copy interval                        | 15 min                                | How often the USB copy is brought up to date. 0 turns the periodic copy off.                            |
+| Copy to the USB drive at each arrival              | on                                    | Brings the USB copy up to date as soon as a passage ends.                                               |
 | Wind speed thresholds                              | 20, 30 kn                             | Logged when the 2-minute average true wind crosses them.                                                |
 | Barometric drop warning                            | 4 hPa / 3 h                           | 0 turns it off.                                                                                         |
 
@@ -209,9 +211,10 @@ None of these is required except position and speed over ground; each feature us
 ## Backups and abandon ship
 
 - **Download** — Export page → JSON (the complete record, including tracks and handwriting), CSV (logbook lines in nautical units, for a spreadsheet) or GPX (tracks).
-- **USB drive** — set the USB export directory, then **Write to the USB drive now** on the Export page. It fills a `chiplog/` folder on the drive with one JSON, CSV and GPX file per passage, named so that sorting by name sorts by date — e.g. `2026-09-13_0612Z_La-Rochelle_Les-Sables-d-Olonne.csv` (times in UTC; a passage in progress ends in `underway`).
+- **USB drive** — leave a USB drive plugged into the server and set the USB export directory. Chiplog then keeps a copy on it by itself: every 15 minutes and as soon as a passage ends (both configurable). **Write to the USB drive now** on the Export page makes a copy immediately. The copy fills a `chiplog/` folder on the drive with one JSON, CSV and GPX file per passage, named so that sorting by name sorts by date — e.g. `2026-09-13_0612Z_La-Rochelle_Les-Sables-d-Olonne.csv` (times in UTC; a passage in progress ends in `underway`).
   - Each export writes only passages that are new or changed since the last one, and removes the files of passages deleted, merged or renamed. Other files in the folder are left alone.
   - Each file is flushed to the drive before it appears, so pulling the drive out never leaves a half-written file.
+  - The Export page shows the schedule, the last copy, the next one, and the last failure if any.
 - **The database** — `chiplog.sqlite` in the plugin's data folder can be copied while the plugin is stopped.
 
 ## Privacy and online services
@@ -252,13 +255,17 @@ No passage is open and the boat is not near the last arrival. Tap **Cast off** o
 
 Browsers only allow an app to start offline and to be installed over HTTPS. Turn on SSL under **Server → Settings** in the Signal K admin, restart, and open the app with `https://` on the SSL port. Over plain HTTP, the app still keeps entries through Wi-Fi dropouts once it is loaded.
 
+### "The last copy failed" on the Export page
+
+The USB drive is not mounted at the configured directory, or cannot be written. The failure is also written once to the Signal K server log and shown in the plugin status. Plug the drive back in — and check it is mounted at the same place — and the next automatic copy catches up with everything that changed meanwhile.
+
 ### Wrong dates in the logbook
 
 The server's clock is wrong — common on a Raspberry Pi without a real-time clock. Set it from GPS with `signalk-set-system-time`.
 
 ## Limitations
 
-- **Not yet:** the scheduled USB export (only on demand today), the PDF logbook facsimile (planned for V1.1), a places page, and editing manoeuvre shortcuts from the webapps.
+- **Not yet:** the PDF logbook facsimile (planned for V1.1), a places page, and editing manoeuvre shortcuts from the webapps.
 - **Offline charts** are not provided.
 - **One vessel per Signal K server**, and no per-crew-member authorship.
 
