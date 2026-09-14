@@ -27,6 +27,13 @@ describe('display formatting', () => {
     assert.equal(english.depth(12.34), '12.3 m');
   });
 
+  it('reads engine hour counters in hours with a decimal', () => {
+    assert.equal(english.hours(812.46 * 3600), '812.5 h');
+    // French groups thousands with a narrow no-break space.
+    assert.equal(french.hours(1234.5 * 3600), '1\u202f234,5 h');
+    assert.equal(english.hours(null), '');
+  });
+
   it('writes durations in hours and minutes', () => {
     assert.equal(english.duration(45 * 60), '45 min');
     assert.equal(english.duration(3 * 3600 + 5 * 60), '3 h 05');

@@ -129,7 +129,6 @@ function createSeeder(db, now) {
       air_temp: 293.2,
       water_temp: 291.4,
       trip_log: 1200,
-      engine_runtime: 812 * 3600,
       ...overrides
     });
   }
@@ -446,6 +445,27 @@ function seedDemoLogbook(db, { now = Date.now() } = {}) {
     for (const id of [beat, night, hop, current]) {
       recomputeDurations(db, id, iso(now));
     }
+    // A twin-engine boat: both hour counters advance while under engine, from
+    // what they read before the first passage.
+    const engineSegments = db
+      .prepare("SELECT start_time, end_time FROM propulsion_segments WHERE type = 'engine'")
+      .all();
+    const engineHoursBefore = (time) =>
+      engineSegments.reduce((sum, { start_time: start, end_time: end }) => {
+        const from = Date.parse(start);
+        const to = Math.min(end === null ? now : Date.parse(end), Date.parse(time));
+        return sum + Math.max(0, to - from) / 1000;
+      }, 0);
+    const setRuntimes = db.prepare(
+      'UPDATE observations SET engine_runtime = ?, engine_runtimes = ? WHERE id = ?'
+    );
+    for (const { id, time } of db.prepare('SELECT id, time FROM observations').all()) {
+      const run = engineHoursBefore(time);
+      const port = Math.round(812.4 * 3600 + run);
+      const starboard = Math.round(798.1 * 3600 + run);
+      setRuntimes.run(port, JSON.stringify({ port, starboard }), id);
+    }
+
     return [beat, night, hop, current];
   });
 }

@@ -83,6 +83,8 @@ export function createFormatter({ locale, units, timeZone }) {
       const degrees = Math.round(wrap360(toDegrees(radians) + 180) - 180);
       return `${degrees > 0 ? '+' : ''}${degrees}°`;
     },
+    // An engine hour counter: hours with one decimal, as the gauge shows them.
+    hours: (seconds) => (missing(seconds) ? '' : `${oneDecimal.format(seconds / 3600)} h`),
     depth: (metres) => (missing(metres) ? '' : `${oneDecimal.format(metres)} m`),
     pressure: (pascals) => (missing(pascals) ? '' : `${noDecimal.format(pascals / 100)} hPa`),
     temperature: (kelvin) => (missing(kelvin) ? '' : `${oneDecimal.format(kelvin - 273.15)} °C`),

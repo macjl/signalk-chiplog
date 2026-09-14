@@ -57,7 +57,8 @@ Merging them would mean either carrying a dozen mostly-null columns on every den
 | `air_temp` | `environment.outside.temperature` | 15 min |
 | `water_temp` | `environment.water.temperature` | 15 min |
 | `trip_log` | `navigation.trip.log` | counter |
-| `engine_runtime` | `propulsion.main.runTime`, else the first engine that has one | counter |
+| `engine_runtimes` | `propulsion.<id>.runTime` of every engine that has one, as JSON `{"port": 2924700, "starboard": 2873220}` in seconds, `main` first then by id (migration 5) | counter |
+| `engine_runtime` | the first of `engine_runtimes`: `propulsion.main.runTime`, else the first engine that has one — kept for readers of the single value | counter |
 
 True wind is taken as published, not computed from apparent wind; a boat without a true-wind source can add one with the `signalk-derived-data` plugin. A snapshot in which every column would be `null` is not recorded.
 

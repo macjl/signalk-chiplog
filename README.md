@@ -87,7 +87,7 @@ A wrong period can be corrected in the webapp. A correction to the period in pro
 
 ### Instrument readings
 
-Readings are taken at departure, **every hour on the hour** during the passage (configurable), at arrival, and with each manoeuvre logged live, so a reef appears with the wind that called for it. Each reading holds whatever is available among position, speed and course over ground, heading, speed through water, true and apparent wind, depth, barometer, air and water temperature, trip log and engine hours. A sensor that has gone silent is left blank rather than repeating an old value.
+Readings are taken at departure, **every hour on the hour** during the passage (configurable), at arrival, and with each manoeuvre logged live, so a reef appears with the wind that called for it. Each reading holds whatever is available among position, speed and course over ground, heading, speed through water, true and apparent wind, depth, barometer, air and water temperature, trip log and the hour counter of each engine — both engines of a twin-engine boat. A sensor that has gone silent is left blank rather than repeating an old value.
 
 ### Automatic events
 
@@ -114,7 +114,7 @@ Open **Chiplog** from the Signal K webapps, or `/signalk-chiplog/`. Reading need
 
 - **Status bar** — under way under sail or engine, stopped, or waiting for data, with a link to the passage in progress. A warning shows when detection works from speed alone because signalk-autostate is missing.
 - **Logbook** — passages grouped by day, newest first, with times, departure and arrival, distance, duration and an engine/sail bar. A passage across midnight appears on both days. Provisional place names are shown as such.
-- **Passage page** — summary, map of the track (OpenStreetMap with OpenSeaMap seamarks, which can be hidden), the engine and sail periods, and the log: every reading and event in order, including handwritten notes. A passage in progress refreshes every minute.
+- **Passage page** — summary, map of the track (OpenStreetMap with OpenSeaMap seamarks, which can be hidden), the engine and sail periods with each engine's hour counter at departure and arrival and the hours run, and the log: every reading and event in order, including handwritten notes. A passage in progress refreshes every minute.
 - **Corrections** (read/write access):
   - rename the departure or arrival;
   - switch an engine period to sail or back;

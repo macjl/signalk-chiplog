@@ -80,6 +80,15 @@ describe('facsimile PDF logbook', () => {
     assert.ok(text.includes('<b>not bold</b>'), 'crew text as typed');
     assert.match(text, /Day: \d+\.\d nm sailed — engine/);
     assert.ok(text.includes('1,017 hPa'));
+    assert.match(
+      text,
+      /Departure from La Rochelle \(Les Minimes\)\nEngine hours: port 812\.4 h, starboard 798\.1 h\n/
+    );
+    assert.match(
+      text,
+      /\nEngine hours: port 813\.1 h \(\+0\.7 h\), starboard 798\.8 h \(\+0\.7 h\)\n/,
+      'at arrival, on a line of their own, with the hours run'
+    );
     // The departure's own reading is on the departure line, not a line of its own.
     assert.ok(!pages.some((page) => page.texts.includes('Departure')));
     // Handwriting is drawn as strokes.

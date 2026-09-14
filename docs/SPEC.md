@@ -129,7 +129,9 @@ The logbook lines the facsimile PDF renders — and the CSV export already lists
 - **at arrival**, when detection closes the entry — except when it closes it long after the tolerance ran out, typically after a power cut, since conditions then say nothing about that arrival;
 - **with each manoeuvre** logged as it happens, so the reef appears with the wind that called for it. A manoeuvre logged with an explicit past time gets no snapshot, and neither do annotations.
 
-A snapshot already in a periodic slot, such as one taken for a manoeuvre, stands in for the periodic one. Sensors are followed on every detection cycle, not only when a snapshot is due, so a sensor that died during the hour is recognised as such.
+A snapshot already in a periodic slot, such as one taken for a manoeuvre, stands in for the periodic one.
+
+Engine hours are recorded for every engine that publishes an hour counter (`propulsion.<id>.runTime`), so a twin-engine boat logs both. The passage page and the PDF show each engine's counter at departure and at arrival — the latest reading for a passage in progress — and the hours run in between; the CSV has a column per engine. Sensors are followed on every detection cycle, not only when a snapshot is due, so a sensor that died during the hour is recognised as such.
 
 ### 4.6 Automatically logged Signal K events
 

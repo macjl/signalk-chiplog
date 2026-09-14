@@ -158,7 +158,7 @@ GeoJSON is a single `Feature`: a `LineString`, a `Point` for a one-point track, 
 
 ### `GET /entries/:id/observations` — `readonly`
 
-The instrument snapshots behind the facsimile PDF, oldest first. Paginated. `reason` is `entry_start`, `periodic`, `entry_end` or `event` (SPEC §4.5.1); readings that were not current when the snapshot was taken are `null`.
+The instrument snapshots behind the facsimile PDF, oldest first. Paginated. `reason` is `entry_start`, `periodic`, `entry_end` or `event` (SPEC §4.5.1); readings that were not current when the snapshot was taken are `null`. `engineRuntimes` holds every engine's hour counter in seconds, keyed by Signal K engine id (`{ "port": 2924700, "starboard": 2873220 }`), or `null` with no counter; `engineRuntime` is the main (or first) engine's, as before. Snapshots recorded before migration 5 only have `engineRuntime`.
 
 ### `GET /entries/:id/propulsion` — `readonly`
 
@@ -277,7 +277,7 @@ Accepts `label`, `icon`, `sortOrder`, `enabled` — on built-in types too. The k
 Query: `format` — `json` (default), `csv`, `gpx` or `pdf`; `from`, `to` as for [`GET /entries`](#get-entries--readonly); for `pdf`, `lang` (`en` or `fr`) and `tz` (an IANA time zone such as `Europe/Paris`), which default to the plugin's logbook language and time zone — `400` for an unknown value. Served as an attachment named `chiplog.<format>`.
 
 - **`json`** — the complete record, in SI units: `{ exportedAt, schemaVersion, units, entries }`, where each entry carries its `trackPoints`, `observations`, `propulsion` and `events`. This is the machine-readable abandon-ship payload (SPEC §4.5).
-- **`csv`** — one chronological line per departure, observation, event and arrival: a paper logbook readable in any spreadsheet. Unlike everything else, it is **converted to nautical units** — knots, degrees, hPa, °C, nautical miles, engine hours — with units in the column names. Free text that a spreadsheet would execute as a formula is prefixed with `'`.
+- **`csv`** — one chronological line per departure, observation, event and arrival: a paper logbook readable in any spreadsheet. Unlike everything else, it is **converted to nautical units** — knots, degrees, hPa, °C, nautical miles, engine hours — with units in the column names. After the fixed columns, one `engine_runtime_<engine>_h` column per engine found in the export (e.g. `engine_runtime_port_h`) keeps each engine's hour counter; `engine_runtime_h` is the main or first engine's. Free text that a spreadsheet would execute as a formula is prefixed with `'`.
 - **`gpx`** — one track per entry.
 - **`pdf`** — the facsimile logbook (SPEC §4.5): A4 landscape, a page per day in the given time zone, with time, position, course, speed over ground, wind, barometer, depth, engine or sail and remarks; departures and arrivals with their totals, day totals, handwritten notes drawn. The wording is the webapp's, in `lang`.
 

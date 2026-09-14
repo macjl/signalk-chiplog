@@ -14,6 +14,29 @@ function autopilotTarget(target, format) {
   return windAngle === undefined ? '' : format.angle(windAngle);
 }
 
+// A Signal K engine id as the crew says it: "port" becomes bâbord in French;
+// an id without a translation is shown as it is.
+export function engineName(id, t) {
+  return t.has(`engine.${id}`) ? t(`engine.${id}`) : id;
+}
+
+// Each engine's hour counter at the first and last reading of a passage that
+// has one, and the hours run in between.
+export function engineHours(observations) {
+  const engines = new Map();
+  for (const observation of observations) {
+    for (const [id, runtime] of Object.entries(observation.engineRuntimes ?? {})) {
+      const engine = engines.get(id) ?? { engine: id, start: runtime, end: runtime };
+      engine.end = runtime;
+      engines.set(id, engine);
+    }
+  }
+  return [...engines.values()].map((engine) => ({
+    ...engine,
+    run: Math.max(0, engine.end - engine.start)
+  }));
+}
+
 export function manoeuvreName(key, t, manoeuvreLabels = {}) {
   const translation = `manoeuvre.${key}`;
   return t.has(translation) ? t(translation) : (manoeuvreLabels[key] ?? key);

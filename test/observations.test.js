@@ -81,6 +81,45 @@ describe('instrument snapshots', () => {
     assert.equal(snapshot.water_temp, 289.9);
     assert.equal(snapshot.trip_log, 18520);
     assert.equal(snapshot.engine_runtime, 3600000, 'the main engine first');
+    assert.deepEqual(JSON.parse(snapshot.engine_runtimes), { main: 3600000, port: 1000 });
+  });
+
+  it('record the hour counter of every engine', () => {
+    boat = createBoat()
+      .start()
+      .sail(5, {
+        sog: 0,
+        instruments: {
+          'propulsion.starboard.runTime': 2900000,
+          'propulsion.port.runTime': 3000000,
+          'propulsion.generator.state': 'stopped'
+        }
+      })
+      .sail(5, {
+        sog: 5,
+        instruments: {
+          'propulsion.starboard.runTime': 2900000,
+          'propulsion.port.runTime': 3000300
+        }
+      });
+
+    const [snapshot] = boat.observations();
+    assert.deepEqual(
+      Object.entries(JSON.parse(snapshot.engine_runtimes)),
+      [
+        ['port', 3000300],
+        ['starboard', 2900000]
+      ],
+      'every engine with a counter, in a stable order'
+    );
+    assert.equal(snapshot.engine_runtime, 3000300, 'the first engine, as before');
+  });
+
+  it('record no engine hours on a boat without counters', () => {
+    boat = createBoat().start().sail(5, { sog: 0 }).sail(5, { sog: 5 });
+    const [snapshot] = boat.observations();
+    assert.equal(snapshot.engine_runtime, null);
+    assert.equal(snapshot.engine_runtimes, null);
   });
 
   it('leave out readings that are no longer current', () => {

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { createFormatter } from '../public/js/format.mjs';
 import { createTranslator } from '../public/js/i18n.mjs';
-import { buildRows, describeEvent } from '../public/js/log-lines.mjs';
+import { buildRows, describeEvent, engineHours, engineName } from '../public/js/log-lines.mjs';
 
 const t = createTranslator('en');
 const format = createFormatter({ locale: 'en', units: { knots: 'kn', nauticalMiles: 'nm' } });
@@ -96,6 +96,25 @@ describe('logbook lines', () => {
       }).detail,
       'Corrected: engine → sail'
     );
+  });
+
+  it('gives each engine its counter at departure and arrival and the hours run', () => {
+    const hours = (value) => value * 3600;
+    assert.deepEqual(
+      engineHours([
+        { engineRuntimes: null },
+        { engineRuntimes: { port: hours(812), starboard: hours(798) } },
+        { engineRuntimes: { port: hours(813.5) } },
+        { engineRuntimes: { port: hours(814), starboard: hours(799.5) } }
+      ]),
+      [
+        { engine: 'port', start: hours(812), end: hours(814), run: hours(2) },
+        { engine: 'starboard', start: hours(798), end: hours(799.5), run: hours(1.5) }
+      ]
+    );
+    assert.deepEqual(engineHours([{ engineRuntimes: null }, {}]), []);
+    assert.equal(engineName('starboard', createTranslator('fr')), 'tribord');
+    assert.equal(engineName('2', t), '2');
   });
 
   it('puts a snapshot taken for an event on the event line', () => {

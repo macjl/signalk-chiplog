@@ -31,7 +31,9 @@ function seedPassage(db) {
     twd: 2 * Math.PI - 0.001,
     awa: -Math.PI / 4,
     pressure: 101325,
-    water_temp: 291.15
+    water_temp: 291.15,
+    engine_runtime: 812.5 * 3600,
+    engine_runtimes: JSON.stringify({ port: 812.5 * 3600, starboard: 798.25 * 3600 })
   });
   insert(db, 'events', {
     entry_id: entryId,
@@ -87,12 +89,16 @@ describe('export', () => {
 
       assert.equal(status, 200);
       assert.match(headers.get('content-disposition'), /chiplog\.json/);
-      assert.equal(body.schemaVersion, 4);
+      assert.equal(body.schemaVersion, 5);
       assert.equal(body.entries.length, 1);
       const [bundle] = body.entries;
       assert.equal(bundle.entry.distance, 68500);
       assert.equal(bundle.trackPoints.length, 2);
       assert.equal(bundle.observations[0].sog, 3.086667);
+      assert.deepEqual(bundle.observations[0].engineRuntimes, {
+        port: 812.5 * 3600,
+        starboard: 798.25 * 3600
+      });
       assert.equal(bundle.events.length, 1);
     });
 
@@ -120,6 +126,10 @@ describe('export', () => {
       assert.equal(observation.awa_deg, '-45');
       assert.equal(observation.pressure_hpa, '1013.3');
       assert.equal(observation.water_temp_c, '18');
+      assert.equal(observation.engine_runtime_h, '812.5');
+      assert.equal(observation.engine_runtime_port_h, '812.5');
+      assert.equal(observation.engine_runtime_starboard_h, '798.3');
+      assert.deepEqual(columns.slice(-2), ['engine_runtime_port_h', 'engine_runtime_starboard_h']);
     });
 
     it('neutralises spreadsheet formulas and escapes quotes in free text', async () => {

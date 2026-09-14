@@ -601,3 +601,35 @@ main {
   margin: 0 0 1rem;
   padding: 0;
 }
+
+.engine-hours {
+  margin-top: 1rem;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.engine-hours caption {
+  text-align: left;
+  font-weight: 600;
+  padding-bottom: 0.35rem;
+}
+
+.engine-hours th,
+.engine-hours td {
+  padding: 0.3rem 1rem 0.3rem 0;
+  text-align: right;
+  border-bottom: 1px solid var(--border);
+}
+
+.engine-hours th:first-child {
+  text-align: left;
+}
+
+.engine-hours tbody th::first-letter {
+  text-transform: uppercase;
+}
+
+.engine-hours thead th {
+  color: var(--muted);
+  font-weight: 500;
+}

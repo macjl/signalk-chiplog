@@ -2,6 +2,7 @@ import { html, useEffect, useRef, useState } from '../../vendor/preact-htm.mjs';
 import { apiUrl, fetchAll, get, request } from '../api.mjs';
 import { useLocale, usePolling } from '../context.mjs';
 import { dayKey } from '../days.mjs';
+import { engineHours, engineName } from '../log-lines.mjs';
 import { elapsedSeconds, ErrorNotice, Loading, PlaceName, passageTitle } from './common.mjs';
 import { PropulsionStrip } from './PropulsionStrip.mjs';
 import { Timeline } from './Timeline.mjs';
@@ -45,6 +46,41 @@ async function loadPassage(id) {
     previous,
     next
   };
+}
+
+// Each engine's hour counter at departure and arrival (or latest reading for a
+// passage in progress), as a paper log records them.
+function EngineHours({ observations, active }) {
+  const { t, format } = useLocale();
+  const engines = engineHours(observations);
+  if (engines.length === 0) {
+    return null;
+  }
+  return html`
+    <table class="engine-hours">
+      <caption>
+        ${t('passage.engineHours')}
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">${t('passage.engineHoursEngine')}</th>
+          <th scope="col">${t('passage.engineHoursStart')}</th>
+          <th scope="col">${active ? t('passage.engineHoursLatest') : t('passage.engineHoursEnd')}</th>
+          <th scope="col">${t('passage.engineHoursRun')}</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${engines.map(
+          (engine) => html`<tr key=${engine.engine}>
+            <th scope="row">${engineName(engine.engine, t)}</th>
+            <td>${format.hours(engine.start)}</td>
+            <td>${format.hours(engine.end)}</td>
+            <td>${format.hours(engine.run)}</td>
+          </tr>`
+        )}
+      </tbody>
+    </table>
+  `;
 }
 
 function NameField({ label, name, pending, busy, onSave }) {
@@ -285,6 +321,7 @@ export function PassageView({ id }) {
         busy=${busy}
         onSwitch=${switchSegment}
       />
+      <${EngineHours} observations=${data.observations} active=${active} />
     </section>
 
     <section class="card">
