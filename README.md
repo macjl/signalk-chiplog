@@ -279,6 +279,10 @@ The USB drive is not mounted at the configured directory, or cannot be written. 
 
 The server's clock is wrong — common on a Raspberry Pi without a real-time clock. Set it from GPS with `signalk-set-system-time`.
 
+### Handwriting strokes are dropped or turn into typed text
+
+On an iPad, this is Apple's **Scribble** intercepting the Apple Pencil before the page sees it — a known iPadOS/Safari limitation with no web-page-level fix (Scribble runs beneath the browser). If it happens often, turn Scribble off under **Settings → Apple Pencil → Scribble**; a tablet dedicated to Chiplog does not need it.
+
 ## Limitations
 
 - **Not yet:** a places page, and editing manoeuvre shortcuts from the webapps.
