@@ -14,6 +14,7 @@ All notable changes to Chiplog are documented here. The format follows [Keep a C
 - Facsimile PDF logbook: A4 landscape, a page per day in ship's time, with time, position, course, speed, wind, barometer, depth, engine or sail and remarks; departure and arrival lines with passage totals, day totals, handwritten notes drawn. Downloadable from the export page in the webapp's language and the device's time zone.
 - Engine hours of every engine: each engine's hour counter is recorded in readings, shown at departure and arrival with the hours run on the passage page and in the PDF, and exported as one CSV column per engine and in the JSON (`engineRuntimes`).
 - One PDF per passage in the USB copy, in the new logbook language and ship's time zone settings. Existing copies gain their PDFs at the next copy.
+- Screenshots for the Signal K App Store listing (`signalk.screenshots` in `package.json`).
 
 ### Changed
 
@@ -27,6 +28,7 @@ All notable changes to Chiplog are documented here. The format follows [Keep a C
 - An alarm's message is no longer repeated as its comment in the passage log.
 - The arrival correction field no longer appears, and is refused by the API (`409 entry_active`), on a passage still in progress — it has no arrival yet, only a moving last-seen position.
 - A note or handwritten sketch logged live now takes an instrument snapshot too, like a manoeuvre already did, so the conditions it was written in show in the log.
+- The App Store icon (`signalk.appIcon`) pointed at a non-existent `icon.svg` at the package root; the icon has always lived at `public/icon.svg`.
 
 ## [1.0.0] - 2026-09-13
 

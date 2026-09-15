@@ -7,6 +7,7 @@
     "index.js",
     "lib/",
     "public/",
+    "docs/screenshots/",
     "CHANGELOG.md"
   ],
   "scripts": {
@@ -27,7 +28,13 @@
   ],
   "signalk": {
     "displayName": "Chiplog",
-    "appIcon": "./icon.svg"
+    "appIcon": "./public/icon.svg",
+    "screenshots": [
+      "./docs/screenshots/01-logbook.png",
+      "./docs/screenshots/02-passage-tide.png",
+      "./docs/screenshots/03-passage-journal.png",
+      "./docs/screenshots/04-entry-app.png"
+    ]
   },
   "author": "Cedric RICARD <ricard33@gmail.com>",
   "license": "MIT",

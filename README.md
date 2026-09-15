@@ -296,6 +296,8 @@ npm run demo:seed -- /tmp/chiplog-demo   # a demo logbook to try the webapps wit
 
 The functional specification is in [docs/SPEC.md](docs/SPEC.md), the data model in [docs/DATA_MODEL.md](docs/DATA_MODEL.md), and the REST API in [docs/API.md](docs/API.md). [CLAUDE.md](CLAUDE.md) describes the code layout and conventions.
 
+`docs/screenshots/` holds the images the Signal K App Store shows for this plugin (`signalk.screenshots` in `package.json`), taken against a demo logbook (`npm run demo:seed`) with a real browser, e.g. `google-chrome --headless --window-size=1280,800 --screenshot=docs/screenshots/01-logbook.png http://localhost:3000/signalk-chiplog/?lang=en`. Retake them after a visible UI change.
+
 ## License
 
 MIT — see [LICENSE](LICENSE). Changes are listed in [CHANGELOG.md](CHANGELOG.md).
