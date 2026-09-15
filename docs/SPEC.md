@@ -62,6 +62,7 @@ No notion of author per event/annotation in V1: the logbook is a single shared d
   - an **interval point** every `trackIntervalSeconds` (15 s by default), skipped until the vessel has moved 10 m, so a wait at a lock does not pile up identical points;
   - an extra point on a **course change of 15° or more** — only above 2 kn, since course over ground is noise at low speed — or a **speed change of 1 kn or more**, at most every 2 s.
 - **Points belong to a moving passage.** They are held in memory while no passage is open or while the open one is stopped, and attached once it moves: detection dates a departure back to when the vessel left its berth, up to 20 minutes before it opens the entry, so the held points make the track start there rather than a mile out. Up to 20 minutes of points are held.
+- **Wind and heading ride along with each point** (migration 6): true and apparent wind speed/angle, and heading — the same readings `observations` takes hourly, but at the track's own resolution, so a figure like the highest wind speed seen on a passage reflects an actual gust rather than whatever an hourly sample happened to catch.
 - **Distance** is the sum of the distances between consecutive track points, updated as points are recorded.
 - Standard **GPX** export per entry or for a date range, generated on the fly from the SQLite database.
 - **Interactive map embedded in the webapp** (track displayed on tile background), in addition to export — no delegation to freeboard-sk for display.

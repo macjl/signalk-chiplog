@@ -88,6 +88,12 @@ function createVessel({ settings = {} } = {}) {
       return vessel;
     },
 
+    // Publishes any other Signal K path, for wind and heading.
+    publish(skPath, value, now = vessel.now) {
+      publish(skPath, value, now);
+      return vessel;
+    },
+
     openEntry(fields = {}) {
       const row = {
         state: 'active',
@@ -215,6 +221,68 @@ describe('track recording', () => {
     vessel.run(300, { knots: 6 });
 
     assert.equal(vessel.points().length, 5);
+  });
+
+  describe('wind and heading', () => {
+    it('records wind and heading alongside each point', () => {
+      vessel = createVessel().start();
+      vessel.openEntry();
+
+      vessel
+        .publish('environment.wind.speedTrue', 8.2 * KNOT)
+        .publish('environment.wind.directionTrue', 3.5)
+        .publish('environment.wind.speedApparent', 9.5 * KNOT)
+        .publish('environment.wind.angleApparent', -0.6)
+        .publish('navigation.headingTrue', 1.2);
+      vessel.run(1, { knots: 6 });
+
+      const [point] = vessel.points();
+      assert.ok(Math.abs(point.tws - 8.2 * KNOT) < 1e-9);
+      assert.equal(point.twd, 3.5);
+      assert.ok(Math.abs(point.aws - 9.5 * KNOT) < 1e-9);
+      assert.equal(point.awa, -0.6);
+      assert.equal(point.heading, 1.2);
+    });
+
+    it('derives heading from magnetic and variation without a true heading source', () => {
+      vessel = createVessel().start();
+      vessel.openEntry();
+
+      vessel
+        .publish('navigation.headingMagnetic', 1.0)
+        .publish('navigation.magneticVariation', -0.05);
+      vessel.run(1, { knots: 6 });
+
+      const [point] = vessel.points();
+      assert.ok(Math.abs(point.heading - 0.95) < 1e-9);
+    });
+
+    it('leaves wind and heading null with nothing published', () => {
+      vessel = createVessel().start();
+      vessel.openEntry();
+
+      vessel.run(1, { knots: 6 });
+
+      const [point] = vessel.points();
+      assert.equal(point.tws, null);
+      assert.equal(point.twd, null);
+      assert.equal(point.aws, null);
+      assert.equal(point.awa, null);
+      assert.equal(point.heading, null);
+    });
+
+    it('drops a wind reading once it goes stale', () => {
+      vessel = createVessel().start();
+      vessel.openEntry();
+
+      vessel.publish('environment.wind.speedTrue', 8.2 * KNOT);
+      vessel.run(1, { knots: 6 });
+      assert.ok(Math.abs(vessel.points()[0].tws - 8.2 * KNOT) < 1e-9);
+
+      vessel.run(200, { knots: 6 });
+
+      assert.equal(vessel.points().at(-1).tws, null);
+    });
   });
 
   describe('attaching points to the passage they belong to', () => {

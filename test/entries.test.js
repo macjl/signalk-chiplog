@@ -113,6 +113,21 @@ describe('entries', () => {
       assert.equal(body.maxWindApparent, false);
     });
 
+    it('takes the highest wind from the dense track over the hourly snapshots', async () => {
+      const id = insertEntry(ctx.db);
+      insert(ctx.db, 'track_points', { entry_id: id, time: at(0), lat: 46, lon: -1, tws: 15.4 });
+      insert(ctx.db, 'observations', {
+        entry_id: id,
+        time: at(0),
+        reason: 'entry_start',
+        tws: 8.2
+      });
+
+      const { body } = await ctx.request('GET', `/entries/${id}`);
+
+      assert.equal(body.maxWindSpeed, 15.4);
+    });
+
     it('falls back to apparent wind when true wind was never recorded', async () => {
       const id = insertEntry(ctx.db);
       insert(ctx.db, 'observations', { entry_id: id, time: T0, reason: 'entry_start', aws: 9.5 });

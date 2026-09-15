@@ -115,7 +115,7 @@ One entry, with the counts the detail view needs:
 
 On an active entry, `endPosition` is the last position detection saw — not yet an arrival.
 
-`maxSpeed` is the highest speed over ground seen in the track, `null` with none. `maxWindSpeed` is the highest true wind speed seen in the instrument snapshots (SPEC §4.5.1), falling back to apparent wind — flagged by `maxWindApparent` — only for a passage with no true-wind reading at all; `null` with neither. Both are read from what is already recorded, at whatever resolution the track and the snapshot interval give — a brief gust between snapshots does not show.
+`maxSpeed` is the highest speed over ground seen in the track, `null` with none. `maxWindSpeed` is the highest true wind speed seen, from the track and the instrument snapshots (SPEC §4.5.1) combined, falling back to apparent wind — flagged by `maxWindApparent` — only for a passage with no true-wind reading at all; `null` with neither.
 
 `startPlacePending`/`endPlacePending` mean the name was generated from coordinates (`"46.1234N 1.5678W"`) and online geocoding has not answered yet (SPEC §4.8); the name may still change on its own. A UI can show it as provisional. Geocoded names from the public instance are OpenStreetMap data and need its attribution.
 
