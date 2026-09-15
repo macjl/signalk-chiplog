@@ -56,7 +56,7 @@ The plugin's data side is in place: it opens and closes logbook entries from liv
 
 When a design decision is made or changed in conversation, update `docs/SPEC.md` to match; the spec is meant to stay the single source of truth rather than drift behind the code.
 
-[CHANGELOG.md](CHANGELOG.md) follows Keep a Changelog: add user-visible changes under `[Unreleased]` as they are made, and move them under a version heading when releasing (with the `package.json` version and a `vX.Y.Z` tag).
+[CHANGELOG.md](CHANGELOG.md) follows Keep a Changelog: add user-visible changes under `[Unreleased]` as they are made, and move them under a version heading when releasing (with the `package.json` version and a `vX.Y.Z` tag). Pushing that tag runs [.github/workflows/publish.yml](.github/workflows/publish.yml), which tests and publishes the package to npm using the `NPM_TOKEN` repository secret — nothing to run by hand beyond the tag push.
 
 [README.md](README.md) is the user documentation — installation, what the logbook records, both apps, settings, troubleshooting. Update it with any user-visible change: a new setting, a changed default, a new screen or behaviour. Menu names it quotes are those of the Signal K 2.x admin.
 
