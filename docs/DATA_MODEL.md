@@ -56,7 +56,7 @@ The two overlap on wind and heading since migration 6, but still do different jo
 | `pressure` | `environment.outside.pressure` | 15 min |
 | `air_temp` | `environment.outside.temperature` | 15 min |
 | `water_temp` | `environment.water.temperature` | 15 min |
-| `trip_log` | `navigation.trip.log` | counter |
+| `trip_log` | `navigation.log` | counter |
 | `engine_runtimes` | `propulsion.<id>.runTime` of every engine that has one, as JSON `{"port": 2924700, "starboard": 2873220}` in seconds, `main` first then by id (migration 5) | counter |
 | `engine_runtime` | the first of `engine_runtimes`: `propulsion.main.runTime`, else the first engine that has one — kept for readers of the single value | counter |
 

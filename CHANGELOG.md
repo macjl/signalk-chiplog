@@ -21,6 +21,7 @@ All notable changes to Chiplog are documented here. The format follows [Keep a C
 
 ### Fixed
 
+- The log reading in instrument snapshots now comes from `navigation.log` (the total, non-resettable distance log), not `navigation.trip.log`, which a crew resetting the trip counter could zero out mid-passage.
 - Renaming a departure or arrival now also renames that place on every later passage that already reused it, as documented; an earlier passage keeps the name it recorded.
 - An alarm's message is no longer repeated as its comment in the passage log.
 - The arrival correction field no longer appears, and is refused by the API (`409 entry_active`), on a passage still in progress — it has no arrival yet, only a moving last-seen position.

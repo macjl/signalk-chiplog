@@ -15,7 +15,7 @@ const INSTRUMENTS = {
   'environment.outside.pressure': 101820,
   'environment.outside.temperature': 291.4,
   'environment.water.temperature': 289.9,
-  'navigation.trip.log': 18520,
+  'navigation.log': 18520,
   'propulsion.port.runTime': 1000,
   'propulsion.main.runTime': 3600000
 };
@@ -169,7 +169,7 @@ describe('instrument snapshots', () => {
   it('keep counters whatever their age', () => {
     boat = createBoat()
       .start()
-      .sail(1, { sog: 0, instruments: { 'navigation.trip.log': 5000 } })
+      .sail(1, { sog: 0, instruments: { 'navigation.log': 5000 } })
       .sail(70, { sog: 5 });
 
     const periodic = boat.observations().find((o) => o.reason === 'periodic');
