@@ -111,6 +111,8 @@ The shortcut list (SPEC §4.3). Built-in entries are seeded by the migration wit
 
 At most one row per entry (`entry_id` is the primary key), fetched once near departure (SPEC §4.5.2): `lat`/`lon` are the position asked about, `points` the JSON `[{ time, height }]` hourly curve for the 24 h from departure, height in metres. No row means no attempt has resolved yet — still pending, or the departure is now too old for one to be worth making. `points: []` means a fetch answered but had nothing usable for the position (an inland lake); `getTideForecast` (`lib/tide-forecaster.js`) treats that the same as no row, since the webapp has nothing to show either way — the distinction only matters to the fetcher itself, so it does not keep re-asking.
 
+There is no `datum` column: every row is Open-Meteo `sea_level_height_msl`, relative to mean sea level rather than the chart datum nautical tide tables use, and `getTideForecast` reports that as the constant `datum: "msl"` rather than storing it per row. A second source with a different reference would need one.
+
 High and low tide are not stored: they are the local peaks and troughs of `points`, found when read (`public/js/tide.mjs`'s `tideExtremes`), the same principle as `maxSpeed`/`maxWindSpeed` on `GET /entries/:id`.
 
 ## Migrations

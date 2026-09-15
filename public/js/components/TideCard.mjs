@@ -85,6 +85,7 @@ export function TideCard({ tide, placeName }) {
             </li>`
         )}
       </ul>
+      ${tide.datum === 'msl' && html`<p class="muted tide-datum-note">${t('tide.datumNote')}</p>`}
       <p class="muted tide-attribution">${t('tide.attribution')}</p>
     </section>
   `;

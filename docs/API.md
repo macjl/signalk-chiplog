@@ -188,6 +188,7 @@ Correcting the **ongoing** segment holds until the engine data changes: detectio
 {
   "position": { "lat": 46.4383, "lon": -1.6769 },
   "fetchedAt": "2026-09-13T06:12:30.000Z",
+  "datum": "msl",
   "points": [
     { "time": "2026-09-13T06:00:00.000Z", "height": 1.9 },
     { "time": "2026-09-13T07:00:00.000Z", "height": 2.7 }
@@ -196,6 +197,8 @@ Correcting the **ongoing** segment holds until the engine data changes: detectio
 ```
 
 The tide forecast fetched near this entry's departure (SPEC §4.5.2): hourly water height in metres, at the position asked about, for the 24 h starting at departure. `404 tide_not_found` while none has been fetched yet, or none is available for the position — the two are not distinguished, since there is nothing to show either way. High and low tide are not a separate field: they are the local peaks and troughs of `points`, derived by the client.
+
+`datum` is always `"msl"` today: heights are relative to mean sea level, the only reference Open-Meteo's `sea_level_height_msl` offers — not the lowest-astronomical-tide chart datum nautical tide tables use. A client showing `points` or the derived extremes should say so, as the webapp does, rather than imply a charted "hauteur d'eau".
 
 ## Events
 

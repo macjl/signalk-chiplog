@@ -104,6 +104,8 @@ An alarm at anchor between two passages goes to the passage that ended there, as
 
 When a passage opens, Chiplog fetches the predicted water height near the departure for the next 24 hours (configurable service, on by default) and shows it on the passage page: the departure's place, the high and low tide times and heights, and the height curve. Fetched once, at departure — not kept up to date afterwards. Offline is handled the same way as geocoding: retried for a while, then given up on quietly if the boat stays out of reach, or if the position simply has no tide (an inland lake). Hourly data, so times are accurate to within about half an hour — enough for a logbook reference, not for timing a lock or a bar crossing to the minute.
 
+**Heights are relative to mean sea level, not a charted "hauteur d'eau".** The free tide service used has no notion of chart datum (the lowest-astronomical-tide reference SHOM and other official tide tables use), so a reading here can be several metres off what a nautical chart or an official tide table would say for the same moment — the app says so under the chart. Tide _times_ are unaffected by this: a vertical offset does not move when high or low water falls.
+
 ### Place names
 
 Departures and arrivals are named automatically:

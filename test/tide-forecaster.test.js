@@ -247,6 +247,7 @@ describe('tide forecast', () => {
 
       assert.deepEqual(forecast.position, MINIMES);
       assert.ok(forecast.fetchedAt);
+      assert.equal(forecast.datum, 'msl');
       assert.ok(forecast.points.length > 0);
     });
   });
@@ -281,6 +282,7 @@ describe('GET /entries/:id/tide', () => {
     assert.equal(status, 200);
     assert.deepEqual(body.position, MINIMES);
     assert.equal(body.fetchedAt, '2026-09-13T08:00:00.000Z');
+    assert.equal(body.datum, 'msl');
     assert.deepEqual(body.points, [{ time: '2026-09-13T08:00:00.000Z', height: 1.2 }]);
   });
 

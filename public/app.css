@@ -654,9 +654,15 @@ main {
   font-size: 0.9rem;
 }
 
-.tide-attribution {
+.tide-datum-note {
   font-size: 0.8rem;
   margin-top: 0.8rem;
+  margin-bottom: 0;
+}
+
+.tide-attribution {
+  font-size: 0.8rem;
+  margin-top: 0.3rem;
   margin-bottom: 0;
 }
 

@@ -74,7 +74,9 @@ export const MESSAGES = {
     'tide.place': 'Location:',
     'tide.high': 'High tide',
     'tide.low': 'Low tide',
-    'tide.chartLabel': 'Water height over the 24 hours from departure',
+    'tide.chartLabel': 'Water level relative to mean sea level, over the 24 hours from departure',
+    'tide.datumNote':
+      'Heights are relative to mean sea level, not the chart datum used on nautical charts.',
     'tide.attribution': 'Tide data © Open-Meteo.com (CC BY 4.0)',
     'passage.propulsion': 'Engine and sail',
     'passage.engineHours': 'Engine hours',
@@ -341,7 +343,10 @@ export const MESSAGES = {
     'tide.place': 'Lieu :',
     'tide.high': 'Pleine mer',
     'tide.low': 'Basse mer',
-    'tide.chartLabel': 'Hauteur d’eau sur les 24 heures suivant le départ',
+    'tide.chartLabel':
+      'Niveau d’eau par rapport au niveau moyen de la mer, sur les 24 heures suivant le départ',
+    'tide.datumNote':
+      'Les hauteurs sont données par rapport au niveau moyen de la mer, et non au zéro hydrographique des cartes marines.',
     'tide.attribution': 'Données de marée © Open-Meteo.com (CC BY 4.0)',
     'passage.propulsion': 'Moteur et voile',
     'passage.engineHours': 'Heures moteur',
