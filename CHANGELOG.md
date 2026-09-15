@@ -4,6 +4,10 @@ All notable changes to Chiplog are documented here. The format follows [Keep a C
 
 ## [Unreleased]
 
+### Added
+
+- The tablet app's handwriting pad now fills the whole screen and has a toolbar: fine pen, thick pen, highlighter, eraser, undo and a choice of colour (kept to the theme's colour in night mode). The eraser removes only the points it touches, splitting a stroke instead of deleting all of it; undo now steps back through erasing too, not just strokes. A stroke's colour and tool travel with it to the webapp's timeline and the PDF export, not just the tablet.
+
 ### Fixed
 
 - The tablet app's stylus canvas now prevents the default action on every contact, not just the pen's — a resting palm's touch was left to the browser, which could hijack it as a gesture and cancel the pen's in-progress stroke, or show a native text-selection highlight over the canvas. iOS Safari's long-press selection callout on the canvas needed the whole entry app, not just the canvas, to opt out of selection to reliably stay away, plus blocking `selectstart`/`contextmenu`/`dragstart` directly since the CSS alone is unreliable on some iOS versions.

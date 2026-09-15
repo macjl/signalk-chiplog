@@ -1,48 +1,92 @@
 import { html, useEffect, useRef, useState } from '../../../vendor/preact-htm.mjs';
 import { useLocale } from '../../../js/context.mjs';
 import { createStrokeRecorder, strokeWidth } from '../strokes.mjs';
+import { EraserIcon, FinePenIcon, HighlighterIcon, ThickPenIcon, UndoIcon } from './Icons.mjs';
 
-const BASE_WIDTH = 2.5;
+// Presets for the toolbar: base width in canvas CSS pixels, before pressure
+// scaling (SPEC §4.4). Only the highlighter is drawn with transparency.
+const TOOLS = {
+  fine: { kind: 'pen', width: 2.5, icon: FinePenIcon, labelKey: 'entry.toolFine' },
+  large: { kind: 'pen', width: 5.5, icon: ThickPenIcon, labelKey: 'entry.toolLarge' },
+  highlighter: {
+    kind: 'highlighter',
+    width: 16,
+    icon: HighlighterIcon,
+    labelKey: 'entry.toolHighlighter'
+  }
+};
+const TOOL_ORDER = ['fine', 'large', 'highlighter'];
+const HIGHLIGHTER_ALPHA = 0.35;
+const ERASER_RADIUS = 12;
+const DEFAULT_COLOR = '#0f1b26';
+
+// The first choice keeps the theme's ink colour (so a note drawn without
+// picking a colour looks the same as before this toolbar existed); the rest
+// are fixed so the note looks the same everywhere it is later shown.
+const COLORS = [
+  { id: 'auto', value: null, labelKey: 'entry.colorDefault' },
+  { id: 'blue', value: '#1d4ed8', labelKey: 'entry.colorBlue' },
+  { id: 'red', value: '#dc2626', labelKey: 'entry.colorRed' },
+  { id: 'green', value: '#16a34a', labelKey: 'entry.colorGreen' },
+  { id: 'amber', value: '#d97706', labelKey: 'entry.colorAmber' }
+];
+
+function toHex(cssColor) {
+  const channels = cssColor.match(/\d+/g);
+  if (!channels) {
+    return DEFAULT_COLOR;
+  }
+  return `#${channels
+    .slice(0, 3)
+    .map((channel) => Number(channel).toString(16).padStart(2, '0'))
+    .join('')}`;
+}
 
 function drawStroke(context, stroke) {
   const { points } = stroke;
+  const base = stroke.width ?? TOOLS.fine.width;
+  context.strokeStyle = stroke.color ?? DEFAULT_COLOR;
+  context.fillStyle = stroke.color ?? DEFAULT_COLOR;
+  context.globalAlpha = stroke.tool === 'highlighter' ? HIGHLIGHTER_ALPHA : 1;
   if (points.length === 1) {
     const [point] = points;
     context.beginPath();
-    context.arc(point.x, point.y, strokeWidth(BASE_WIDTH, point.pressure) / 2, 0, Math.PI * 2);
+    context.arc(point.x, point.y, strokeWidth(base, point.pressure) / 2, 0, Math.PI * 2);
     context.fill();
-    return;
+  } else {
+    for (let i = 1; i < points.length; i += 1) {
+      const from = points[i - 1];
+      const to = points[i];
+      context.lineWidth = strokeWidth(base, to.pressure);
+      context.beginPath();
+      context.moveTo(from.x, from.y);
+      context.lineTo(to.x, to.y);
+      context.stroke();
+    }
   }
-  for (let i = 1; i < points.length; i += 1) {
-    const from = points[i - 1];
-    const to = points[i];
-    context.lineWidth = strokeWidth(BASE_WIDTH, to.pressure);
-    context.beginPath();
-    context.moveTo(from.x, from.y);
-    context.lineTo(to.x, to.y);
-    context.stroke();
-  }
+  context.globalAlpha = 1;
 }
 
-export function SketchPanel({ busy, onLog }) {
+export function SketchPanel({ busy, onLog, night }) {
   const { t } = useLocale();
   const canvas = useRef(null);
   const recorder = useRef(createStrokeRecorder());
   const activePointer = useRef(null);
   // Once a pen has touched the canvas, fingers are the palm resting on it.
   const penSeen = useRef(false);
+  const [tool, setTool] = useState('fine');
+  const [color, setColor] = useState(COLORS[0]);
   const [strokeCount, setStrokeCount] = useState(0);
+  const [canUndo, setCanUndo] = useState(false);
   const [comment, setComment] = useState('');
 
-  function context() {
-    const element = canvas.current;
-    const drawing = element.getContext('2d');
-    drawing.lineCap = 'round';
-    drawing.lineJoin = 'round';
-    const colour = getComputedStyle(element).color;
-    drawing.strokeStyle = colour;
-    drawing.fillStyle = colour;
-    return drawing;
+  function syncState() {
+    setStrokeCount(recorder.current.strokes.length);
+    setCanUndo(recorder.current.canUndo());
+  }
+
+  function resolveColor() {
+    return color.value ?? toHex(getComputedStyle(canvas.current).color);
   }
 
   function redraw() {
@@ -54,7 +98,9 @@ export function SketchPanel({ busy, onLog }) {
     const { width, height } = element.getBoundingClientRect();
     element.width = Math.round(width * ratio);
     element.height = Math.round(height * ratio);
-    const drawing = context();
+    const drawing = element.getContext('2d');
+    drawing.lineCap = 'round';
+    drawing.lineJoin = 'round';
     drawing.setTransform(ratio, 0, 0, ratio, 0, 0);
     drawing.clearRect(0, 0, width, height);
     recorder.current.strokes.forEach((stroke) => drawStroke(drawing, stroke));
@@ -82,9 +128,6 @@ export function SketchPanel({ busy, onLog }) {
   const suppressDefault = (event) => event.preventDefault();
 
   const onPointerDown = (event) => {
-    // Every contact on the canvas must be prevented, even ones we reject (the palm) —
-    // otherwise the browser can hand an un-prevented touch to its own gesture
-    // recognizer, which on some builds cancels the pen's in-progress pointer.
     event.preventDefault();
     if (event.pointerType === 'pen') {
       penSeen.current = true;
@@ -99,8 +142,9 @@ export function SketchPanel({ busy, onLog }) {
       // previous one has lifted even if its pointerup/pointercancel hasn't arrived
       // yet — quickly reapplying the pen can reorder those events. Finish the
       // stale stroke instead of silently dropping the new one.
-      recorder.current.end();
-      setStrokeCount(recorder.current.strokes.length);
+      if (tool !== 'eraser') {
+        recorder.current.end();
+      }
       activePointer.current = null;
     }
     if (busy) {
@@ -109,10 +153,18 @@ export function SketchPanel({ busy, onLog }) {
     canvas.current.setPointerCapture(event.pointerId);
     activePointer.current = event.pointerId;
     const [x, y] = locate(event);
-    const stroke = recorder.current.begin(x, y, event.timeStamp, pressureOf(event));
-    const drawing = context();
-    drawing.setTransform(window.devicePixelRatio || 1, 0, 0, window.devicePixelRatio || 1, 0, 0);
-    drawStroke(drawing, stroke);
+    if (tool === 'eraser') {
+      recorder.current.beginErase();
+      if (recorder.current.eraseAt(x, y, ERASER_RADIUS)) {
+        redraw();
+      }
+      syncState();
+      return;
+    }
+    const style = { color: resolveColor(), tool: TOOLS[tool].kind, width: TOOLS[tool].width };
+    recorder.current.begin(x, y, event.timeStamp, pressureOf(event), style);
+    redraw();
+    syncState();
   };
 
   const onPointerMove = (event) => {
@@ -120,16 +172,24 @@ export function SketchPanel({ busy, onLog }) {
       return;
     }
     const samples = event.getCoalescedEvents?.() ?? [];
-    const drawing = context();
-    drawing.setTransform(window.devicePixelRatio || 1, 0, 0, window.devicePixelRatio || 1, 0, 0);
-    for (const sample of samples.length > 0 ? samples : [event]) {
-      const [x, y] = locate(sample);
-      const stroke = recorder.current.extend(x, y, sample.timeStamp, pressureOf(sample));
-      const { points } = stroke;
-      if (points.length > 1) {
-        drawStroke(drawing, { points: points.slice(-2) });
+    const list = samples.length > 0 ? samples : [event];
+    if (tool === 'eraser') {
+      let changed = false;
+      for (const sample of list) {
+        const [x, y] = locate(sample);
+        changed = recorder.current.eraseAt(x, y, ERASER_RADIUS) || changed;
       }
+      if (changed) {
+        redraw();
+        syncState();
+      }
+      return;
     }
+    for (const sample of list) {
+      const [x, y] = locate(sample);
+      recorder.current.extend(x, y, sample.timeStamp, pressureOf(sample));
+    }
+    redraw();
   };
 
   const onPointerUp = (event) => {
@@ -137,21 +197,23 @@ export function SketchPanel({ busy, onLog }) {
       return;
     }
     activePointer.current = null;
-    recorder.current.end();
-    setStrokeCount(recorder.current.strokes.length);
+    if (tool !== 'eraser') {
+      recorder.current.end();
+    }
+    syncState();
   };
 
   const undo = () => {
     recorder.current.undo();
-    setStrokeCount(recorder.current.strokes.length);
     redraw();
+    syncState();
   };
 
   const clear = () => {
     recorder.current.clear();
-    setStrokeCount(0);
     setComment('');
     redraw();
+    syncState();
   };
 
   const send = async () => {
@@ -167,10 +229,62 @@ export function SketchPanel({ busy, onLog }) {
 
   return html`
     <div class="sketch">
+      <div class="sketch-toolbar" role="toolbar" aria-label=${t('entry.sketchTools')}>
+        <div class="sketch-tools">
+          ${TOOL_ORDER.map((key) => {
+            const preset = TOOLS[key];
+            const Icon = preset.icon;
+            return html`<button
+              type="button"
+              key=${key}
+              class="tool-button icon-button"
+              aria-pressed=${tool === key}
+              aria-label=${t(preset.labelKey)}
+              onClick=${() => setTool(key)}
+            >
+              <${Icon} />
+            </button>`;
+          })}
+          <button
+            type="button"
+            class="tool-button icon-button"
+            aria-pressed=${tool === 'eraser'}
+            aria-label=${t('entry.toolEraser')}
+            onClick=${() => setTool('eraser')}
+          >
+            <${EraserIcon} />
+          </button>
+          <button
+            type="button"
+            class="tool-button icon-button"
+            disabled=${!canUndo}
+            aria-label=${t('entry.sketchUndo')}
+            onClick=${undo}
+          >
+            <${UndoIcon} />
+          </button>
+        </div>
+        ${
+          !night &&
+          html`<div class="sketch-colors">
+          ${COLORS.map(
+            (option) => html`<button
+              type="button"
+              key=${option.id}
+              class="color-swatch"
+              style=${{ background: option.value ?? 'var(--ink)' }}
+              aria-pressed=${color.id === option.id}
+              aria-label=${t(option.labelKey)}
+              onClick=${() => setColor(option)}
+            ></button>`
+          )}
+        </div>`
+        }
+      </div>
       <div class="sketch-surface">
         <canvas
           ref=${canvas}
-          class="sketch-canvas"
+          class="sketch-canvas ${tool === 'eraser' ? 'erasing' : ''}"
           role="img"
           aria-label=${t('entry.sketchArea')}
           onPointerDown=${onPointerDown}
@@ -194,9 +308,6 @@ export function SketchPanel({ busy, onLog }) {
         onInput=${(event) => setComment(event.currentTarget.value)}
       />
       <div class="sketch-actions">
-        <button type="button" class="tool-button" disabled=${strokeCount === 0} onClick=${undo}>
-          ${t('entry.sketchUndo')}
-        </button>
         <button type="button" class="tool-button" disabled=${strokeCount === 0} onClick=${clear}>
           ${t('entry.sketchClear')}
         </button>

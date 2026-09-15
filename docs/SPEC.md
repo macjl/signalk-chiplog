@@ -107,9 +107,9 @@ Known limitation: timestamps written to the logbook come from the host's clock, 
 ### 4.4 Handwritten and keyboard annotations
 
 - Keyboard entry: free-text field, timestamped, attached to the current entry (or to a specific event).
-- Handwritten entry: canvas on the tablet PWA, stylus capture.
-  - **Format adopted: vector** (sequence of strokes, each stroke being a list of timestamped points with pressure/width). Allows lossless replay and resizing, and lightweight export. Image rendering (PNG) is still generated on demand for PDF/preview.
-  - Implemented in the tablet PWA: pointer events at the device's full rate, pressure from a pen, undo of the last stroke, and palm rejection — once a pen has touched the canvas, fingers are ignored. Points are in canvas pixels with the canvas size stored alongside.
+- Handwritten entry: canvas on the tablet PWA, stylus capture, full-screen while it is the active tab.
+  - **Format adopted: vector** (sequence of strokes, each stroke being a list of timestamped points with pressure/width, plus the colour and tool it was drawn with). Allows lossless replay and resizing, and lightweight export. Image rendering (PNG) is still generated on demand for PDF/preview.
+  - Implemented in the tablet PWA: pointer events at the device's full rate, pressure from a pen, a toolbar (fine pen, thick pen, highlighter, eraser, undo, colour), and palm rejection — once a pen has touched the canvas, fingers are ignored. Points are in canvas pixels with the canvas size stored alongside. The eraser removes only the points it actually touches, splitting a stroke in two rather than deleting all of it; undo restores the state before the last stroke or eraser gesture, whichever came last. A stroke's colour and width (and `tool: "highlighter"` for its transparency) travel with it end to end — drawn the same way in the webapp's timeline and the PDF, not just on the tablet.
 - Both annotation types appear in the entry's timeline, timestamped and geolocated.
 
 ### 4.5 Backup / continuity in case of abandoning ship

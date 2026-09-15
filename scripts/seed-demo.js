@@ -270,20 +270,29 @@ function seedDemoLogbook(db, { now = Date.now() } = {}) {
                 { x: 10, y: 60, t: 0 },
                 { x: 20, y: 10, t: 120 },
                 { x: 30, y: 60, t: 240 }
-              ]
+              ],
+              color: '#1d4ed8',
+              tool: 'pen',
+              width: 2.5
             },
             {
               points: [
                 { x: 14, y: 40, t: 400 },
                 { x: 26, y: 40, t: 480 }
-              ]
+              ],
+              color: '#d97706',
+              tool: 'highlighter',
+              width: 16
             },
             {
               points: [
                 { x: 45, y: 10, t: 700 },
                 { x: 45, y: 60, t: 820 },
                 { x: 70, y: 60, t: 900 }
-              ]
+              ],
+              color: '#dc2626',
+              tool: 'pen',
+              width: 5.5
             }
           ]
         }

@@ -30,7 +30,7 @@ describe('PDF writer', () => {
     const offsets = [...source.slice(startxref).matchAll(/^(\d{10}) 00000 n $/gm)].map((m) =>
       Number(m[1])
     );
-    assert.equal(offsets.length, 5 + 2 * 2);
+    assert.equal(offsets.length, 6 + 2 * 2);
     offsets.forEach((offset, index) => {
       assert.ok(source.startsWith(`${index + 1} 0 obj\n`, offset), `object ${index + 1}`);
     });
@@ -49,6 +49,28 @@ describe('PDF writer', () => {
     // The title, in UTF-16 with a byte order mark.
     const title = Buffer.from('﻿Journal de bord — Île d’Yeu', 'utf16le').swap16().toString('hex');
     assert.ok(source.includes(`/Title <${title}>`));
+  });
+
+  it('draws a translucent polyline through the shared highlighter ExtGState', () => {
+    const pdf = createPdf({ title: 't', creator: 'c' });
+    const page = pdf.addPage(842, 595);
+    page.polyline(
+      [
+        [10, 10],
+        [20, 20]
+      ],
+      { alpha: true }
+    );
+    page.polyline([
+      [30, 30],
+      [40, 40]
+    ]);
+    const { source, pages } = readPdf(pdf.finish());
+
+    assert.match(pages[0].ops, /q \/GS1 gs 0 0 0 RG 1 w 1 J 1 j 10 585 m 20 575 l S Q/);
+    assert.match(pages[0].ops, /q 0 0 0 RG 1 w 1 J 1 j 30 565 m 40 555 l S Q/);
+    assert.match(source, /\/ExtGState << \/GS1 5 0 R >>/);
+    assert.match(source, /\/Type \/ExtGState \/ca 0\.35 \/CA 0\.35/);
   });
 
   it('stands in for characters the standard fonts lack', () => {

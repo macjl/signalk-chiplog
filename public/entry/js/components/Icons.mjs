@@ -18,6 +18,95 @@ export function PencilIcon() {
   </svg>`;
 }
 
+export function FinePenIcon() {
+  return html`<svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" focusable="false">
+    <path
+      d="M13.3 2.7 17.3 6.7 7 17 2.5 17.5 3 13 Z"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.2"
+      stroke-linejoin="round"
+      stroke-linecap="round"
+    />
+    <path d="M11.3 4.7 15.3 8.7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
+  </svg>`;
+}
+
+export function ThickPenIcon() {
+  return html`<svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" focusable="false">
+    <path
+      d="M13.3 2.7 17.3 6.7 7 17 2.5 17.5 3 13 Z"
+      fill="currentColor"
+      fill-opacity="0.2"
+      stroke="currentColor"
+      stroke-width="2.2"
+      stroke-linejoin="round"
+      stroke-linecap="round"
+    />
+    <path d="M11.3 4.7 15.3 8.7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+  </svg>`;
+}
+
+export function HighlighterIcon() {
+  return html`<svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" focusable="false">
+    <path
+      d="M6 12.5 12.5 6l3 3-6.5 6.5z"
+      fill="currentColor"
+      fill-opacity="0.35"
+      stroke="currentColor"
+      stroke-width="1.4"
+      stroke-linejoin="round"
+    />
+    <path
+      d="M6 12.5 3.5 17l4.5-2.5z"
+      fill="currentColor"
+      stroke="currentColor"
+      stroke-width="1.2"
+      stroke-linejoin="round"
+    />
+  </svg>`;
+}
+
+export function EraserIcon() {
+  return html`<svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" focusable="false">
+    <g transform="rotate(-25 10 10)">
+      <rect
+        x="4"
+        y="6"
+        width="12"
+        height="8"
+        rx="1.6"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.6"
+        stroke-linejoin="round"
+      />
+      <line x1="4" y1="10.5" x2="16" y2="10.5" stroke="currentColor" stroke-width="1.6" />
+    </g>
+  </svg>`;
+}
+
+export function UndoIcon() {
+  return html`<svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" focusable="false">
+    <path
+      d="M5 8H12a4 4 0 0 1 0 8H8"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.7"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <path
+      d="M8 4.5 4.5 8 8 11.5"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.7"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+  </svg>`;
+}
+
 export function TrashIcon() {
   return html`<svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" focusable="false">
     <path d="M4 6h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />

@@ -285,7 +285,7 @@ function App({ journal }) {
           busy=${busy}
           onLog=${log}
         />
-        <section class="panel writer">
+        <section class="panel writer ${tab === 'sketch' ? 'fullscreen' : ''}">
           <div class="tabs" role="tablist">
             ${['note', 'sketch'].map(
               (name) => html`<button
@@ -300,8 +300,10 @@ function App({ journal }) {
               </button>`
             )}
           </div>
-          <div hidden=${tab !== 'note'}><${NotePanel} busy=${busy} onLog=${log} /></div>
-          <div hidden=${tab !== 'sketch'}><${SketchPanel} busy=${busy} onLog=${log} /></div>
+          <div class="tab-panel" hidden=${tab !== 'note'}><${NotePanel} busy=${busy} onLog=${log} /></div>
+          <div class="tab-panel" hidden=${tab !== 'sketch'}>
+            <${SketchPanel} busy=${busy} onLog=${log} night=${night} />
+          </div>
         </section>
       </div>
       <${RecentList}

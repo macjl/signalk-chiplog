@@ -10,6 +10,10 @@ function strokePoints(stroke) {
   return (points.length === 1 ? [points[0], points[0]] : points).join(' ');
 }
 
+// Kept in step with SketchPanel.mjs and logbook-pdf.js: how translucent a
+// highlighter stroke is, wherever it is later shown.
+const HIGHLIGHTER_OPACITY = 0.35;
+
 export function Strokes({ strokes, label }) {
   const points = strokes.flatMap((stroke) => stroke.points ?? []);
   if (points.length === 0) {
@@ -21,6 +25,9 @@ export function Strokes({ strokes, label }) {
   const minY = Math.min(...ys);
   const size = Math.max(Math.max(...xs) - minX, Math.max(...ys) - minY, 1);
   const pad = size * 0.05;
+  // Older notes, drawn before the toolbar existed, have no color/width of their
+  // own: they fall back to a single relative width in the current text colour.
+  const defaultWidth = size / 120;
   return html`
     <svg
       class="strokes"
@@ -28,18 +35,15 @@ export function Strokes({ strokes, label }) {
       role="img"
       aria-label=${label}
     >
-      <g
-        fill="none"
-        stroke="currentColor"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width=${size / 120}
-      >
+      <g fill="none" stroke-linecap="round" stroke-linejoin="round">
         ${strokes.map(
           (stroke, index) =>
             html`<polyline
               key=${index}
               points=${strokePoints(stroke)}
+              stroke=${stroke.color ?? 'currentColor'}
+              stroke-width=${stroke.width ?? defaultWidth}
+              stroke-opacity=${stroke.tool === 'highlighter' ? HIGHLIGHTER_OPACITY : 1}
             />`
         )}
       </g>

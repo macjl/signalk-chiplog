@@ -88,6 +88,28 @@ describe('events', () => {
       assert.equal(invalid.status, 400);
     });
 
+    it('accepts a stroke color, tool and width, and rejects malformed ones', async () => {
+      const styled = {
+        strokes: [
+          { points: STROKES.strokes[0].points, color: '#1d4ed8', tool: 'highlighter', width: 14 }
+        ]
+      };
+      const valid = await ctx.request('POST', `/entries/${entryId}/events`, {
+        type: 'handwritten_annotation',
+        payload: styled
+      });
+      assert.equal(valid.status, 201);
+      assert.deepEqual(valid.body.payload, styled);
+
+      for (const stroke of [{ color: 'blue' }, { tool: 'crayon' }, { width: 0 }, { width: -1 }]) {
+        const { status } = await ctx.request('POST', `/entries/${entryId}/events`, {
+          type: 'handwritten_annotation',
+          payload: { strokes: [{ points: STROKES.strokes[0].points, ...stroke }] }
+        });
+        assert.equal(status, 400, JSON.stringify(stroke));
+      }
+    });
+
     it('refuses event types that only the plugin produces', async () => {
       const { status } = await ctx.request('POST', `/entries/${entryId}/events`, {
         type: 'sk_alarm',

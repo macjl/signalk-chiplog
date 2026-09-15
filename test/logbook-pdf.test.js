@@ -91,8 +91,17 @@ describe('facsimile PDF logbook', () => {
     );
     // The departure's own reading is on the departure line, not a line of its own.
     assert.ok(!pages.some((page) => page.texts.includes('Departure')));
-    // Handwriting is drawn as strokes.
+    // Handwriting is drawn as strokes, each in its own colour...
     assert.ok(pages.some((page) => /1 J 1 j [\d.]+ [\d.]+ m [\d.]+ [\d.]+ l/.test(page.ops)));
+    assert.ok(
+      pages.some((page) => page.ops.includes('0.11 0.31 0.85 RG')),
+      'blue pen stroke'
+    );
+    // ...and the highlighter through the shared translucency state, not opaque.
+    assert.ok(
+      pages.some((page) => page.ops.includes('/GS1 gs 0.85 0.47 0.02 RG')),
+      'highlighter'
+    );
   });
 
   it('says when a period holds no passage', async () => {

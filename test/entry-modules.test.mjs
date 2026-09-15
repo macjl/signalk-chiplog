@@ -194,6 +194,73 @@ describe('stroke recorder', () => {
     assert.equal(strokeWidth(2, 0), 1);
     assert.equal(strokeWidth(2, 1), 4);
   });
+
+  it('carries the tool style on the stroke it was drawn with', () => {
+    const recorder = createStrokeRecorder();
+    recorder.begin(0, 0, 1000, undefined, { color: '#1d4ed8', tool: 'pen', width: 4 });
+    recorder.end();
+    recorder.begin(10, 10, 1100, undefined, { color: '#facc15', tool: 'highlighter', width: 14 });
+    recorder.end();
+
+    assert.deepEqual(recorder.payload({ width: 100, height: 100 }).strokes, [
+      { points: [{ x: 0, y: 0, t: 0 }], color: '#1d4ed8', tool: 'pen', width: 4 },
+      { points: [{ x: 10, y: 10, t: 100 }], color: '#facc15', tool: 'highlighter', width: 14 }
+    ]);
+  });
+
+  it('erases only the points within radius, splitting a stroke in two', () => {
+    const recorder = createStrokeRecorder();
+    recorder.begin(0, 0, 1000);
+    for (let x = 1; x <= 10; x += 1) {
+      recorder.extend(x, 0, 1000 + x * 10);
+    }
+    recorder.end();
+
+    const changed = recorder.eraseAt(5, 0, 1.5);
+    assert.equal(changed, true);
+    assert.deepEqual(
+      recorder.strokes.map((stroke) => stroke.points.map((p) => `${p.x},${p.y}`)),
+      [
+        ['0,0', '1,0', '2,0', '3,0'],
+        ['7,0', '8,0', '9,0', '10,0']
+      ]
+    );
+  });
+
+  it('leaves strokes untouched when nothing is within the erase radius', () => {
+    const recorder = createStrokeRecorder();
+    recorder.begin(0, 0, 1000);
+    recorder.extend(10, 0, 1010);
+    recorder.end();
+
+    assert.equal(recorder.eraseAt(500, 500, 3), false);
+    assert.equal(recorder.strokes.length, 1);
+  });
+
+  it('undoes a whole erase gesture, and a finished pen stroke, as one action', () => {
+    const recorder = createStrokeRecorder();
+    recorder.begin(0, 0, 1000);
+    recorder.extend(10, 0, 1010);
+    recorder.end();
+    recorder.begin(100, 100, 1100);
+    recorder.end();
+
+    recorder.beginErase();
+    recorder.eraseAt(100, 100, 3);
+    assert.equal(recorder.strokes.length, 1);
+
+    recorder.undo();
+    assert.equal(recorder.strokes.length, 2);
+
+    recorder.undo();
+    assert.equal(recorder.strokes.length, 1);
+
+    recorder.undo();
+    assert.equal(recorder.isEmpty(), true);
+
+    recorder.undo();
+    assert.equal(recorder.isEmpty(), true);
+  });
 });
 
 describe('device access request', () => {

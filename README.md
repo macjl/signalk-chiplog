@@ -153,9 +153,9 @@ Other entries made with no passage open go to the last passage if the boat is st
 ### Notes and handwriting
 
 - **Note** — type and tap **Log it**.
-- **Handwriting** — write or draw on the pad with a stylus or a finger, optionally add a comment, and tap **Log it**. Pen pressure sets the line width. **Undo stroke** and **Clear** fix mistakes. Once a stylus has touched the pad, fingers are ignored, so a palm resting on the screen does not draw.
+- **Handwriting** — takes over the whole screen, with a toolbar above the pad: fine pen, thick pen, highlighter, eraser, undo, and a choice of colour (kept to the theme's colour in night mode, to spare night vision). Pen pressure also sets the line width. The eraser removes only what it actually touches, splitting a stroke rather than deleting all of it; undo steps back through strokes and erasing alike. Once a stylus has touched the pad, fingers are ignored, so a palm resting on the screen does not draw. Add a comment and tap **Log it** to send.
 
-Handwritten notes appear as drawn in the logbook's timeline.
+Handwritten notes appear as drawn — colour, pen or highlighter included — in the logbook's timeline and in the PDF export, not just on the tablet.
 
 ### Latest entries
 

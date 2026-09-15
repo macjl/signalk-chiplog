@@ -252,7 +252,9 @@ Clients may create three types; the others are produced by the plugin itself:
 |---|---|
 | `manoeuvre` | `subtype`, the key of an existing manoeuvre type — `400 unknown_manoeuvre_type` otherwise |
 | `text_annotation` | `comment` |
-| `handwritten_annotation` | `payload.strokes`: `[{ "points": [{ "x", "y", "t", "pressure"? }] }]`, non-empty, numeric |
+| `handwritten_annotation` | `payload.strokes`: `[{ "points": [{ "x", "y", "t", "pressure"? }], "color"?, "tool"?, "width"? }]`, non-empty, numeric |
+
+A stroke's `color` (`"#rrggbb"`), `tool` (`"pen"` or `"highlighter"`) and `width` (canvas pixels, before pressure scaling) are optional — a note drawn before the tablet's toolbar existed has none, and is shown in the current text colour at a default width. `tool: "highlighter"` is the only one drawn translucent, wherever the note is later shown.
 
 ### `POST /entries/:id/events` — `readwrite`
 
