@@ -76,6 +76,9 @@ export function SketchPanel({ busy, onLog }) {
   // Belt-and-braces alongside the CSS `user-select`/`-webkit-touch-callout: none`:
   // some iOS Safari versions still raise the selection/lookup callout on a long
   // press over the canvas despite that CSS, so block it at the event level too.
+  // Also covers a WebKit bug (https://bugs.webkit.org/show_bug.cgi?id=217430): with
+  // Scribble on, Safari can swallow a pen's pointer events mid-stroke unless the
+  // underlying touchstart/touchmove is prevented directly, not just the pointer one.
   const suppressDefault = (event) => event.preventDefault();
 
   const onPointerDown = (event) => {
@@ -177,6 +180,8 @@ export function SketchPanel({ busy, onLog }) {
           onContextMenu=${suppressDefault}
           onSelectStart=${suppressDefault}
           onDragStart=${suppressDefault}
+          onTouchStart=${suppressDefault}
+          onTouchMove=${suppressDefault}
         ></canvas>
         ${strokeCount === 0 && html`<span class="sketch-hint" aria-hidden="true">${t('entry.sketchHint')}</span>`}
       </div>
