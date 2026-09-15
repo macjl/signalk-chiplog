@@ -6,6 +6,7 @@ All notable changes to Chiplog are documented here. The format follows [Keep a C
 
 ### Added
 
+- A summary above the logbook's day-grouped list: number of passages, total distance and total time, across every passage logged rather than just the pages currently loaded (`GET /entries/stats`).
 - Tide forecast: fetched near the departure position for the next 24 hours when a passage opens (Open-Meteo Marine, free and keyless, configurable and can be turned off), shown on the passage page with the departure's place, the date, time and height of each high/low tide, and the water height curve. Sits next to the engine/sail card, each taking about half the width on a wide screen instead of the full width. Heights are relative to mean sea level, not the chart datum nautical tide tables use, and the app says so (`datum: "msl"` in the API).
 - Editing and deleting logbook lines from the webapp's passage page: any line's comment can be corrected, and a manoeuvre or note the crew logged themselves can be deleted (automatic lines — alarms, autopilot, weather, corrections — can only be annotated).
 - Highest speed and wind seen on a passage, shown alongside the average speed on the passage page (`maxSpeed`/`maxWindSpeed` in the API). Wind (true and apparent) and heading now ride along with every track point, not just the hourly instrument snapshot, so a gust between snapshots is no longer missed.

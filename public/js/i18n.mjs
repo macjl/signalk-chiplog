@@ -49,6 +49,9 @@ export const MESSAGES = {
     'log.dayDistance': '{distance} sailed',
     'log.fromPreviousDay': 'continued from the previous day',
     'log.toNextDay': 'continues the next day',
+    'log.statsCount': 'Passages',
+    'log.statsDistance': 'Distance',
+    'log.statsDuration': 'Total time',
 
     'place.unknown': 'Unnamed place',
     'place.pending': 'Provisional name: waiting for geocoding',
@@ -318,6 +321,9 @@ export const MESSAGES = {
     'log.dayDistance': '{distance} parcourus',
     'log.fromPreviousDay': 'suite de la veille',
     'log.toNextDay': 'se poursuit le lendemain',
+    'log.statsCount': 'Navigations',
+    'log.statsDistance': 'Distance',
+    'log.statsDuration': 'Temps total',
 
     'place.unknown': 'Lieu sans nom',
     'place.pending': 'Nom provisoire : en attente du géocodage',

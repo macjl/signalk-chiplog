@@ -81,6 +81,16 @@ Query: `from` (inclusive) and `to` (exclusive), both filtering on `startTime`; `
 
 Newest first. Day grouping (SPEC §3.2) is done by the client, which is why a flat list is returned.
 
+### `GET /entries/stats` — `readonly`
+
+Query: `from`/`to`, filtering the same way as `GET /entries`.
+
+```json
+{ "count": 42, "distance": 1234567, "duration": 456789 }
+```
+
+Totals across every entry the range matches, not just a loaded page: the number of passages, the summed `distance` (metres), and the summed elapsed time (seconds) — each entry's `endTime` minus `startTime`, `now` for one still open. For a summary line above the day-grouped list.
+
 ### `GET /entries/:id` — `readonly`
 
 One entry, with the counts the detail view needs:

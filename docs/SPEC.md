@@ -40,6 +40,8 @@ A log entry corresponds to a start → underway → stop cycle, **with configura
 
 Grouping "by day" is a **display-time aggregation view** (an entry may span midnight on a long passage): the logbook calendar/list groups entries by start date, and displays entries spanning multiple days visibly on each day concerned.
 
+Above the day-grouped list, a summary line totals every entry, not just the pages loaded so far: number of passages, total distance, total elapsed time (`GET /entries/stats`).
+
 ### 3.3 Events within an entry
 
 Within an entry in progress, a timestamped timeline of events is recorded:

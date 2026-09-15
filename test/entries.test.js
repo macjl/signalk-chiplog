@@ -59,6 +59,58 @@ describe('entries', () => {
     });
   });
 
+  describe('GET /entries/stats', () => {
+    it('counts entries and sums their distance and elapsed time', async () => {
+      insertEntry(ctx.db, { start_time: at(0), end_time: at(1), distance: 10000 });
+      insertEntry(ctx.db, { start_time: at(24), end_time: at(26), distance: 25000 });
+
+      const { status, body } = await ctx.request('GET', '/entries/stats');
+
+      assert.equal(status, 200);
+      assert.equal(body.count, 2);
+      assert.equal(body.distance, 35000);
+      assert.equal(body.duration, 3 * 3600, '1 h then 2 h');
+    });
+
+    it('counts an entry still under way up to now', async () => {
+      const twoHoursAgo = new Date(Date.now() - 2 * 3600 * 1000).toISOString();
+      insertEntry(ctx.db, { state: 'active', start_time: twoHoursAgo });
+
+      const { body } = await ctx.request('GET', '/entries/stats');
+
+      assert.ok(Math.abs(body.duration - 2 * 3600) < 5);
+    });
+
+    it('filters on the same date range as the list', async () => {
+      insertEntry(ctx.db, { start_time: at(0), end_time: at(1), distance: 10000 });
+      insertEntry(ctx.db, { start_time: at(24), end_time: at(25), distance: 20000 });
+
+      const { body } = await ctx.request(
+        'GET',
+        `/entries/stats?from=${encodeURIComponent(at(24))}`
+      );
+
+      assert.equal(body.count, 1);
+      assert.equal(body.distance, 20000);
+    });
+
+    it('is zero with nothing logged', async () => {
+      const { body } = await ctx.request('GET', '/entries/stats');
+      assert.deepEqual(body, { count: 0, distance: 0, duration: 0 });
+    });
+
+    it('is open to readonly users', async () => {
+      assert.ok(
+        ctx.permissions.some(
+          (route) =>
+            route.method === 'GET' &&
+            route.path === '/api/entries/stats' &&
+            route.level === 'readonly'
+        )
+      );
+    });
+  });
+
   describe('GET /entries/:id', () => {
     it('returns the entry with camelCase fields, nested positions and counts', async () => {
       const id = insertEntry(ctx.db, {

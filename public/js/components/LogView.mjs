@@ -24,6 +24,27 @@ async function loadEntries(count) {
   return { items, total };
 }
 
+// Totals across every passage ever logged, not just the pages loaded so far.
+function LogStats({ stats }) {
+  const { t, format } = useLocale();
+  return html`
+    <dl class="facts log-stats">
+      <div>
+        <dt>${t('log.statsCount')}</dt>
+        <dd>${stats.count}</dd>
+      </div>
+      <div>
+        <dt>${t('log.statsDistance')}</dt>
+        <dd>${format.distance(stats.distance)}</dd>
+      </div>
+      <div>
+        <dt>${t('log.statsDuration')}</dt>
+        <dd>${format.duration(stats.duration)}</dd>
+      </div>
+    </dl>
+  `;
+}
+
 function PassageCard({ entry, continuesFromPreviousDay, continuesNextDay }) {
   const { t, format } = useLocale();
   const at = (value, withDate) =>
@@ -70,10 +91,10 @@ export function LogView() {
   const wanted = useRef(PAGE_SIZE);
 
   const reload = (isCurrent = () => true) =>
-    loadEntries(wanted.current)
-      .then((next) => {
+    Promise.all([loadEntries(wanted.current), get('/entries/stats')])
+      .then(([page, stats]) => {
         if (isCurrent()) {
-          setLog(next);
+          setLog({ ...page, stats });
           setError(null);
         }
       })
@@ -102,6 +123,7 @@ export function LogView() {
   return html`
     <h1 class="page-title">${t('log.title')}</h1>
     <${ErrorNotice} error=${error} />
+    <${LogStats} stats=${log.stats} />
     ${groupByDay(log.items).map(
       (day) => html`
         <section class="day" key=${day.key}>
