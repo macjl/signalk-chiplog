@@ -274,6 +274,24 @@ describe('entries', () => {
       assert.equal(body.error.code, 'entry_active');
     });
 
+    it('refuses to correct the arrival name or position of an entry still in progress', async () => {
+      const id = insertEntry(ctx.db, { state: 'active' });
+
+      const named = await ctx.request('PATCH', `/entries/${id}`, { endPlaceName: 'Somewhere' });
+      assert.equal(named.status, 409);
+      assert.equal(named.body.error.code, 'entry_active');
+
+      const positioned = await ctx.request('PATCH', `/entries/${id}`, {
+        endPosition: { lat: 46, lon: -1 }
+      });
+      assert.equal(positioned.status, 409);
+      assert.equal(positioned.body.error.code, 'entry_active');
+
+      // The departure is fine to correct while under way.
+      const started = await ctx.request('PATCH', `/entries/${id}`, { startPlaceName: 'Somewhere' });
+      assert.equal(started.status, 200);
+    });
+
     it('rejects unknown fields', async () => {
       const id = insertEntry(ctx.db);
       const { status } = await ctx.request('PATCH', `/entries/${id}`, { state: 'active' });

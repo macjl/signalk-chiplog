@@ -378,13 +378,16 @@ export function PassageView({ id }) {
         busy=${busy}
         onSave=${(name) => rename('start', name)}
       />
-      <${NameField}
-        label=${t('passage.arrival')}
-        name=${entry.endPlaceName}
-        pending=${entry.endPlacePending}
-        busy=${busy}
-        onSave=${(name) => rename('end', name)}
-      />
+      ${
+        !active &&
+        html`<${NameField}
+          label=${t('passage.arrival')}
+          name=${entry.endPlaceName}
+          pending=${entry.endPlacePending}
+          busy=${busy}
+          onSave=${(name) => rename('end', name)}
+        />`
+      }
       <div class="actions">
         ${
           active &&

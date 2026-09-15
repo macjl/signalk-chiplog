@@ -116,7 +116,7 @@ Open **Chiplog** from the Signal K webapps, or `/signalk-chiplog/`. Reading need
 - **Logbook** — passages grouped by day, newest first, with times, departure and arrival, distance, duration and an engine/sail bar. A passage across midnight appears on both days. Provisional place names are shown as such.
 - **Passage page** — summary (distance, duration, average speed, and the highest speed and wind seen), map of the track (OpenStreetMap with OpenSeaMap seamarks, which can be hidden), the engine and sail periods with each engine's hour counter at departure and arrival and the hours run, and the log: every reading and event in order, including handwritten notes. A passage in progress refreshes every minute. Each line's comment can be edited (read/write access); a manoeuvre or note the crew logged themselves can also be deleted — automatic lines (alarms, autopilot, weather, corrections) can only be annotated.
 - **Corrections** (read/write access):
-  - rename the departure or arrival;
+  - rename the departure, or the arrival once the passage is closed — a passage in progress has none yet to rename;
   - switch an engine period to sail or back;
   - close a passage in progress, e.g. to confirm an arrival;
   - merge with the previous or next passage;
