@@ -73,6 +73,11 @@ export function SketchPanel({ busy, onLog }) {
   };
   const pressureOf = (event) => (event.pointerType === 'pen' ? event.pressure : undefined);
 
+  // Belt-and-braces alongside the CSS `user-select`/`-webkit-touch-callout: none`:
+  // some iOS Safari versions still raise the selection/lookup callout on a long
+  // press over the canvas despite that CSS, so block it at the event level too.
+  const suppressDefault = (event) => event.preventDefault();
+
   const onPointerDown = (event) => {
     // Every contact on the canvas must be prevented, even ones we reject (the palm) —
     // otherwise the browser can hand an un-prevented touch to its own gesture
@@ -157,6 +162,9 @@ export function SketchPanel({ busy, onLog }) {
           onPointerMove=${onPointerMove}
           onPointerUp=${onPointerUp}
           onPointerCancel=${onPointerUp}
+          onContextMenu=${suppressDefault}
+          onSelectStart=${suppressDefault}
+          onDragStart=${suppressDefault}
         ></canvas>
         ${strokeCount === 0 && html`<span class="sketch-hint" aria-hidden="true">${t('entry.sketchHint')}</span>`}
       </div>

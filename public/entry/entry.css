@@ -76,6 +76,12 @@ body {
   background: var(--bg);
   color: var(--text);
   -webkit-tap-highlight-color: transparent;
+  /* Form controls keep their own text selection regardless of this. iOS Safari's
+     long-press selection/callout on non-text content (the sketch canvas) only
+     reliably backs off when this is set this high up, not just on the element. */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 body {
