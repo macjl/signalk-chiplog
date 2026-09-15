@@ -77,7 +77,10 @@ export function TideCard({ tide, placeName }) {
               <span class="tide-extreme-type"
                 >${extreme.type === 'high' ? t('tide.high') : t('tide.low')}</span
               >
-              <span class="tide-extreme-time">${format.time(extreme.time)}</span>
+              <span class="tide-extreme-when">
+                <span class="tide-extreme-date">${format.shortDate(extreme.time)}</span>
+                <span class="tide-extreme-time">${format.time(extreme.time)}</span>
+              </span>
               <span class="tide-extreme-height">${format.depth(extreme.height)}</span>
             </li>`
         )}

@@ -360,18 +360,20 @@ export function PassageView({ id }) {
       }
     </section>
 
-    ${data.tide && html`<${TideCard} tide=${data.tide} placeName=${entry.startPlaceName} />`}
+    <div class="card-row">
+      ${data.tide && html`<${TideCard} tide=${data.tide} placeName=${entry.startPlaceName} />`}
 
-    <section class="card">
-      <h2>${t('passage.propulsion')}</h2>
-      <${PropulsionStrip}
-        segments=${data.segments}
-        entry=${entry}
-        busy=${busy}
-        onSwitch=${switchSegment}
-      />
-      <${EngineHours} observations=${data.observations} active=${active} />
-    </section>
+      <section class="card">
+        <h2>${t('passage.propulsion')}</h2>
+        <${PropulsionStrip}
+          segments=${data.segments}
+          entry=${entry}
+          busy=${busy}
+          onSwitch=${switchSegment}
+        />
+        <${EngineHours} observations=${data.observations} active=${active} />
+      </section>
+    </div>
 
     <section class="card">
       <h2>${t('passage.log')}</h2>

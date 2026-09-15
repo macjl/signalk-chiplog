@@ -215,6 +215,18 @@ main {
   gap: 0.5rem;
 }
 
+/* Side by side on a wide screen, each about half width; stacked below that. */
+.card-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.card-row .card {
+  margin: 0;
+}
+
 .notice {
   margin: 0.75rem 0;
   padding: 0.6rem 0.9rem;
@@ -619,6 +631,17 @@ main {
 .tide-extreme-type {
   color: var(--muted);
   font-size: 0.9rem;
+}
+
+.tide-extreme-when {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+}
+
+.tide-extreme-date {
+  color: var(--muted);
+  font-size: 0.85rem;
 }
 
 .tide-extreme-time {
