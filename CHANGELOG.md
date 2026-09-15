@@ -7,6 +7,7 @@ All notable changes to Chiplog are documented here. The format follows [Keep a C
 ### Fixed
 
 - The tablet app's stylus canvas now prevents the default action on every contact, not just the pen's — a resting palm's touch was left to the browser, which could hijack it as a gesture and cancel the pen's in-progress stroke, or show a native text-selection highlight over the canvas. iOS Safari's long-press selection callout on the canvas needed the whole entry app, not just the canvas, to opt out of selection to reliably stay away, plus blocking `selectstart`/`contextmenu`/`dragstart` directly since the CSS alone is unreliable on some iOS versions.
+- Quickly lifting and reapplying the pen could have its next stroke silently dropped: the previous contact's pointerup can arrive after the next one's pointerdown, which read as "still drawing" and refused to start the new stroke.
 
 ## [1.1.0] - 2026-09-15
 

@@ -88,7 +88,19 @@ export function SketchPanel({ busy, onLog }) {
     } else if (event.pointerType === 'touch' && penSeen.current) {
       return;
     }
-    if (activePointer.current !== null || busy) {
+    if (activePointer.current !== null) {
+      if (event.pointerType !== 'pen') {
+        return;
+      }
+      // A pen can only touch one point at a time, so a new pen contact means the
+      // previous one has lifted even if its pointerup/pointercancel hasn't arrived
+      // yet — quickly reapplying the pen can reorder those events. Finish the
+      // stale stroke instead of silently dropping the new one.
+      recorder.current.end();
+      setStrokeCount(recorder.current.strokes.length);
+      activePointer.current = null;
+    }
+    if (busy) {
       return;
     }
     canvas.current.setPointerCapture(event.pointerId);
