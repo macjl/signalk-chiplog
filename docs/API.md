@@ -41,7 +41,7 @@ On a server too old to provide `router.access()`, every route falls back to admi
 | Status | When | Codes |
 |---|---|---|
 | `400` | Malformed request | `invalid_request`, `unknown_manoeuvre_type` |
-| `404` | Unknown resource | `entry_not_found`, `event_not_found`, `place_not_found`, `propulsion_segment_not_found`, `manoeuvre_type_not_found` |
+| `404` | Unknown resource | `entry_not_found`, `event_not_found`, `place_not_found`, `propulsion_segment_not_found`, `manoeuvre_type_not_found`, `tide_not_found` |
 | `409` | The request conflicts with current state | `no_passage`, `entry_active`, `entry_already_closed`, `entries_not_consecutive`, `manoeuvre_type_exists`, `builtin_manoeuvre_type`, `usb_export_not_configured`, `usb_export_unavailable`, `constraint_violation` |
 | `500` | Unexpected failure — detail goes to the server log, not the client | `internal_error` |
 | `503` | The plugin is disabled or stopped | `plugin_not_started` |
@@ -181,6 +181,21 @@ Corrects a mis-detected segment (SPEC §4.2). The segment is flagged `source: "m
 Detection logs its own automatic switches the same way: a `propulsion_change` event, same payload shape, at the segment's start time, with an instrument snapshot taken for it like a manoeuvre's. Not for the ongoing segment's first switch when a passage opens — only an actual change partway through.
 
 Correcting the **ongoing** segment holds until the engine data changes: detection does not revert it on its next cycle just because the sensors — or the configured default — still say otherwise.
+
+### `GET /entries/:id/tide` — `readonly`
+
+```json
+{
+  "position": { "lat": 46.4383, "lon": -1.6769 },
+  "fetchedAt": "2026-09-13T06:12:30.000Z",
+  "points": [
+    { "time": "2026-09-13T06:00:00.000Z", "height": 1.9 },
+    { "time": "2026-09-13T07:00:00.000Z", "height": 2.7 }
+  ]
+}
+```
+
+The tide forecast fetched near this entry's departure (SPEC §4.5.2): hourly water height in metres, at the position asked about, for the 24 h starting at departure. `404 tide_not_found` while none has been fetched yet, or none is available for the position — the two are not distinguished, since there is nothing to show either way. High and low tide are not a separate field: they are the local peaks and troughs of `points`, derived by the client.
 
 ## Events
 

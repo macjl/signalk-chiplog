@@ -100,6 +100,10 @@ Added to the timeline without anyone touching anything:
 
 An alarm at anchor between two passages goes to the passage that ended there, as long as the boat is within 1 nautical mile of that arrival.
 
+### Tide forecast
+
+When a passage opens, Chiplog fetches the predicted water height near the departure for the next 24 hours (configurable service, on by default) and shows it on the passage page: the departure's place, the high and low tide times and heights, and the height curve. Fetched once, at departure — not kept up to date afterwards. Offline is handled the same way as geocoding: retried for a while, then given up on quietly if the boat stays out of reach, or if the position simply has no tide (an inland lake). Hourly data, so times are accurate to within about half an hour — enough for a logbook reference, not for timing a lock or a bar crossing to the minute.
+
 ### Place names
 
 Departures and arrivals are named automatically:
@@ -114,7 +118,7 @@ Open **Chiplog** from the Signal K webapps, or `/signalk-chiplog/`. Reading need
 
 - **Status bar** — under way under sail or engine, stopped, or waiting for data, with a link to the passage in progress. A warning shows when detection works from speed alone because signalk-autostate is missing.
 - **Logbook** — passages grouped by day, newest first, with times, departure and arrival, distance, duration and an engine/sail bar. A passage across midnight appears on both days. Provisional place names are shown as such.
-- **Passage page** — summary (distance, duration, average speed, and the highest speed and wind seen), map of the track (OpenStreetMap with OpenSeaMap seamarks, which can be hidden), the engine and sail periods with each engine's hour counter at departure and arrival and the hours run, and the log: every reading and event in order, including handwritten notes. A passage in progress refreshes every minute. Each line's comment can be edited (read/write access); a manoeuvre or note the crew logged themselves can also be deleted — automatic lines (alarms, autopilot, weather, corrections) can only be annotated.
+- **Passage page** — summary (distance, duration, average speed, and the highest speed and wind seen), map of the track (OpenStreetMap with OpenSeaMap seamarks, which can be hidden), the tide forecast near the departure (place, high/low times and heights, height curve) when one was fetched, the engine and sail periods with each engine's hour counter at departure and arrival and the hours run, and the log: every reading and event in order, including handwritten notes. A passage in progress refreshes every minute. Each line's comment can be edited (read/write access); a manoeuvre or note the crew logged themselves can also be deleted — automatic lines (alarms, autopilot, weather, corrections) can only be annotated.
 - **Corrections** (read/write access):
   - rename the departure, or the arrival once the passage is closed — a passage in progress has none yet to rename;
   - switch an engine period to sail or back;
@@ -181,23 +185,25 @@ To revoke it, delete the device under **Security → Devices**: the tablet asks 
 
 In the Signal K admin, **Apps & Plugins → Configuration → Chiplog**.
 
-| Setting                                            | Default                               | What it does                                                                                            |
-| -------------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Stop duration that ends a passage                  | 30 min                                | Shorter stops stay within the same passage.                                                             |
-| Under-way speed without navigation.state           | 1 kn                                  | Used only without signalk-autostate: under way above it, stopped below half of it.                      |
-| Propulsion assumed without engine data             | sail                                  | When nothing says whether the engine is running. Set to engine on a motorboat.                          |
-| Instrument snapshot interval                       | 60 min                                | Readings on this clock boundary during a passage.                                                       |
-| Track point interval                               | 15 s                                  | A track point at least this often while moving.                                                         |
-| Place matching radius                              | 200 m                                 | A departure or arrival this close to a known place takes its name.                                      |
-| Name departures and arrivals with online geocoding | on                                    | Turn off to never send positions online; places are then named after their coordinates until corrected. |
-| Geocoding service                                  | `https://nominatim.openstreetmap.org` | Any Nominatim-compatible service, e.g. a self-hosted one.                                               |
-| USB export directory                               | —                                     | Where the abandon-ship copy is written, e.g. `/media/usb`. Empty turns the USB copy off.                |
-| Automatic USB copy interval                        | 15 min                                | How often the USB copy is brought up to date. 0 turns the periodic copy off.                            |
-| Copy to the USB drive at each arrival              | on                                    | Brings the USB copy up to date as soon as a passage ends.                                               |
-| Logbook language (PDF)                             | en                                    | Language of the PDF logbooks on the USB drive (English or French).                                      |
-| Ship's time zone (PDF)                             | the server's                          | Time zone of the PDF logbooks on the USB drive, e.g. `Europe/Paris`.                                    |
-| Wind speed thresholds                              | 20, 30 kn                             | Logged when the 2-minute average true wind crosses them.                                                |
-| Barometric drop warning                            | 4 hPa / 3 h                           | 0 turns it off.                                                                                         |
+| Setting                                            | Default                                       | What it does                                                                                            |
+| -------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Stop duration that ends a passage                  | 30 min                                        | Shorter stops stay within the same passage.                                                             |
+| Under-way speed without navigation.state           | 1 kn                                          | Used only without signalk-autostate: under way above it, stopped below half of it.                      |
+| Propulsion assumed without engine data             | sail                                          | When nothing says whether the engine is running. Set to engine on a motorboat.                          |
+| Instrument snapshot interval                       | 60 min                                        | Readings on this clock boundary during a passage.                                                       |
+| Track point interval                               | 15 s                                          | A track point at least this often while moving.                                                         |
+| Place matching radius                              | 200 m                                         | A departure or arrival this close to a known place takes its name.                                      |
+| Name departures and arrivals with online geocoding | on                                            | Turn off to never send positions online; places are then named after their coordinates until corrected. |
+| Geocoding service                                  | `https://nominatim.openstreetmap.org`         | Any Nominatim-compatible service, e.g. a self-hosted one.                                               |
+| Fetch the tide forecast at departure               | on                                            | Turn off to never send the departure position online; the passage page then shows no tide.              |
+| Tide service                                       | `https://marine-api.open-meteo.com/v1/marine` | Any Open-Meteo Marine-compatible service, e.g. a self-hosted one.                                       |
+| USB export directory                               | —                                             | Where the abandon-ship copy is written, e.g. `/media/usb`. Empty turns the USB copy off.                |
+| Automatic USB copy interval                        | 15 min                                        | How often the USB copy is brought up to date. 0 turns the periodic copy off.                            |
+| Copy to the USB drive at each arrival              | on                                            | Brings the USB copy up to date as soon as a passage ends.                                               |
+| Logbook language (PDF)                             | en                                            | Language of the PDF logbooks on the USB drive (English or French).                                      |
+| Ship's time zone (PDF)                             | the server's                                  | Time zone of the PDF logbooks on the USB drive, e.g. `Europe/Paris`.                                    |
+| Wind speed thresholds                              | 20, 30 kn                                     | Logged when the 2-minute average true wind crosses them.                                                |
+| Barometric drop warning                            | 4 hPa / 3 h                                   | 0 turns it off.                                                                                         |
 
 ## Signal K data used
 
@@ -222,10 +228,11 @@ None of these is required except position and speed over ground; each feature us
 ## Privacy and online services
 
 - **Place names.** With geocoding on, the position of each departure and arrival that matches no known place is sent to the geocoding service — OpenStreetMap's public Nominatim by default. Nothing else is sent, and nothing at all when it is off.
+- **Tide forecast.** With it on, the departure position of each passage is sent to the tide service — the public Open-Meteo by default — once, at departure. Nothing at all when it is off.
 - **Maps.** The logbook webapp loads map tiles from OpenStreetMap and OpenSeaMap while the device viewing it is online. Offline, the track is still drawn, on a blank background.
 - **Nothing else** leaves the boat. There is no account, analytics or cloud service.
 
-Map data and place names © OpenStreetMap contributors (ODbL); seamarks © OpenSeaMap.
+Map data and place names © OpenStreetMap contributors (ODbL); seamarks © OpenSeaMap; tide data © [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0).
 
 ## Troubleshooting
 

@@ -5,6 +5,7 @@ import { dayKey } from '../days.mjs';
 import { engineHours, engineName } from '../log-lines.mjs';
 import { elapsedSeconds, ErrorNotice, Loading, PlaceName, passageTitle } from './common.mjs';
 import { PropulsionStrip } from './PropulsionStrip.mjs';
+import { TideCard } from './TideCard.mjs';
 import { Timeline } from './Timeline.mjs';
 import { TrackMap } from './TrackMap.mjs';
 
@@ -26,14 +27,28 @@ async function findNext(entry) {
   return page.items[0] ?? null;
 }
 
+// No forecast is a normal outcome (not yet fetched, or none for the
+// position), not an error the page should show.
+async function loadTide(id) {
+  try {
+    return await get(`/entries/${id}/tide`);
+  } catch (err) {
+    if (err.code === 'tide_not_found') {
+      return null;
+    }
+    throw err;
+  }
+}
+
 async function loadPassage(id) {
-  const [entry, track, segments, events, observations, manoeuvreTypes] = await Promise.all([
+  const [entry, track, segments, events, observations, manoeuvreTypes, tide] = await Promise.all([
     get(`/entries/${id}`),
     get(`/entries/${id}/track`),
     fetchAll(`/entries/${id}/propulsion`),
     fetchAll(`/entries/${id}/events`),
     fetchAll(`/entries/${id}/observations`),
-    fetchAll('/manoeuvre-types')
+    fetchAll('/manoeuvre-types'),
+    loadTide(id)
   ]);
   const [previous, next] = await Promise.all([findPrevious(entry), findNext(entry)]);
   return {
@@ -43,6 +58,7 @@ async function loadPassage(id) {
     events,
     observations,
     manoeuvreLabels: Object.fromEntries(manoeuvreTypes.map((type) => [type.key, type.label])),
+    tide,
     previous,
     next
   };
@@ -343,6 +359,8 @@ export function PassageView({ id }) {
           : html`<p class="muted">${t('passage.noTrack')}</p>`
       }
     </section>
+
+    ${data.tide && html`<${TideCard} tide=${data.tide} placeName=${entry.startPlaceName} />`}
 
     <section class="card">
       <h2>${t('passage.propulsion')}</h2>

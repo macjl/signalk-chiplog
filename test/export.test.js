@@ -89,7 +89,7 @@ describe('export', () => {
 
       assert.equal(status, 200);
       assert.match(headers.get('content-disposition'), /chiplog\.json/);
-      assert.equal(body.schemaVersion, 7);
+      assert.equal(body.schemaVersion, 8);
       assert.equal(body.entries.length, 1);
       const [bundle] = body.entries;
       assert.equal(bundle.entry.distance, 68500);

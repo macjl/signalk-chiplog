@@ -563,6 +563,80 @@ main {
   resize: vertical;
 }
 
+/* Tide */
+
+.tide-place {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0;
+}
+
+.tide-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: 0.5rem;
+}
+
+.tide-baseline {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.tide-area {
+  fill: var(--accent);
+  opacity: 0.12;
+  stroke: none;
+}
+
+.tide-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.tide-marker {
+  fill: var(--surface);
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.tide-extremes {
+  list-style: none;
+  margin: 0.8rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+}
+
+.tide-extreme {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.tide-extreme-type {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.tide-extreme-time {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.tide-extreme-height {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.tide-attribution {
+  font-size: 0.8rem;
+  margin-top: 0.8rem;
+  margin-bottom: 0;
+}
+
 /* Corrections */
 
 .name-field {

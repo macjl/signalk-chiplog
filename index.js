@@ -6,6 +6,7 @@ const { createEventWatcher, CHECK_INTERVAL_MS, EVENT_DEFAULTS } = require('./lib
 const { OBSERVATION_DEFAULTS } = require('./lib/observation-recorder');
 const { createPlaceNamer, GEOCODING_DEFAULTS } = require('./lib/place-names');
 const { PROPULSION_DEFAULTS } = require('./lib/propulsion-detector');
+const { createTideForecaster, TIDE_DEFAULTS } = require('./lib/tide-forecaster');
 const { createTrackRecorder, SAMPLE_INTERVAL_MS, TRACK_DEFAULTS } = require('./lib/track-recorder');
 const {
   createUsbExportScheduler,
@@ -20,6 +21,8 @@ const { version } = require('./package.json');
 const DEFAULT_PLACE_MATCH_RADIUS = 200;
 const FIRST_NAMING_DELAY_MS = 5 * 1000;
 const NAMING_ERROR_RETRY_MS = 5 * 60 * 1000;
+const FIRST_TIDE_DELAY_MS = 5 * 1000;
+const TIDE_ERROR_RETRY_MS = 5 * 60 * 1000;
 
 const MOTION_LABELS = { underway: 'Under way', stopped: 'Stopped', unknown: 'Waiting for data' };
 const MODE_LABELS = { autostate: 'navigation.state', fallback: 'speed fallback' };
@@ -50,8 +53,10 @@ module.exports = function (app) {
   let settings = null;
   let detector = null;
   let namer = null;
+  let tideForecaster = null;
   let usbExport = null;
   let namingTimer = null;
+  let tideTimer = null;
   let timers = [];
   let lastStatus = null;
 
@@ -121,6 +126,19 @@ module.exports = function (app) {
         title: 'Geocoding service (Nominatim-compatible)',
         description: 'The public OpenStreetMap instance by default, or a self-hosted Nominatim',
         default: GEOCODING_DEFAULTS.geocodingUrl
+      },
+      tidesEnabled: {
+        type: 'boolean',
+        title: 'Fetch the tide forecast at departure',
+        description:
+          'Sends the departure position to the tide service below for the next 24 hours of predicted water height. Data comes from Open-Meteo (CC BY 4.0)',
+        default: TIDE_DEFAULTS.tidesEnabled
+      },
+      tideUrl: {
+        type: 'string',
+        title: 'Tide service (Open-Meteo Marine-compatible)',
+        description: 'The public Open-Meteo instance by default, or a self-hosted one',
+        default: TIDE_DEFAULTS.tideUrl
       },
       usbExportPath: {
         type: 'string',
@@ -214,6 +232,29 @@ module.exports = function (app) {
     namingTimer = setTimeout(runNaming, result.retryInMs);
   }
 
+  // Same idea as geocoding: a network call fetching the tide forecast near a
+  // recent departure, on its own chain rather than inside detection.
+  async function runTides() {
+    const current = tideForecaster;
+    let result;
+    try {
+      result = await current.resolveNext();
+    } catch (err) {
+      app.error(`Tide forecast failed: ${err.stack ?? err}`);
+      result = { retryInMs: TIDE_ERROR_RETRY_MS };
+    }
+    if (tideForecaster !== current || result.outcome === 'stopped') {
+      return;
+    }
+    if (result.outcome === 'failed') {
+      // Expected whenever the boat is out of reach of a network.
+      app.debug(
+        `Tide forecast unavailable, retrying in ${Math.round(result.retryInMs / 60000)} min: ${result.error.message}`
+      );
+    }
+    tideTimer = setTimeout(runTides, result.retryInMs);
+  }
+
   // For work that runs every second: log a failure once, not on every run.
   function guarded(label, work) {
     let failing = false;
@@ -252,6 +293,8 @@ module.exports = function (app) {
         placeMatchRadius: config.placeMatchRadius ?? DEFAULT_PLACE_MATCH_RADIUS,
         geocodingEnabled: config.geocodingEnabled ?? GEOCODING_DEFAULTS.geocodingEnabled,
         geocodingUrl: config.geocodingUrl || GEOCODING_DEFAULTS.geocodingUrl,
+        tidesEnabled: config.tidesEnabled ?? TIDE_DEFAULTS.tidesEnabled,
+        tideUrl: config.tideUrl || TIDE_DEFAULTS.tideUrl,
         usbExportPath: config.usbExportPath || null,
         usbExportIntervalMinutes:
           config.usbExportIntervalMinutes ?? USB_EXPORT_DEFAULTS.usbExportIntervalMinutes,
@@ -293,6 +336,11 @@ module.exports = function (app) {
       settings,
       userAgent: `signalk-chiplog/${version}`
     });
+    tideForecaster = createTideForecaster({
+      db: database,
+      settings,
+      userAgent: `signalk-chiplog/${version}`
+    });
     usbExport = createUsbExportScheduler({
       db: database,
       settings,
@@ -300,6 +348,7 @@ module.exports = function (app) {
       log: (level, message) => (level === 'error' ? app.error(message) : app.debug(message))
     });
     namingTimer = setTimeout(runNaming, FIRST_NAMING_DELAY_MS);
+    tideTimer = setTimeout(runTides, FIRST_TIDE_DELAY_MS);
     lastStatus = null;
     runDetection();
     timers = [
@@ -325,6 +374,9 @@ module.exports = function (app) {
     clearTimeout(namingTimer);
     namer?.stop();
     namer = null;
+    clearTimeout(tideTimer);
+    tideForecaster?.stop();
+    tideForecaster = null;
     usbExport?.stop();
     usbExport = null;
     detector = null;

@@ -135,6 +135,17 @@ A snapshot already in a periodic slot, such as one taken for a manoeuvre, stands
 
 Engine hours are recorded for every engine that publishes an hour counter (`propulsion.<id>.runTime`), so a twin-engine boat logs both. The passage page and the PDF show each engine's counter at departure and at arrival — the latest reading for a passage in progress — and the hours run in between; the CSV has a column per engine. Sensors are followed on every detection cycle, not only when a snapshot is due, so a sensor that died during the hour is recognised as such.
 
+### 4.5.2 Tide forecast
+
+When a passage opens, the plugin fetches the predicted water height near the departure position for the next 24 hours, and shows it on the passage page: the departure's place name, the high/low tide times and heights, and the height curve.
+
+As implemented (`lib/tide-forecaster.js`):
+
+- **Source.** [Open-Meteo Marine](https://open-meteo.com/en/docs/marine-weather-api) (`sea_level_height_msl`, an hourly astronomical tide prediction), free and keyless under CC BY 4.0 — no per-vessel account or cost, like the Nominatim geocoding service. `tidesEnabled` turns it off; `tideUrl` points at a self-hosted Open-Meteo instance instead of the public one, mirroring `geocodingUrl`.
+- **One fetch per passage, at departure**, not a continuous subscription: the position and the 24 h window are fixed at that moment. Requested and stored in one call — no separate lookup for extremes; a high or low is a local peak or trough in the stored hourly curve, found when displayed rather than by asking the service twice.
+- **Offline is normal, as for geocoding**: a failed request is retried after 5 minutes, doubling up to an hour, for as long as the departure is still recent enough for a fetch to mean anything (3 hours); past that, or once the service answers with nothing usable for the position (an inland lake, a river far from tidal water), no forecast is recorded and none is asked for again for that passage.
+- **Hourly resolution**, so a high or low tide time is accurate to within about half an hour — adequate for a logbook reference, not for a lock or a bar crossing planned to the minute.
+
 ### 4.6 Automatically logged Signal K events
 
 In addition to engine/sail and manual manoeuvres, the log automatically captures:
@@ -187,7 +198,7 @@ When creating and closing an entry, Chiplog attempts to associate a **place name
 
 ## 5. Data model and API
 
-The data model has been refined into a precise schema: the authoritative DDL lives in [`lib/database.js`](../lib/database.js), with the conventions and rationale documented in [DATA_MODEL.md](DATA_MODEL.md). Entities: `log_entries`, `track_points`, `observations`, `propulsion_segments`, `events`, `places`, `manoeuvre_types`.
+The data model has been refined into a precise schema: the authoritative DDL lives in [`lib/database.js`](../lib/database.js), with the conventions and rationale documented in [DATA_MODEL.md](DATA_MODEL.md). Entities: `log_entries`, `track_points`, `observations`, `propulsion_segments`, `events`, `places`, `manoeuvre_types`, `tide_forecasts`.
 
 Two points worth carrying back into this document:
 
@@ -234,6 +245,7 @@ Deferred to V2: full shortcut customization, publication to a remote server, ded
 | Webapp languages | English and French, chosen from the browser (`?lang=` overrides) |
 | Map tiles | OpenStreetMap with the OpenSeaMap seamark overlay, online; offline the track is still drawn on a blank map. Offline charts are V2 |
 | Instrument snapshots | At departure, hourly on the clock (configurable), at arrival and with each live manoeuvre, note or sketch (§4.5.1) |
+| Tide forecast | Open-Meteo Marine, free and keyless, fetched once at departure for the next 24 h; extremes found from the stored curve, not asked for separately (§4.5.2) |
 | Speed fallback | SOG averaged over 3 min; under way above a configurable speed (1 kn), stopped below half of it. Transitions dated from raw speed in both modes (§4.2) |
 | GPS track sampling | Configurable fixed interval (15 s) + extra point on a 15° course or 1 kn speed change (§4.1) |
 | PDF export | Traditional logbook facsimile, A4 landscape, a page per day in ship's time, English or French; home-made PDF writer with the standard fonts, no dependency (§4.5) |

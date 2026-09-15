@@ -107,6 +107,12 @@ Segments cover only time **under way**: a stop ends one and moving again starts 
 
 The shortcut list (SPEC §4.3). Built-in entries are seeded by the migration with `builtin = 1`; users may disable or reorder them (`enabled`, `sort_order`) and add their own. Seeding uses `ON CONFLICT DO NOTHING`, so a user's edits to a built-in row survive restarts.
 
+### `tide_forecasts` (migration 8)
+
+At most one row per entry (`entry_id` is the primary key), fetched once near departure (SPEC §4.5.2): `lat`/`lon` are the position asked about, `points` the JSON `[{ time, height }]` hourly curve for the 24 h from departure, height in metres. No row means no attempt has resolved yet — still pending, or the departure is now too old for one to be worth making. `points: []` means a fetch answered but had nothing usable for the position (an inland lake); `getTideForecast` (`lib/tide-forecaster.js`) treats that the same as no row, since the webapp has nothing to show either way — the distinction only matters to the fetcher itself, so it does not keep re-asking.
+
+High and low tide are not stored: they are the local peaks and troughs of `points`, found when read (`public/js/tide.mjs`'s `tideExtremes`), the same principle as `maxSpeed`/`maxWindSpeed` on `GET /entries/:id`.
+
 ## Migrations
 
 `MIGRATIONS` in `lib/database.js` is an ordered, **append-only** list; the applied index is stored in SQLite's `user_version`. Once a version has shipped to a boat, editing its entry would leave that installation on a schema the code no longer expects — add a new entry instead.
