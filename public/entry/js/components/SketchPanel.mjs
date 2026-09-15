@@ -74,6 +74,10 @@ export function SketchPanel({ busy, onLog }) {
   const pressureOf = (event) => (event.pointerType === 'pen' ? event.pressure : undefined);
 
   const onPointerDown = (event) => {
+    // Every contact on the canvas must be prevented, even ones we reject (the palm) —
+    // otherwise the browser can hand an un-prevented touch to its own gesture
+    // recognizer, which on some builds cancels the pen's in-progress pointer.
+    event.preventDefault();
     if (event.pointerType === 'pen') {
       penSeen.current = true;
     } else if (event.pointerType === 'touch' && penSeen.current) {
@@ -82,7 +86,6 @@ export function SketchPanel({ busy, onLog }) {
     if (activePointer.current !== null || busy) {
       return;
     }
-    event.preventDefault();
     canvas.current.setPointerCapture(event.pointerId);
     activePointer.current = event.pointerId;
     const [x, y] = locate(event);

@@ -368,6 +368,9 @@ input {
 
 .sketch-surface {
   position: relative;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .sketch-canvas {
@@ -379,6 +382,9 @@ input {
   background: var(--paper);
   color: var(--ink);
   touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
   cursor: crosshair;
 }
 

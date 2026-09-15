@@ -4,6 +4,10 @@ All notable changes to Chiplog are documented here. The format follows [Keep a C
 
 ## [Unreleased]
 
+### Fixed
+
+- The tablet app's stylus canvas now prevents the default action on every contact, not just the pen's — a resting palm's touch was left to the browser, which could hijack it as a gesture and cancel the pen's in-progress stroke, or show a native text-selection highlight over the canvas.
+
 ## [1.1.0] - 2026-09-15
 
 ### Added
