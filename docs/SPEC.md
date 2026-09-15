@@ -129,7 +129,7 @@ The logbook lines the facsimile PDF renders — and the CSV export already lists
 - **at departure**, when detection opens the entry;
 - **on each clock boundary** of `observationIntervalMinutes` — on the hour by default, as on a paper log — including during a short stop, as long as the entry is open;
 - **at arrival**, when detection closes the entry — except when it closes it long after the tolerance ran out, typically after a power cut, since conditions then say nothing about that arrival;
-- **with each manoeuvre** logged as it happens, so the reef appears with the wind that called for it. A manoeuvre logged with an explicit past time gets no snapshot, and neither do annotations.
+- **with each manoeuvre, note or sketch** the crew logs as it happens, so the reef appears with the wind that called for it and a note with the conditions when it was written. One logged with an explicit past time — replayed from the tablet's offline queue — gets no snapshot: current readings say nothing about a moment already gone by.
 
 A snapshot already in a periodic slot, such as one taken for a manoeuvre, stands in for the periodic one.
 
@@ -233,7 +233,7 @@ Deferred to V2: full shortcut customization, publication to a remote server, ded
 | Tablet access | Signal K device access request, token kept on the tablet; a user login works too (§4.9) |
 | Webapp languages | English and French, chosen from the browser (`?lang=` overrides) |
 | Map tiles | OpenStreetMap with the OpenSeaMap seamark overlay, online; offline the track is still drawn on a blank map. Offline charts are V2 |
-| Instrument snapshots | At departure, hourly on the clock (configurable), at arrival and with each live manoeuvre (§4.5.1) |
+| Instrument snapshots | At departure, hourly on the clock (configurable), at arrival and with each live manoeuvre, note or sketch (§4.5.1) |
 | Speed fallback | SOG averaged over 3 min; under way above a configurable speed (1 kn), stopped below half of it. Transitions dated from raw speed in both modes (§4.2) |
 | GPS track sampling | Configurable fixed interval (15 s) + extra point on a 15° course or 1 kn speed change (§4.1) |
 | PDF export | Traditional logbook facsimile, A4 landscape, a page per day in ship's time, English or French; home-made PDF writer with the standard fonts, no dependency (§4.5) |

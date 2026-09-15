@@ -102,6 +102,13 @@ describe('POST /events', () => {
     assert.equal(body.entryId, entryId);
     assert.equal(body.openedEntry, false);
     assert.equal(activeEntries().length, 0);
+
+    const { body: detail } = await ctx.request('GET', `/entries/${entryId}`);
+    assert.equal(
+      detail.counts.observations,
+      1,
+      'a live note takes a snapshot too, like a manoeuvre'
+    );
   });
 
   it('refuses an entry with no passage to belong to', async () => {

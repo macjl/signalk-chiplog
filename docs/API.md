@@ -216,7 +216,7 @@ Accepts `type`, `subtype`, `comment`, `payload`, `time`, `position`, `clientRef`
 
 Answers `201` with the event — `entryId` says where it went — plus `"openedEntry": true` when it opened the passage.
 
-A `manoeuvre` posted without `time` also takes an instrument snapshot (`reason: "event"`) at the event's time, so the log shows the conditions it was made in.
+A client-created event posted without `time` also takes an instrument snapshot (`reason: "event"`) at the event's time, so the log shows the conditions it was made in — a manoeuvre, a keyboard note, or a handwritten one. Posted with a `time` (an entry replayed from an offline queue), no snapshot is taken: current readings say nothing about a moment already past.
 
 Clients may create three types; the others are produced by the plugin itself:
 

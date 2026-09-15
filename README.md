@@ -87,7 +87,7 @@ A wrong period can be corrected in the webapp. A correction to the period in pro
 
 ### Instrument readings
 
-Readings are taken at departure, **every hour on the hour** during the passage (configurable), at arrival, and with each manoeuvre logged live, so a reef appears with the wind that called for it. Each reading holds whatever is available among position, speed and course over ground, heading, speed through water, true and apparent wind, depth, barometer, air and water temperature, trip log and the hour counter of each engine — both engines of a twin-engine boat. A sensor that has gone silent is left blank rather than repeating an old value.
+Readings are taken at departure, **every hour on the hour** during the passage (configurable), at arrival, and with each manoeuvre, note or sketch logged live, so a reef appears with the wind that called for it and a note with the conditions when it was written. Each reading holds whatever is available among position, speed and course over ground, heading, speed through water, true and apparent wind, depth, barometer, air and water temperature, trip log and the hour counter of each engine — both engines of a twin-engine boat. A sensor that has gone silent is left blank rather than repeating an old value.
 
 ### Automatic events
 

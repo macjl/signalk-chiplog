@@ -214,15 +214,40 @@ describe('instrument snapshot with a manoeuvre', () => {
     assert.deepEqual(items[0].position, { lat: 46.2, lon: -1.3 });
   });
 
-  it('is not taken for a manoeuvre logged after the fact, nor for an annotation', async () => {
+  it('is not taken for a manoeuvre logged after the fact', async () => {
     await ctx.request('POST', `/entries/${entryId}/events`, {
       type: 'manoeuvre',
       subtype: 'tack',
       time: at(1)
     });
-    await ctx.request('POST', `/entries/${entryId}/events`, {
+
+    assert.equal((await observations()).total, 0);
+  });
+
+  it('is also taken for a live note or handwritten annotation, not just a manoeuvre', async () => {
+    const { body: note } = await ctx.request('POST', `/entries/${entryId}/events`, {
       type: 'text_annotation',
       comment: 'Dolphins'
+    });
+    const { body: sketch } = await ctx.request('POST', `/entries/${entryId}/events`, {
+      type: 'handwritten_annotation',
+      payload: { strokes: [{ points: [{ x: 0, y: 0, t: 0 }] }] }
+    });
+
+    const { total, items } = await observations();
+    assert.equal(total, 2);
+    assert.deepEqual(
+      items.map((item) => item.time),
+      [note.time, sketch.time]
+    );
+    assert.ok(items.every((item) => item.reason === 'event'));
+  });
+
+  it('is not taken for a note logged after the fact, replayed from an offline queue', async () => {
+    await ctx.request('POST', `/entries/${entryId}/events`, {
+      type: 'text_annotation',
+      comment: 'Dolphins',
+      time: at(1)
     });
 
     assert.equal((await observations()).total, 0);
