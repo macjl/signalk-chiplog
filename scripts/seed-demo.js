@@ -217,14 +217,19 @@ function seedDemoLogbook(db, { now = Date.now() } = {}) {
         { ...saintMartin, time: end }
       ]);
       segment(id, 'engine', start, at(3, 10, 25), 1850);
-      segment(id, 'sail', at(3, 10, 25), at(3, 13, 5));
-      segment(id, 'engine', at(3, 13, 5), end, 1600);
+      const underSail = segment(id, 'sail', at(3, 10, 25), at(3, 13, 5));
+      const underEngineAgain = segment(id, 'engine', at(3, 13, 5), end, 1600);
 
       log(id, start, 'manoeuvre', { subtype: 'cast_off', points });
       observe(id, 'entry_start', start + MINUTE, points, { tws: 5.5, aws: 6 });
       log(id, at(3, 10, 25), 'manoeuvre', {
         subtype: 'sail_change',
         payload: { sail: 'genoa' },
+        points
+      });
+      log(id, at(3, 10, 25), 'propulsion_change', {
+        payload: { segmentId: underSail, before: { type: 'engine' }, after: { type: 'sail' } },
+        source: 'auto',
         points
       });
       observe(id, 'event', at(3, 10, 25), points);
@@ -290,6 +295,16 @@ function seedDemoLogbook(db, { now = Date.now() } = {}) {
         points
       });
       observe(id, 'periodic', at(3, 13), points, { tws: 8.1 });
+      log(id, at(3, 13, 5), 'propulsion_change', {
+        payload: {
+          segmentId: underEngineAgain,
+          before: { type: 'sail' },
+          after: { type: 'engine' }
+        },
+        source: 'auto',
+        points
+      });
+      observe(id, 'event', at(3, 13, 5), points, { tws: 7.9 });
       log(id, end, 'manoeuvre', { subtype: 'moor', points });
       observe(id, 'entry_end', end, points, { tws: 6.3, sog: 0 });
       return id;

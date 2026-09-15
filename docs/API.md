@@ -177,6 +177,8 @@ The engine/sail segments, oldest first. Paginated. They cover only time under wa
 
 Corrects a mis-detected segment (SPEC §4.2). The segment is flagged `source: "manual"`, the entry's durations are recomputed, and a `manual_correction` event is added to the timeline at the segment's start time, with the before and after in its payload. Setting the type a segment already has changes nothing.
 
+Detection logs its own automatic switches the same way: a `propulsion_change` event, same payload shape, at the segment's start time, with an instrument snapshot taken for it like a manoeuvre's. Not for the ongoing segment's first switch when a passage opens — only an actual change partway through.
+
 Correcting the **ongoing** segment holds until the engine data changes: detection does not revert it on its next cycle just because the sensors — or the configured default — still say otherwise.
 
 ## Events
@@ -185,7 +187,7 @@ Correcting the **ongoing** segment holds until the engine data changes: detectio
 
 Optional `type` filter. Oldest first. Paginated.
 
-Besides what clients post, the timeline holds events the plugin logs itself — `sk_alarm`, `autopilot`, `weather_threshold` and `manual_correction`, with `source: "auto"`; their subtypes and payloads are listed in the [data model](DATA_MODEL.md#events). An alarm raised at anchor between passages belongs to the passage that ended there, so its time can be later than that entry's `endTime`.
+Besides what clients post, the timeline holds events the plugin logs itself — `sk_alarm`, `autopilot`, `weather_threshold`, `manual_correction` and `propulsion_change`, with `source: "auto"`; their subtypes and payloads are listed in the [data model](DATA_MODEL.md#events). An alarm raised at anchor between passages belongs to the passage that ended there, so its time can be later than that entry's `endTime`.
 
 ### `POST /events` — `readwrite`
 
@@ -229,7 +231,7 @@ The same as [`POST /events`](#post-events--readwrite), for a given entry — ope
 
 ### `PATCH /events/:id` — `readwrite`
 
-Accepts `time`, `comment`, `subtype`, `payload`, and validates the result by the same rules as creation. On an event the plugin produced (`sk_alarm`, `autopilot`, `weather_threshold`, `manual_correction`), only `comment` may change — annotating an alarm is fine, rewriting it is not.
+Accepts `time`, `comment`, `subtype`, `payload`, and validates the result by the same rules as creation. On an event the plugin produced (`sk_alarm`, `autopilot`, `weather_threshold`, `manual_correction`, `propulsion_change`), only `comment` may change — annotating an alarm is fine, rewriting it is not.
 
 ### `DELETE /events/:id` — `readwrite`
 

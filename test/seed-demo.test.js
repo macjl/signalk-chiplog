@@ -55,6 +55,7 @@ describe('demo logbook', () => {
       'handwritten_annotation',
       'manoeuvre',
       'manual_correction',
+      'propulsion_change',
       'sk_alarm',
       'text_annotation',
       'weather_threshold'

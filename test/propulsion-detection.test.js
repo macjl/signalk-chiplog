@@ -48,6 +48,31 @@ describe('engine/sail detection', () => {
         entry.engine_duration + entry.sail_duration,
         seconds(entry.start_time, entry.end_time)
       );
+
+      const changes = boat.events().filter((event) => event.type === 'propulsion_change');
+      assert.deepEqual(
+        changes.map((event) => [event.time, JSON.parse(event.payload)]),
+        [
+          [
+            segments[1].start_time,
+            { segmentId: segments[1].id, before: { type: 'sail' }, after: { type: 'engine' } }
+          ],
+          [
+            segments[2].start_time,
+            { segmentId: segments[2].id, before: { type: 'engine' }, after: { type: 'sail' } }
+          ]
+        ]
+      );
+      assert.ok(
+        changes.every((event) => event.source === 'auto'),
+        'not a manual correction'
+      );
+      const snapshots = boat.observations().filter((o) => o.reason === 'event');
+      assert.deepEqual(
+        snapshots.map((o) => o.time),
+        changes.map((event) => event.time),
+        'each switch takes an instrument snapshot, like a manoeuvre does'
+      );
     });
 
     it('reads propulsion.*.state when no revolutions are published', () => {
@@ -168,6 +193,11 @@ describe('engine/sail detection', () => {
       assert.deepEqual(
         boat.segments().map((segment) => segment.type),
         ['sail', 'engine']
+      );
+      assert.deepEqual(
+        boat.events().filter((event) => event.type === 'propulsion_change'),
+        [],
+        'realigning after a restart is a correction, not something that just happened'
       );
     });
   });

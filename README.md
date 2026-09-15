@@ -83,7 +83,7 @@ Each passage is split into engine and sail periods covering the time under way. 
 3. `navigation.state` (`motoring` / `sailing`);
 4. the configured default, **sail**.
 
-A wrong period can be corrected in the webapp. A correction to the period in progress holds until the engine data actually changes.
+A wrong period can be corrected in the webapp. A correction to the period in progress holds until the engine data actually changes. Each actual switch is also logged as a line in the passage's timeline.
 
 ### Instrument readings
 

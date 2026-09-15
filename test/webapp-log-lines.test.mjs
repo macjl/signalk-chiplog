@@ -96,6 +96,20 @@ describe('logbook lines', () => {
       }).detail,
       'Corrected: engine → sail'
     );
+    assert.equal(
+      describe_({
+        type: 'propulsion_change',
+        payload: { before: { type: 'sail' }, after: { type: 'engine' } }
+      }).detail,
+      'Under way under engine'
+    );
+    assert.equal(
+      describe_({
+        type: 'propulsion_change',
+        payload: { before: { type: 'engine' }, after: { type: 'sail' } }
+      }).detail,
+      'Under way under sail'
+    );
   });
 
   it('gives each engine its counter at departure and arrival and the hours run', () => {

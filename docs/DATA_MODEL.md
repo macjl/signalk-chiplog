@@ -81,8 +81,11 @@ Events the plugin produces (SPEC §4.6), all with `source: 'auto'`:
 | `weather_threshold` | `wind_above` or `wind_below` | `{ threshold, windSpeed }` in m/s |
 | `weather_threshold` | `pressure_drop` | `{ drop, over, pressure }` — Pa, seconds, Pa |
 | `manual_correction` | `propulsion` | `{ segmentId, before, after }` |
+| `propulsion_change` (migration 7) | *(none)* | `{ segmentId, before, after }` — same shape as `manual_correction`, for an automatic switch rather than a crew override |
 
 `client_ref` (migration 4) is an optional idempotency key chosen by the client, unique when present. The tablet sets it on every entry, so one replayed from its offline queue after a lost response returns the event already logged instead of a duplicate.
+
+`propulsion_change` (migration 7) needed `type`'s CHECK constraint widened, which SQLite can only do by rebuilding the table — `lib/database.js`'s `addPropulsionChangeEventType`. Foreign keys are turned off around the rebuild: `log_entries.opened_by_event_id` references `events`, and with them enforced, `DROP TABLE events` would fire its `ON DELETE SET NULL` for every referencing row before the table (and the reference) is gone.
 
 An event's `time` may fall **after its entry's `end_time`**: alarms and weather events between passages go to the passage that ended where the vessel still is.
 
@@ -107,6 +110,8 @@ The shortcut list (SPEC §4.3). Built-in entries are seeded by the migration wit
 ## Migrations
 
 `MIGRATIONS` in `lib/database.js` is an ordered, **append-only** list; the applied index is stored in SQLite's `user_version`. Once a version has shipped to a boat, editing its entry would leave that installation on a schema the code no longer expects — add a new entry instead.
+
+Most entries are a SQL string, run inside a transaction. An entry may instead be a function `(db, version)` for the rare change a transaction can't express as one statement or that needs a pragma toggled outside one — such as `addPropulsionChangeEventType` (migration 7), which rebuilds a table to change a CHECK constraint. A function migration must set `user_version` itself once it has made its change durable.
 
 Each migration runs in a transaction and rolls back as a unit on failure.
 

@@ -145,6 +145,10 @@ function createBoat({ settings = {}, clockOffsetMs = 0 } = {}) {
       return db.prepare('SELECT * FROM observations ORDER BY time, id').all();
     },
 
+    events() {
+      return db.prepare('SELECT * FROM events ORDER BY time, id').all();
+    },
+
     close() {
       db.close();
       fs.rmSync(dataDir, { recursive: true, force: true });

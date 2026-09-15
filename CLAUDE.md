@@ -77,7 +77,7 @@ Decisions already settled that shape implementation work:
 
 ## Database migrations
 
-`lib/database.js` holds a `MIGRATIONS` array applied in order, with the array index tracked in SQLite's `user_version`. Migrations are **append-only**: once an entry has been released, editing or reordering it would leave existing boat installations on a schema that no longer matches the code. Add a new entry instead.
+`lib/database.js` holds a `MIGRATIONS` array applied in order, with the array index tracked in SQLite's `user_version`. Migrations are **append-only**: once an entry has been released, editing or reordering it would leave existing boat installations on a schema that no longer matches the code. Add a new entry instead. An entry is normally a SQL string run in a transaction; it may instead be a function `(db, version)` — the only way to change a CHECK constraint (SQLite can't ALTER one, so the table is rebuilt) or to toggle a pragma like `foreign_keys`, which has no effect inside a transaction. A function migration sets `user_version` itself.
 
 ## Webapp
 

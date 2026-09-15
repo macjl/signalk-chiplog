@@ -78,6 +78,7 @@ No notion of author per event/annotation in V1: the logbook is a single shared d
 - **Durations are kept current** during a passage, the open segment counting up to now.
 - **Average RPM** is kept for engine segments, over the running engines.
 - **Corrections hold.** A manual correction of the ongoing segment lasts until the engine data actually changes, so a boat whose sensors keep reporting the old value — or that has none — keeps the correction rather than reverting on the next cycle. After a restart, an automatic segment that disagrees with the engine is split.
+- **An automatic switch shows in the log.** A `propulsion_change` event is logged at each actual sensed transition, the same way a manual correction is above, so the journal reads "under way under engine"/"under way under sail" where it happened, not just the engine/sail strip. Not logged for the passage's first segment, nor for the resync a restart does when it finds the engine disagreeing with an automatic segment — neither is something that happened at that moment.
 
 **Stopped/underway and passages** (implemented in `lib/detection.js`), evaluated every 15 seconds:
 

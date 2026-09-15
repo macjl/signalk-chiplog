@@ -122,6 +122,13 @@ export function describeEvent(event, { t, format, manoeuvreLabels = {} }) {
           after: t(`type.${payload.after?.type}`)
         })
       };
+    case 'propulsion_change':
+      return {
+        ...line,
+        detail: t(
+          payload.after?.type === 'engine' ? 'status.underwayEngine' : 'status.underwaySail'
+        )
+      };
     default:
       return { ...line, detail: event.comment ?? event.type, comment: null };
   }
