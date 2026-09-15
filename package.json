@@ -1,6 +1,6 @@
 {
   "name": "signalk-chiplog",
-  "version": "1.1.0",
+  "version": "1.1.2",
   "description": "Automated digital logbook plugin for Signal K, with keyboard/handwritten entry on tablet",
   "main": "index.js",
   "files": [
