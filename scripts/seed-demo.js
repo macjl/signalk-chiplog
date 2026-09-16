@@ -77,11 +77,19 @@ function createSeeder(db, now) {
           lon: from.lon + (to.lon - from.lon) * fraction,
           time: from.time + duration * fraction,
           sog,
-          cog
+          cog,
+          heading: (cog + 0.05) % (2 * Math.PI),
+          stw: sog * 0.95
         });
       }
     }
-    points.push({ ...waypoints.at(-1), sog: 0, cog: points.at(-1)?.cog ?? 0 });
+    points.push({
+      ...waypoints.at(-1),
+      sog: 0,
+      cog: points.at(-1)?.cog ?? 0,
+      heading: points.at(-1)?.heading ?? 0,
+      stw: 0
+    });
 
     let distance = 0;
     points.forEach((point, index) => {
@@ -91,7 +99,12 @@ function createSeeder(db, now) {
         lat: point.lat,
         lon: point.lon,
         sog: point.sog,
-        cog: point.cog
+        cog: point.cog,
+        stw: point.stw,
+        tws: 7.5,
+        twd: 4.9,
+        awa: -0.8,
+        heading: point.heading
       });
       if (index > 0) {
         distance += distanceBetween(points[index - 1], point);

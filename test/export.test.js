@@ -18,7 +18,18 @@ function seedPassage(db) {
     distance: 68500
   });
   insert(db, 'track_points', { entry_id: entryId, time: at(0), lat: 46.1591, lon: -1.1522 });
-  insert(db, 'track_points', { entry_id: entryId, time: at(1), lat: 46.25, lon: -1.3 });
+  insert(db, 'track_points', {
+    entry_id: entryId,
+    time: at(1),
+    lat: 46.25,
+    lon: -1.3,
+    sog: 3.086667,
+    cog: Math.PI / 2,
+    stw: 2.9,
+    tws: 7.716667,
+    twd: 2 * Math.PI - 0.001,
+    heading: Math.PI / 2 - 0.05
+  });
   insert(db, 'observations', {
     entry_id: entryId,
     time: at(1),
@@ -69,6 +80,24 @@ describe('export', () => {
       assert.equal(body.geometry.type, 'LineString');
       assert.deepEqual(body.geometry.coordinates[0], [-1.1522, 46.1591]);
       assert.deepEqual(body.properties.coordTimes, [at(0), at(1)]);
+      assert.deepEqual(body.properties.readings[0], {
+        sog: null,
+        cog: null,
+        stw: null,
+        tws: null,
+        twd: null,
+        awa: null,
+        heading: null
+      });
+      assert.deepEqual(body.properties.readings[1], {
+        sog: 3.086667,
+        cog: Math.PI / 2,
+        stw: 2.9,
+        tws: 7.716667,
+        twd: 2 * Math.PI - 0.001,
+        awa: null,
+        heading: Math.PI / 2 - 0.05
+      });
     });
 
     it('returns GPX on request', async () => {
@@ -89,7 +118,7 @@ describe('export', () => {
 
       assert.equal(status, 200);
       assert.match(headers.get('content-disposition'), /chiplog\.json/);
-      assert.equal(body.schemaVersion, 8);
+      assert.equal(body.schemaVersion, 9);
       assert.equal(body.entries.length, 1);
       const [bundle] = body.entries;
       assert.equal(bundle.entry.distance, 68500);

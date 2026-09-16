@@ -170,7 +170,7 @@ Removes the entry and everything attached to it. `204`.
 
 Query `format`: `geojson` (default) or `gpx`.
 
-GeoJSON is a single `Feature`: a `LineString`, a `Point` for a one-point track, or a `null` geometry for an empty one. `properties` carries the entry's times and place names plus `coordTimes`, the timestamp of each coordinate. GPX 1.1 is served as `application/gpx+xml`.
+GeoJSON is a single `Feature`: a `LineString`, a `Point` for a one-point track, or a `null` geometry for an empty one. `properties` carries the entry's times and place names plus `coordTimes`, the timestamp of each coordinate, and `readings`, one `{ sog, cog, stw, tws, twd, awa, heading }` per coordinate in the same order (SI units, `null` where not current when sampled) — the webapp's position scrubber reads these rather than fetching each point on its own; a point recorded before migration 9 has `stw: null`. GPX 1.1 is served as `application/gpx+xml`.
 
 ### `GET /entries/:id/observations` — `readonly`
 

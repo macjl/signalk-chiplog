@@ -4,6 +4,19 @@ import { useLocale } from '../context.mjs';
 const TRACK_COLOUR = '#e8590c';
 const DEPARTURE_COLOUR = '#2b8a3e';
 const ARRIVAL_COLOUR = '#c92a2a';
+const BOAT_COLOUR = '#1d4ed8';
+
+// A small sailboat, bow first, drawn pointing north (up) so it can be
+// rotated in place to the selected point's heading or course.
+function boatIcon(headingRadians) {
+  const degrees = ((headingRadians * 180) / Math.PI).toFixed(1);
+  return L.divIcon({
+    className: 'boat-marker',
+    html: `<svg viewBox="0 0 24 24" width="26" height="26" style="transform: rotate(${degrees}deg); transform-origin: center;"><path d="M12 2 18.5 20 12 16.5 5.5 20 Z" fill="${BOAT_COLOUR}" stroke="#ffffff" stroke-width="1.5" stroke-linejoin="round" /></svg>`,
+    iconSize: [26, 26],
+    iconAnchor: [13, 13]
+  });
+}
 
 // Signal K serves every page with `Referrer-Policy: no-referrer`, and the
 // OpenStreetMap tile servers answer a request without a Referer with an
@@ -17,12 +30,13 @@ function textTooltip(text) {
   return element;
 }
 
-export function TrackMap({ track, entry }) {
+export function TrackMap({ track, entry, boat }) {
   const { t } = useLocale();
   const container = useRef(null);
   const map = useRef(null);
   const overlay = useRef(null);
   const fitted = useRef(false);
+  const boatMarker = useRef(null);
 
   useEffect(() => {
     const instance = L.map(container.current, { scrollWheelZoom: false });
@@ -76,10 +90,40 @@ export function TrackMap({ track, entry }) {
     overlay.current = group;
     const bounds = group.getBounds();
     if (!fitted.current && bounds.isValid()) {
-      instance.fitBounds(bounds, { padding: [24, 24], maxZoom: 15 });
+      // Not animated: the boat marker below is added right after this, in its
+      // own effect, and Leaflet places a layer added mid pan/zoom animation
+      // at a stale, wildly wrong pixel position that a later setLatLng never
+      // corrects.
+      instance.fitBounds(bounds, { padding: [24, 24], maxZoom: 15, animate: false });
       fitted.current = true;
     }
   }, [track, entry]);
+
+  // Kept separate from the track/ends effect above: moving the position
+  // scrubber must not redraw the whole track or refit the view each time.
+  useEffect(() => {
+    const instance = map.current;
+    if (!instance) {
+      return;
+    }
+    if (!boat) {
+      boatMarker.current?.remove();
+      boatMarker.current = null;
+      return;
+    }
+    const icon = boatIcon(boat.heading ?? boat.cog ?? 0);
+    if (boatMarker.current) {
+      boatMarker.current.setLatLng([boat.lat, boat.lon]);
+      boatMarker.current.setIcon(icon);
+    } else {
+      boatMarker.current = L.marker([boat.lat, boat.lon], {
+        icon,
+        interactive: false,
+        keyboard: false,
+        zIndexOffset: 1000
+      }).addTo(instance);
+    }
+  }, [boat]);
 
   return html`<div class="track-map" ref=${container}></div>`;
 }

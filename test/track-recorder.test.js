@@ -233,7 +233,8 @@ describe('track recording', () => {
         .publish('environment.wind.directionTrue', 3.5)
         .publish('environment.wind.speedApparent', 9.5 * KNOT)
         .publish('environment.wind.angleApparent', -0.6)
-        .publish('navigation.headingTrue', 1.2);
+        .publish('navigation.headingTrue', 1.2)
+        .publish('navigation.speedThroughWater', 5.8 * KNOT);
       vessel.run(1, { knots: 6 });
 
       const [point] = vessel.points();
@@ -242,6 +243,7 @@ describe('track recording', () => {
       assert.ok(Math.abs(point.aws - 9.5 * KNOT) < 1e-9);
       assert.equal(point.awa, -0.6);
       assert.equal(point.heading, 1.2);
+      assert.ok(Math.abs(point.stw - 5.8 * KNOT) < 1e-9);
     });
 
     it('derives heading from magnetic and variation without a true heading source', () => {
@@ -269,6 +271,7 @@ describe('track recording', () => {
       assert.equal(point.aws, null);
       assert.equal(point.awa, null);
       assert.equal(point.heading, null);
+      assert.equal(point.stw, null);
     });
 
     it('drops a wind reading once it goes stale', () => {
@@ -282,6 +285,19 @@ describe('track recording', () => {
       vessel.run(200, { knots: 6 });
 
       assert.equal(vessel.points().at(-1).tws, null);
+    });
+
+    it('drops speed through water once it goes stale', () => {
+      vessel = createVessel().start();
+      vessel.openEntry();
+
+      vessel.publish('navigation.speedThroughWater', 5.8 * KNOT);
+      vessel.run(1, { knots: 6 });
+      assert.ok(Math.abs(vessel.points()[0].stw - 5.8 * KNOT) < 1e-9);
+
+      vessel.run(200, { knots: 6 });
+
+      assert.equal(vessel.points().at(-1).stw, null);
     });
   });
 

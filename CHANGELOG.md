@@ -4,6 +4,10 @@ All notable changes to Chiplog are documented here. The format follows [Keep a C
 
 ## [Unreleased]
 
+### Added
+
+- The passage page's track map now shows a small boat marker at the selected point, pointing along its heading, and a scrubber under the map to step back and forth through the track's history — it defaults to the latest point, doubling as the current position on a passage in progress. A band below it shows that point's time, SOG, COG, STW, TWS, TWD, TWA and AWA. Speed through water now rides along with every track point like wind and heading already did, not just the hourly instrument snapshot.
+
 ## [1.2.0] - 2026-09-15
 
 ### Added

@@ -8,6 +8,8 @@ import { PropulsionStrip } from './PropulsionStrip.mjs';
 import { TideCard } from './TideCard.mjs';
 import { Timeline } from './Timeline.mjs';
 import { TrackMap } from './TrackMap.mjs';
+import { TrackScrubber } from './TrackScrubber.mjs';
+import { trackPoints } from '../track.mjs';
 
 const ACTIVE_REFRESH_MS = 60 * 1000;
 
@@ -165,7 +167,13 @@ export function PassageView({ id }) {
   const [actionError, setActionError] = useState(null);
   const [busy, setBusy] = useState(false);
   const [version, setVersion] = useState(0);
+  // null follows the latest point as new ones arrive; scrubbing pins it.
+  const [selectedIndex, setSelectedIndex] = useState(null);
   const active = data?.entry.state === 'active';
+
+  // A different passage starts by following its latest point too, not
+  // wherever the scrubber was left on the previous one.
+  useEffect(() => setSelectedIndex(null), [id]);
 
   usePolling(
     (isCurrent) => {
@@ -266,6 +274,9 @@ export function PassageView({ id }) {
   const when = `${format.day(new Date(entry.startTime))}, ${format.time(entry.startTime)} – ${ending}`;
   const underway = entry.engineDuration + entry.sailDuration;
   const hasMap = Boolean(data.track.geometry || entry.startPosition);
+  const points = trackPoints(data.track);
+  const scrubIndex = Math.min(selectedIndex ?? points.length - 1, points.length - 1);
+  const boat = points[scrubIndex] ?? null;
 
   return html`
     <a class="back" href="#/">← ${t('passage.back')}</a>
@@ -355,7 +366,12 @@ export function PassageView({ id }) {
       </header>
       ${
         hasMap
-          ? html`<${TrackMap} track=${data.track} entry=${entry} />`
+          ? html`<${TrackMap} track=${data.track} entry=${entry} boat=${boat} />
+              <${TrackScrubber}
+                points=${points}
+                index=${scrubIndex}
+                onIndexChange=${setSelectedIndex}
+              />`
           : html`<p class="muted">${t('passage.noTrack')}</p>`
       }
     </section>

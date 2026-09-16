@@ -441,6 +441,29 @@ main {
   border-radius: 8px;
 }
 
+.boat-marker {
+  background: none;
+  border: none;
+}
+
+.track-scrubber {
+  margin-top: 0.75rem;
+}
+
+.scrubber-slider {
+  width: 100%;
+  margin-bottom: 0.6rem;
+}
+
+.scrubber-facts {
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  margin: 0;
+}
+
+.scrubber-facts dd {
+  font-size: 1rem;
+}
+
 .strip {
   position: relative;
   height: 18px;
