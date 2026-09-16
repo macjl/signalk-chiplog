@@ -158,4 +158,22 @@ describe('replay job', () => {
     assert.equal(status.running, false);
     assert.match(status.lastError.message, /500/);
   });
+
+  it('calls onDone once the attempt finishes, so newly-pending place names can be picked up', async () => {
+    ({ db, dataDir } = openDb());
+    let doneCalls = 0;
+    const job = createReplayJob({
+      db,
+      settings: configuredSettings(),
+      app: { selfContext: 'vessels.self' },
+      fetch: emptyInfluxFetch(),
+      onDone: () => doneCalls++
+    });
+
+    job.start(iso(T0), iso(T0 + MINUTE));
+    assert.equal(doneCalls, 0, 'not called while still running');
+
+    await waitUntilIdle(job);
+    assert.equal(doneCalls, 1);
+  });
 });

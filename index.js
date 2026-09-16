@@ -249,6 +249,18 @@ module.exports = function (app) {
     }
   }
 
+  // A retrospective replay can create newly-pending place names; wake the
+  // naming chain immediately rather than leave it to whatever backoff it
+  // was already in. Guarded against the plugin having stopped in the
+  // meantime, since a replay runs in the background and isn't awaited.
+  function nudgeNaming() {
+    if (!namer) {
+      return;
+    }
+    clearTimeout(namingTimer);
+    namingTimer = setTimeout(runNaming, 0);
+  }
+
   // Geocoding is a network call, so it runs as its own chain of timeouts rather
   // than inside detection: each lookup says when the next one is due.
   async function runNaming() {
@@ -398,7 +410,8 @@ module.exports = function (app) {
       db: database,
       settings,
       app,
-      log: (level, message) => (level === 'error' ? app.error(message) : app.debug(message))
+      log: (level, message) => (level === 'error' ? app.error(message) : app.debug(message)),
+      onDone: nudgeNaming
     });
     namingTimer = setTimeout(runNaming, FIRST_NAMING_DELAY_MS);
     tideTimer = setTimeout(runTides, FIRST_TIDE_DELAY_MS);
