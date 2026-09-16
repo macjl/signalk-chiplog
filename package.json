@@ -34,6 +34,9 @@
       "./docs/screenshots/02-passage-tide.png",
       "./docs/screenshots/03-passage-journal.png",
       "./docs/screenshots/04-entry-app.png"
+    ],
+    "recommends": [
+      "signalk-to-influxdb"
     ]
   },
   "author": "Cedric RICARD <ricard33@gmail.com>",

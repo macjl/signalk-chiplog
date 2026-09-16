@@ -39,8 +39,8 @@ describe('retrospective replay API', () => {
       from: '2026-01-01T00:00:00.000Z',
       to: '2026-01-02T00:00:00.000Z'
     });
-    assert.equal(status, 400);
-    assert.match(body.error.message, /InfluxDB/);
+    assert.equal(status, 409);
+    assert.equal(body.error.code, 'replay_not_configured');
   });
 
   it('validates the date range', async () => {

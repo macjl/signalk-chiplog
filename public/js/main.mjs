@@ -4,13 +4,17 @@ import { pickLanguage } from './i18n.mjs';
 import { ExportView } from './components/ExportView.mjs';
 import { LogView } from './components/LogView.mjs';
 import { PassageView } from './components/PassageView.mjs';
+import { ReplayView } from './components/ReplayView.mjs';
 import { StatusBar } from './components/StatusBar.mjs';
 
 function Page({ route }) {
   if (route.name === 'passage') {
     return html`<${PassageView} id=${route.id} />`;
   }
-  return route.name === 'export' ? html`<${ExportView} />` : html`<${LogView} />`;
+  if (route.name === 'export') {
+    return html`<${ExportView} />`;
+  }
+  return route.name === 'replay' ? html`<${ReplayView} />` : html`<${LogView} />`;
 }
 
 function Shell() {
@@ -25,10 +29,13 @@ function Shell() {
         ${t('app.title')}
       </a>
       <nav>
-        <a href="#/" aria-current=${route.name === 'export' ? undefined : 'page'}
+        <a
+          href="#/"
+          aria-current=${route.name === 'export' || route.name === 'replay' ? undefined : 'page'}
           >${t('nav.log')}</a
         >
         <a href="#/export" aria-current=${current('export')}>${t('nav.export')}</a>
+        <a href="#/replay" aria-current=${current('replay')}>${t('nav.replay')}</a>
         <a href="entry/">${t('nav.entry')}</a>
       </nav>
     </header>

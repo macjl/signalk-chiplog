@@ -24,7 +24,10 @@ function parseRoute(hash) {
   if (passage) {
     return { name: 'passage', id: Number(passage[1]) };
   }
-  return hash === '#/export' ? { name: 'export' } : { name: 'log' };
+  if (hash === '#/export') {
+    return { name: 'export' };
+  }
+  return hash === '#/replay' ? { name: 'replay' } : { name: 'log' };
 }
 
 export function useRoute() {

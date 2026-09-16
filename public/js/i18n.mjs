@@ -6,6 +6,7 @@ export const MESSAGES = {
     'app.title': 'Chiplog',
     'nav.log': 'Logbook',
     'nav.export': 'Export',
+    'nav.replay': 'Retrospective',
     'footer.attribution':
       'Map data and place names © OpenStreetMap contributors (ODbL) · Seamarks © OpenSeaMap',
 
@@ -211,6 +212,17 @@ export const MESSAGES = {
     'export.usbLastError': 'The last copy failed, {time}: {message}',
     'export.usbNextCopy': 'Next automatic copy around {time}.',
 
+    'replay.title': 'Retrospective analysis',
+    'replay.intro':
+      'Reconstruct past passages for a date range from a signalk-to-influxdb history, using the same detection Chiplog runs live — for passages made before the plugin was installed or running.',
+    'replay.start': 'Reconstruct',
+    'replay.cancel': 'Cancel',
+    'replay.progress': '{percent}% — at {time}',
+    'replay.done': 'Reconstruction finished at {time}.',
+    'replay.cancelled': 'Reconstruction cancelled at {time}.',
+    'replay.failed': 'Reconstruction failed at {time}: {message}',
+    'replay.notConfigured': 'No InfluxDB connection is set.',
+
     'nav.entry': 'Helm entry',
     'entry.title': 'Chiplog helm',
     'entry.logbook': 'Logbook',
@@ -288,6 +300,7 @@ export const MESSAGES = {
     'app.title': 'Chiplog',
     'nav.log': 'Journal',
     'nav.export': 'Export',
+    'nav.replay': 'Rétrospective',
     'footer.attribution':
       'Données cartographiques et noms de lieux © contributeurs OpenStreetMap (ODbL) · Balisage © OpenSeaMap',
 
@@ -496,6 +509,17 @@ export const MESSAGES = {
     'export.usbNeverCopied': 'Aucune copie depuis le démarrage du plugin.',
     'export.usbLastError': 'La dernière copie a échoué, {time} : {message}',
     'export.usbNextCopy': 'Prochaine copie automatique vers {time}.',
+
+    'replay.title': 'Analyse rétrospective',
+    'replay.intro':
+      'Reconstruit les navigations passées sur une plage de dates à partir d’un historique signalk-to-influxdb, avec la même détection que celle utilisée en temps réel — pour les navigations faites avant l’installation ou le démarrage du plugin.',
+    'replay.start': 'Reconstruire',
+    'replay.cancel': 'Annuler',
+    'replay.progress': '{percent} % — à {time}',
+    'replay.done': 'Reconstruction terminée à {time}.',
+    'replay.cancelled': 'Reconstruction annulée à {time}.',
+    'replay.failed': 'Échec de la reconstruction à {time} : {message}',
+    'replay.notConfigured': 'Aucune connexion InfluxDB n’est configurée.',
 
     'nav.entry': 'Saisie à bord',
     'entry.title': 'Chiplog à bord',

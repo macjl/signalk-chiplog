@@ -63,7 +63,7 @@ describe('replay job', () => {
     ({ db, dataDir } = openDb());
     const job = createReplayJob({ db, settings: {}, app: { selfContext: 'vessels.self' } });
 
-    assert.throws(() => job.start(iso(T0), iso(T0 + MINUTE)), /invalid_request|Configure/);
+    assert.throws(() => job.start(iso(T0), iso(T0 + MINUTE)), /InfluxDB/);
   });
 
   it('refuses a range overlapping a passage already on record', () => {
