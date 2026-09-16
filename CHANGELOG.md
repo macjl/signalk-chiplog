@@ -4,6 +4,8 @@ All notable changes to Chiplog are documented here. The format follows [Keep a C
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-09-15
+
 ### Added
 
 - The tablet app's handwriting pad now fills the whole screen and has a toolbar: fine pen, thick pen, highlighter, eraser, undo and a choice of colour (kept to the theme's colour in night mode). The eraser removes only the points it touches, splitting a stroke instead of deleting all of it; undo now steps back through erasing too, not just strokes. A stroke's colour and tool travel with it to the webapp's timeline and the PDF export, not just the tablet.
@@ -87,6 +89,7 @@ First release.
 - REST API under `/plugins/signalk-chiplog/api`, documented in [docs/API.md](docs/API.md).
 - Single SQLite database through Node's built-in `node:sqlite`: no native module to build.
 
-[Unreleased]: https://github.com/ricard33/signalk-chiplog/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/ricard33/signalk-chiplog/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/ricard33/signalk-chiplog/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/ricard33/signalk-chiplog/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/ricard33/signalk-chiplog/releases/tag/v1.0.0
