@@ -387,8 +387,8 @@ Reconstructs passages for a past date range from a signalk-to-influxdb history (
 
 - `configured` says whether an InfluxDB connection is set in the plugin configuration. `progress` is `null` while nothing runs.
 - `progress.phase` is `"fetching"` while history is being pulled from InfluxDB, then `"replaying"` while the detection pipeline runs over it; `progress.now` tracks whichever phase is in flight — during `"fetching"` it is how far through the range history has been retrieved, during `"replaying"` it is the detector's simulated clock.
-- History is fetched one day at a time regardless of the requested range, with a short pause between requests, so one query cannot overwhelm a resource-constrained host running both Signal K and InfluxDB (SPEC §4.10).
-- `lastResult` — `{ at, from, to, cancelled? }` — and `lastError` — `{ at, from, to, message }` — describe the latest attempt; both are kept in memory and start empty when the plugin starts. `lastError.message` names the InfluxDB vessel contexts actually found when none match the one configured (SPEC §4.10) — the usual cause of a replay that runs to completion but reconstructs nothing. An InfluxDB query that does not answer within 20 s fails with that instead of hanging.
+- History is fetched six hours at a time regardless of the requested range, with a short pause between requests, so one query cannot overwhelm a resource-constrained host running both Signal K and InfluxDB (SPEC §4.10).
+- `lastResult` — `{ at, from, to, cancelled? }` — and `lastError` — `{ at, from, to, message }` — describe the latest attempt; both are kept in memory and start empty when the plugin starts. `lastError.message` names the InfluxDB vessel contexts actually found when none match the one configured (SPEC §4.10) — the usual cause of a replay that runs to completion but reconstructs nothing. An InfluxDB query that does not answer within 30 s fails with that instead of hanging.
 
 ### `POST /replay` — admin
 

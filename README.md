@@ -240,7 +240,7 @@ None of these is required except position and speed over ground; each feature us
 Already have a history of the boat's Signal K data before Chiplog was installed, or from a period the plugin was stopped? The **Retrospective** page (admin access) reconstructs those passages from it, using the exact same detection Chiplog runs live — the same thresholds, so a reconstructed passage is one Chiplog would have logged had it been running at the time.
 
 - **Requires [signalk-to-influxdb](https://github.com/tkurki/signalk-to-influxdb)** (a recommended companion plugin) already having written the boat's data into an InfluxDB 1.x database — local or on another machine, set in **Apps & Plugins → Configuration**: host, port, database, and a username/password if it needs one.
-- Pick a **from** and **to** date on the Retrospective page and start it. It runs in the background — the page shows its progress, fetching history one day at a time before reconstruction itself begins — and can be cancelled at either stage; what was already reconstructed up to that point stays on record.
+- Pick a **from** and **to** date on the Retrospective page and start it. It runs in the background — the page shows its progress, fetching history six hours at a time before reconstruction itself begins — and can be cancelled at either stage; what was already reconstructed up to that point stays on record.
 - **Refuses a range that overlaps a passage already logged**, to avoid a duplicate or a conflicting one. Reconstruction only ever adds passages; it does not edit or merge into an existing one.
 - **What is not reconstructed**: Signal K alarms and emergencies (`sk_alarm` events), since a typical InfluxDB history does not archive notifications the way it does a numeric reading. Everything read from a continuously published path — position, speed, wind, engine, autopilot, depth, barometer — is reconstructed the same as live.
 
@@ -307,11 +307,11 @@ Signal K tags historical data with the vessel it came from; a replay only reads 
 
 ### A retrospective analysis takes minutes then fails with no clear reason
 
-The InfluxDB server did not answer — unreachable, overloaded, a firewall or a VPN not connected. Each query now gives up after 20 seconds with the connection problem it ran into, rather than hanging until some far longer, less informative failure; check that the server named in the plugin configuration is reachable from wherever Signal K runs, and that it is not overloaded.
+The InfluxDB server did not answer — unreachable, overloaded, a firewall or a VPN not connected. Each query now gives up after 30 seconds with the connection problem it ran into, rather than hanging until some far longer, less informative failure; check that the server named in the plugin configuration is reachable from wherever Signal K runs, and that it is not overloaded.
 
 ### A retrospective analysis over several days makes the InfluxDB server unresponsive
 
-History is fetched one day at a time, whatever the size of the requested range, with a short pause between each day, specifically so this does not happen — a boat's InfluxDB often shares a resource-constrained host (a Raspberry Pi) with Signal K itself, and one query spanning weeks across every path at once can overwhelm it. If it still struggles on a very small or busy host, run the reconstruction over shorter date ranges instead of the whole history at once.
+History is fetched six hours at a time, whatever the size of the requested range, with a short pause between each chunk, specifically so this does not happen — a boat's InfluxDB often shares a resource-constrained host (a Raspberry Pi) with Signal K itself, and one query spanning weeks across every path at once can overwhelm it. If it still struggles on a very small or busy host, run the reconstruction over shorter date ranges instead of the whole history at once.
 
 ### Reconstructed passages keep their provisional place names for a while
 

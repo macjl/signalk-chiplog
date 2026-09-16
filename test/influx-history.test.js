@@ -230,7 +230,7 @@ describe('InfluxDB history', () => {
       }
     });
 
-    await assert.rejects(influx.preload(T0, T0 + MINUTE), /did not answer within 20s/);
+    await assert.rejects(influx.preload(T0, T0 + MINUTE), /did not answer within 30s/);
   });
 
   it('surfaces the real cause of a connection failure, not just "fetch failed"', async () => {
@@ -286,37 +286,37 @@ describe('InfluxDB history', () => {
   });
 
   describe('chunking a long range', () => {
-    const DAY = 24 * 60 * 60 * 1000;
+    const CHUNK = 6 * 60 * 60 * 1000;
 
-    it('fetches one day at a time rather than the whole range in one query', async () => {
+    it('fetches six hours at a time rather than the whole range in one query', async () => {
       const { influx, requests } = history({
         'navigation.speedOverGround': [
           { time: T0, value: 1 },
-          { time: T0 + DAY, value: 2 },
-          { time: T0 + 2 * DAY, value: 3 }
+          { time: T0 + CHUNK, value: 2 },
+          { time: T0 + 2 * CHUNK, value: 3 }
         ]
       });
 
-      await influx.preload(T0, T0 + 3 * DAY);
+      await influx.preload(T0, T0 + 3 * CHUNK);
 
       const sog = requests.filter((r) => r.q.includes('"navigation.speedOverGround"'));
-      assert.equal(sog.length, 3, 'one query per day, not one for the whole range');
+      assert.equal(sog.length, 3, 'one query per chunk, not one for the whole range');
     });
 
     it('accumulates every chunk into one continuous series', async () => {
       const { influx } = history({
         'navigation.speedOverGround': [
           { time: T0, value: 1 },
-          { time: T0 + DAY, value: 2 },
-          { time: T0 + 2 * DAY, value: 3 }
+          { time: T0 + CHUNK, value: 2 },
+          { time: T0 + 2 * CHUNK, value: 3 }
         ]
       });
 
-      await influx.preload(T0, T0 + 3 * DAY);
+      await influx.preload(T0, T0 + 3 * CHUNK);
 
-      assert.deepEqual(influx.readSelfPath('navigation.speedOverGround', T0 + 2 * DAY), {
+      assert.deepEqual(influx.readSelfPath('navigation.speedOverGround', T0 + 2 * CHUNK), {
         value: 3,
-        timestamp: new Date(T0 + 2 * DAY).toISOString()
+        timestamp: new Date(T0 + 2 * CHUNK).toISOString()
       });
       assert.deepEqual(influx.readSelfPath('navigation.speedOverGround', T0), {
         value: 1,
@@ -328,16 +328,16 @@ describe('InfluxDB history', () => {
       const { influx } = history({});
       const seen = [];
 
-      await influx.preload(T0, T0 + 3 * DAY, (doneToMs, toMs) => seen.push([doneToMs, toMs]));
+      await influx.preload(T0, T0 + 3 * CHUNK, (doneToMs, toMs) => seen.push([doneToMs, toMs]));
 
       assert.deepEqual(seen, [
-        [T0 + DAY, T0 + 3 * DAY],
-        [T0 + 2 * DAY, T0 + 3 * DAY],
-        [T0 + 3 * DAY, T0 + 3 * DAY]
+        [T0 + CHUNK, T0 + 3 * CHUNK],
+        [T0 + 2 * CHUNK, T0 + 3 * CHUNK],
+        [T0 + 3 * CHUNK, T0 + 3 * CHUNK]
       ]);
     });
 
-    it('makes a single query for a range no longer than one day', async () => {
+    it('makes a single query for a range no longer than one chunk', async () => {
       const { influx, requests } = history({
         'navigation.speedOverGround': [{ time: T0, value: 1 }]
       });
