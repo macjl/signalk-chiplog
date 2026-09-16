@@ -95,6 +95,7 @@ describe('replay job', () => {
     const result = job.start(iso(T0), iso(T0 + 3 * MINUTE));
     assert.deepEqual(result, { from: iso(T0), to: iso(T0 + 3 * MINUTE) });
     assert.equal(job.status().running, true);
+    assert.equal(job.status().progress.phase, 'fetching', 'starts by fetching the history');
 
     await waitUntilIdle(job);
 

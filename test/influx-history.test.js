@@ -40,8 +40,13 @@ function fakeInflux(rowsByMeasurement, { onRequest, contexts } = {}) {
             };
       }
       const match = /FROM "([^"]+)"/.exec(statement);
-      const rows = match && rowsByMeasurement[match[1]];
-      if (!rows || rows.length === 0) {
+      const allRows = (match && rowsByMeasurement[match[1]]) ?? [];
+      const range = /time >= '([^']+)' AND time <= '([^']+)'/.exec(statement);
+      const [fromMs, toMs] = range
+        ? [Date.parse(range[1]), Date.parse(range[2])]
+        : [-Infinity, Infinity];
+      const rows = allRows.filter((row) => row.time >= fromMs && row.time <= toMs);
+      if (rows.length === 0) {
         return {};
       }
       const columns = Object.keys(rows[0]);
@@ -278,5 +283,69 @@ describe('InfluxDB history', () => {
 
     await influx.preload(T0, T0 + MINUTE);
     assert.equal(influx.readSelfPath('navigation.speedOverGround', T0), undefined);
+  });
+
+  describe('chunking a long range', () => {
+    const DAY = 24 * 60 * 60 * 1000;
+
+    it('fetches one day at a time rather than the whole range in one query', async () => {
+      const { influx, requests } = history({
+        'navigation.speedOverGround': [
+          { time: T0, value: 1 },
+          { time: T0 + DAY, value: 2 },
+          { time: T0 + 2 * DAY, value: 3 }
+        ]
+      });
+
+      await influx.preload(T0, T0 + 3 * DAY);
+
+      const sog = requests.filter((r) => r.q.includes('"navigation.speedOverGround"'));
+      assert.equal(sog.length, 3, 'one query per day, not one for the whole range');
+    });
+
+    it('accumulates every chunk into one continuous series', async () => {
+      const { influx } = history({
+        'navigation.speedOverGround': [
+          { time: T0, value: 1 },
+          { time: T0 + DAY, value: 2 },
+          { time: T0 + 2 * DAY, value: 3 }
+        ]
+      });
+
+      await influx.preload(T0, T0 + 3 * DAY);
+
+      assert.deepEqual(influx.readSelfPath('navigation.speedOverGround', T0 + 2 * DAY), {
+        value: 3,
+        timestamp: new Date(T0 + 2 * DAY).toISOString()
+      });
+      assert.deepEqual(influx.readSelfPath('navigation.speedOverGround', T0), {
+        value: 1,
+        timestamp: new Date(T0).toISOString()
+      });
+    });
+
+    it('reports progress after each chunk', async () => {
+      const { influx } = history({});
+      const seen = [];
+
+      await influx.preload(T0, T0 + 3 * DAY, (doneToMs, toMs) => seen.push([doneToMs, toMs]));
+
+      assert.deepEqual(seen, [
+        [T0 + DAY, T0 + 3 * DAY],
+        [T0 + 2 * DAY, T0 + 3 * DAY],
+        [T0 + 3 * DAY, T0 + 3 * DAY]
+      ]);
+    });
+
+    it('makes a single query for a range no longer than one day', async () => {
+      const { influx, requests } = history({
+        'navigation.speedOverGround': [{ time: T0, value: 1 }]
+      });
+
+      await influx.preload(T0, T0 + MINUTE);
+
+      const sog = requests.filter((r) => r.q.includes('"navigation.speedOverGround"'));
+      assert.equal(sog.length, 1);
+    });
   });
 });
