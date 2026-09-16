@@ -381,7 +381,7 @@ Reconstructs passages for a past date range from a signalk-to-influxdb history (
 ```
 
 - `configured` says whether an InfluxDB connection is set in the plugin configuration. `progress` is `null` while nothing runs.
-- `lastResult` — `{ at, from, to, cancelled? }` — and `lastError` — `{ at, from, to, message }` — describe the latest attempt; both are kept in memory and start empty when the plugin starts.
+- `lastResult` — `{ at, from, to, cancelled? }` — and `lastError` — `{ at, from, to, message }` — describe the latest attempt; both are kept in memory and start empty when the plugin starts. `lastError.message` names the InfluxDB vessel contexts actually found when none match the one configured (SPEC §4.10) — the usual cause of a replay that runs to completion but reconstructs nothing.
 
 ### `POST /replay` — admin
 

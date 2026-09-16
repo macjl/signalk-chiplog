@@ -8,7 +8,7 @@ const MINUTE = 60 * 1000;
 // A minimal InfluxDB v1 stand-in: answers each statement in the batch from
 // `rowsByMeasurement`, keyed by measurement name, regardless of position --
 // decoupled from exactly which paths the module queries and in what order.
-function fakeInflux(rowsByMeasurement, { onRequest } = {}) {
+function fakeInflux(rowsByMeasurement, { onRequest, contexts } = {}) {
   const requests = [];
   const fetch = async (url, options) => {
     const q = options.body.get('q');
@@ -16,6 +16,19 @@ function fakeInflux(rowsByMeasurement, { onRequest } = {}) {
     onRequest?.(url, options);
     const statements = q.split(';');
     const results = statements.map((statement) => {
+      if (/SHOW TAG VALUES/.test(statement)) {
+        return !contexts || contexts.length === 0
+          ? {}
+          : {
+              series: [
+                {
+                  name: 'navigation.speedOverGround',
+                  columns: ['key', 'value'],
+                  values: contexts.map((c) => ['context', c])
+                }
+              ]
+            };
+      }
       if (/SHOW MEASUREMENTS/.test(statement)) {
         const names = Object.keys(rowsByMeasurement).filter((name) =>
           name.startsWith('propulsion.')
@@ -47,7 +60,7 @@ function history(rowsByMeasurement, options = {}) {
     host: 'influx.example.com',
     port: 8086,
     database: 'signalk',
-    selfContext: 'vessels.self',
+    selfContext: options.selfContext ?? 'vessels.self',
     fetch
   });
   return { influx, requests };
@@ -157,10 +170,11 @@ describe('InfluxDB history', () => {
     await influx.preload(T0, T0 + MINUTE);
 
     assert.ok(requests.length > 0);
-    const dataRequests = requests.filter((r) => !r.q.includes('SHOW MEASUREMENTS'));
+    const isDiscovery = (q) => q.includes('SHOW MEASUREMENTS') || q.includes('SHOW TAG VALUES');
+    const dataRequests = requests.filter((r) => !isDiscovery(r.q));
     assert.ok(dataRequests.length > 0);
     for (const { q, options } of requests) {
-      if (!q.includes('SHOW MEASUREMENTS')) {
+      if (!isDiscovery(q)) {
         assert.match(q, /"context" = 'vessels\.urn:mrn:imo:mmsi:123456789'/);
       }
       assert.equal(
@@ -196,5 +210,40 @@ describe('InfluxDB history', () => {
     });
 
     await assert.rejects(influx.preload(T0, T0 + MINUTE), /401/);
+  });
+
+  it('refuses when the configured context matches none the database actually has', async () => {
+    const { influx } = history(
+      { 'navigation.speedOverGround': [{ time: T0, value: 1 }] },
+      { selfContext: 'vessels.self', contexts: ['vessels.urn:mrn:imo:mmsi:123456789'] }
+    );
+
+    await assert.rejects(
+      influx.preload(T0, T0 + MINUTE),
+      /No data for context "vessels\.self".*vessels\.urn:mrn:imo:mmsi:123456789/
+    );
+  });
+
+  it('proceeds when the configured context is one the database has', async () => {
+    const { influx } = history(
+      { 'navigation.speedOverGround': [{ time: T0, value: 1 }] },
+      {
+        selfContext: 'vessels.self',
+        contexts: ['vessels.self', 'vessels.urn:mrn:imo:mmsi:123456789']
+      }
+    );
+
+    await influx.preload(T0, T0 + MINUTE);
+    assert.deepEqual(influx.readSelfPath('navigation.speedOverGround', T0), {
+      value: 1,
+      timestamp: new Date(T0).toISOString()
+    });
+  });
+
+  it('does not block on an empty database with no context tag values at all', async () => {
+    const { influx } = history({}, { selfContext: 'vessels.self', contexts: [] });
+
+    await influx.preload(T0, T0 + MINUTE);
+    assert.equal(influx.readSelfPath('navigation.speedOverGround', T0), undefined);
   });
 });

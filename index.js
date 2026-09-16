@@ -222,6 +222,12 @@ module.exports = function (app) {
         title: 'InfluxDB protocol',
         enum: ['http', 'https'],
         default: INFLUX_DEFAULTS.influxProtocol
+      },
+      influxSelfContext: {
+        type: 'string',
+        title: 'InfluxDB vessel context',
+        description:
+          'Only needed running the replay from a different Signal K server than the one that wrote the history — e.g. a development instance pointed at a boat’s production database. The vessel context the data was tagged with, such as "vessels.urn:mrn:imo:mmsi:123456789"; a failed replay names the contexts actually found. Leave empty to use this server’s own (Signal K → Server → Vessel Identity)'
       }
     }
   };
@@ -344,7 +350,8 @@ module.exports = function (app) {
         influxDatabase: config.influxDatabase || null,
         influxUsername: config.influxUsername || null,
         influxPassword: config.influxPassword || null,
-        influxProtocol: config.influxProtocol || INFLUX_DEFAULTS.influxProtocol
+        influxProtocol: config.influxProtocol || INFLUX_DEFAULTS.influxProtocol,
+        influxSelfContext: config.influxSelfContext || null
       };
 
       if (settings.logbookTimeZone && !isTimeZone(settings.logbookTimeZone)) {
