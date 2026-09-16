@@ -212,6 +212,39 @@ describe('InfluxDB history', () => {
     await assert.rejects(influx.preload(T0, T0 + MINUTE), /401/);
   });
 
+  it('gives a clear message when the connection times out', async () => {
+    const influx = createInfluxHistory({
+      host: 'unreachable.example.com',
+      port: 8086,
+      database: 'signalk',
+      selfContext: 'vessels.self',
+      fetch: async () => {
+        const err = new Error('The operation was aborted');
+        err.name = 'TimeoutError';
+        throw err;
+      }
+    });
+
+    await assert.rejects(influx.preload(T0, T0 + MINUTE), /did not answer within 20s/);
+  });
+
+  it('surfaces the real cause of a connection failure, not just "fetch failed"', async () => {
+    const influx = createInfluxHistory({
+      host: 'unreachable.example.com',
+      port: 8086,
+      database: 'signalk',
+      selfContext: 'vessels.self',
+      fetch: async () => {
+        throw new TypeError('fetch failed', { cause: new Error('ECONNREFUSED') });
+      }
+    });
+
+    await assert.rejects(
+      influx.preload(T0, T0 + MINUTE),
+      /Could not reach InfluxDB at http:\/\/unreachable\.example\.com:8086: ECONNREFUSED/
+    );
+  });
+
   it('refuses when the configured context matches none the database actually has', async () => {
     const { influx } = history(
       { 'navigation.speedOverGround': [{ time: T0, value: 1 }] },

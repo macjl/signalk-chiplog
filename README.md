@@ -305,6 +305,10 @@ On an iPad, this is Apple's **Scribble** intercepting the Apple Pencil before th
 
 Signal K tags historical data with the vessel it came from; a replay only reads data tagged for its own vessel. This shows up running the replay from a different Signal K server than the one that wrote the history — a development instance pointed at a production database, typically — since each server has its own vessel identity by default. The replay's error names the vessel contexts it actually found in the database; set the matching one as **InfluxDB vessel context** in the plugin configuration.
 
+### A retrospective analysis takes minutes then fails with no clear reason
+
+The InfluxDB server did not answer — unreachable, overloaded, a firewall or a VPN not connected. Each query now gives up after 20 seconds with the connection problem it ran into, rather than hanging until some far longer, less informative failure; check that the server named in the plugin configuration is reachable from wherever Signal K runs, and that it is not overloaded.
+
 ## Limitations
 
 - **Not yet:** a places page, and editing manoeuvre shortcuts from the webapps.
