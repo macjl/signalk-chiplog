@@ -7,6 +7,7 @@ All notable changes to Chiplog are documented here. The format follows [Keep a C
 ### Added
 
 - The passage page's track map now shows a small boat marker at the selected point, pointing along its heading, and a scrubber under the map to step back and forth through the track's history — it defaults to the latest point, doubling as the current position on a passage in progress. A band below it shows that point's time, SOG, COG, STW, TWS, TWD, TWA and AWA. Speed through water now rides along with every track point like wind and heading already did, not just the hourly instrument snapshot.
+- Retrospective analysis: a new **Retrospective** page reconstructs past passages for a date range from a [signalk-to-influxdb](https://github.com/tkurki/signalk-to-influxdb) history (InfluxDB 1.x, local or remote — a new recommended companion plugin), through the exact same detection pipeline used live rather than a separate implementation. Runs in the background with a progress bar, refuses a range that overlaps a passage already on record, and can be cancelled mid-way without losing what it already reconstructed. Signal K alarms are not reconstructed, since a typical InfluxDB history does not archive notifications the way it does a numeric reading.
 
 ## [1.2.0] - 2026-09-15
 

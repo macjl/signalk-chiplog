@@ -199,6 +199,19 @@ When creating and closing an entry, Chiplog attempts to associate a **place name
 - **Installing and starting offline** use a service worker, which browsers only allow over HTTPS (or on localhost). Over plain HTTP — the usual boat set-up — the app works and queues entries, but needs the server to load. Signal K's own SSL setting provides HTTPS.
 - The list of manoeuvre shortcuts is remembered on the tablet, so an app started offline has its buttons.
 
+### 4.10 Retrospective analysis
+
+Reconstructs passages Chiplog never saw live — installed after the fact, or stopped for a while — from a history the boat already has in InfluxDB 1.x, written there by [signalk-to-influxdb](https://github.com/tkurki/signalk-to-influxdb) (a recommended companion plugin, not a dependency).
+
+- **Same pipeline as live, not a re-implementation.** `lib/replay.js` drives the exact detection, propulsion, observation, track recording and event watching modules used every 15 seconds live (§4.2, §4.5.1), but by a virtual clock stepping through the requested past range as fast as the database allows, fed by historical values instead of the server's current ones. A passage it produces is one Chiplog would have logged had it been running at the time — the same thresholds, the same freshness rules, no separate "historical" logic to keep in sync.
+- **Reads InfluxDB directly, in one round trip.** `lib/influx-history.js` knows signalk-to-influxdb's schema: one measurement per Signal K path, tagged with context (self) and source (for a path more than one source publishes, `navigation.state` chief among them — resolved the same way the server itself would). Everything the pipeline needs for the requested range is fetched once, then answered from memory as fast as the replay loop asks.
+- **One reconstruction at a time**, run in the background from the webapp: `POST /replay` starts it and returns immediately, `GET /replay` reports progress, `POST /replay/cancel` stops one in flight (`lib/replay-job.js`).
+- **Refuses a range that overlaps a passage already on record**, rather than risking a duplicate or a conflicting one — reconstruction only ever adds passages, never merges into or edits an existing one.
+- **Known gaps, by what a typical InfluxDB history holds:**
+  - Signal K notifications (alarms) usually are not archived as a time series the way a numeric reading is, so critical-notification events are not reconstructed.
+  - True wind angle is derived from true wind direction and heading rather than read as its own path, since it needs no sensor of its own — the same as live.
+  - A boat with more than one active source for a path Chiplog does not explicitly tag-disambiguate falls back to whichever the history holds, same as detection's own fallback when a source is unrecognised (§4.2).
+
 ## 5. Data model and API
 
 The data model has been refined into a precise schema: the authoritative DDL lives in [`lib/database.js`](../lib/database.js), with the conventions and rationale documented in [DATA_MODEL.md](DATA_MODEL.md). Entities: `log_entries`, `track_points`, `observations`, `propulsion_segments`, `events`, `places`, `manoeuvre_types`, `tide_forecasts`.

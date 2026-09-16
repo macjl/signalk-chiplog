@@ -364,6 +364,35 @@ Copies the logbook to a `chiplog/` subdirectory of the directory set in the plug
 
 `409 usb_export_not_configured` without a configured directory; `409 usb_export_unavailable` if it does not exist — typically, the drive is not mounted. The copy made here is the same as the automatic one, and waits for one already running.
 
+## Retrospective analysis
+
+Reconstructs passages for a past date range from a signalk-to-influxdb history (InfluxDB 1.x), through the same detection pipeline used live (SPEC §4.10). One reconstruction runs at a time, in the background.
+
+### `GET /replay` — `readonly`
+
+```json
+{
+  "configured": true,
+  "running": true,
+  "progress": { "from": "2026-01-01T00:00:00.000Z", "to": "2026-01-08T00:00:00.000Z", "now": "2026-01-03T11:20:00.000Z" },
+  "lastResult": null,
+  "lastError": null
+}
+```
+
+- `configured` says whether an InfluxDB connection is set in the plugin configuration. `progress` is `null` while nothing runs.
+- `lastResult` — `{ at, from, to, cancelled? }` — and `lastError` — `{ at, from, to, message }` — describe the latest attempt; both are kept in memory and start empty when the plugin starts.
+
+### `POST /replay` — admin
+
+Body: `{ from, to }`, ISO 8601 timestamps, `to` after `from`. Answers `{ from, to }` as soon as the reconstruction has started, without waiting for it to finish — poll [`GET /replay`](#get-replay--readonly) for its progress.
+
+`409 replay_not_configured` without an InfluxDB connection configured; `409 replay_running` if one is already running; `409 replay_overlaps` if the range overlaps a passage already on record — nothing is reconstructed in that case, on purpose (SPEC §4.10).
+
+### `POST /replay/cancel` — admin
+
+Stops the reconstruction in progress; `204`. The range already reconstructed up to that point stays on record — cancelling does not roll it back. `409 replay_not_running` with nothing to cancel.
+
 ## Not yet provided
 
 - **`getOpenApi()`**, the machine-readable version of this document, which the Signal K server can surface. Worth adding once the API has settled, so the two do not have to be kept in step while it still moves.
