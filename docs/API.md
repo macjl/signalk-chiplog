@@ -156,7 +156,7 @@ Manual concatenation of two passages (SPEC §3.1), for when a stop outlasted the
 
 - **The earlier entry survives**, whichever of the two the request is addressed to, so the passage keeps its id and departure. It takes the later entry's end time, end position, end place and state.
 - Track points, observations, propulsion segments and events move to it; distances are summed and engine/sail durations recomputed from the segments.
-- **The place the earlier entry had stopped at is kept as a `stopover` event** on the surviving entry, at that stop's position, since it would otherwise be overwritten with no trace by the later entry's own end. Dated no earlier than the entry's own `entry_end` reading, so it still follows that reading on the timeline rather than the raw moment detection dated the stop from — up to `stopClosureMinutes` earlier. Not added when that stop had no position (and so no place) to begin with.
+- **The place the earlier entry had stopped at is kept as a `stopover` event** on the surviving entry, at that stop's position, since it would otherwise be overwritten with no trace by the later entry's own end. Not added when that stop had no position (and so no place) to begin with.
 - The two entries must be consecutive — `409 entries_not_consecutive` — and the earlier one must be closed — `409 entry_active`.
 
 Returns the surviving entry.

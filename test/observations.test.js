@@ -46,14 +46,22 @@ describe('instrument snapshots', () => {
     const [entry] = boat.entries();
     const observations = boat.observations();
     assert.equal(entry.state, 'closed');
+    // entry_end sorts before the last periodic reading: it is dated from the
+    // actual end of the passage, not from the later tick that found out
+    // about it once the stop had held past the closure threshold.
     assert.deepEqual(
       observations.map((o) => o.reason),
-      ['entry_start', 'periodic', 'periodic', 'periodic', 'entry_end']
+      ['entry_start', 'periodic', 'periodic', 'entry_end', 'periodic']
     );
     assert.deepEqual(
       observations.filter((o) => o.reason === 'periodic').map((o) => o.time),
       [at('09', '00'), at('10', '00'), at('11', '00')],
-      'on the hour, including during the stop before the passage closed'
+      'on the hour, including one taken during the stop, before the passage actually closed'
+    );
+    assert.equal(
+      observations.find((o) => o.reason === 'entry_end').time,
+      entry.end_time,
+      'dated from the passage ending, not from when detection found out'
     );
     assert.ok(observations.every((o) => o.entry_id === entry.id));
   });

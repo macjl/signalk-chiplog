@@ -130,7 +130,7 @@ The logbook lines the facsimile PDF renders — and the CSV export already lists
 
 - **at departure**, when detection opens the entry;
 - **on each clock boundary** of `observationIntervalMinutes` — on the hour by default, as on a paper log — including during a short stop, as long as the entry is open;
-- **at arrival**, when detection closes the entry — except when it closes it long after the tolerance ran out, typically after a power cut, since conditions then say nothing about that arrival;
+- **at arrival**, dated from the actual end of the passage rather than from the later tick that closes the entry once the stop has held past the tolerance — except when it closes long after the tolerance ran out, typically after a power cut, since conditions then say nothing about that arrival;
 - **with each manoeuvre, note or sketch** the crew logs as it happens, so the reef appears with the wind that called for it and a note with the conditions when it was written. One logged with an explicit past time — replayed from the tablet's offline queue — gets no snapshot: current readings say nothing about a moment already gone by.
 
 A snapshot already in a periodic slot, such as one taken for a manoeuvre, stands in for the periodic one.
