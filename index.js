@@ -3,9 +3,11 @@ const { openDatabase } = require('./lib/database');
 const { createPassageDetector, DETECTION_DEFAULTS, TICK_INTERVAL_MS } = require('./lib/detection');
 const { ApiError } = require('./lib/errors');
 const { createEventWatcher, CHECK_INTERVAL_MS, EVENT_DEFAULTS } = require('./lib/event-watcher');
+const { INFLUX_DEFAULTS } = require('./lib/influx-history');
 const { OBSERVATION_DEFAULTS } = require('./lib/observation-recorder');
 const { createPlaceNamer, GEOCODING_DEFAULTS } = require('./lib/place-names');
 const { PROPULSION_DEFAULTS } = require('./lib/propulsion-detector');
+const { createReplayJob } = require('./lib/replay-job');
 const { createTideForecaster, TIDE_DEFAULTS } = require('./lib/tide-forecaster');
 const { createTrackRecorder, SAMPLE_INTERVAL_MS, TRACK_DEFAULTS } = require('./lib/track-recorder');
 const {
@@ -55,6 +57,7 @@ module.exports = function (app) {
   let namer = null;
   let tideForecaster = null;
   let usbExport = null;
+  let replayJob = null;
   let namingTimer = null;
   let tideTimer = null;
   let timers = [];
@@ -188,6 +191,37 @@ module.exports = function (app) {
           'The log records a pressure fall of at least this much over three hours; 0 disables it',
         default: EVENT_DEFAULTS.pressureDropThreshold,
         minimum: 0
+      },
+      influxHost: {
+        type: 'string',
+        title: 'InfluxDB host (retrospective analysis)',
+        description:
+          'For reconstructing past passages from a signalk-to-influxdb history (InfluxDB 1.x), local or remote. Leave empty to turn that feature off'
+      },
+      influxPort: {
+        type: 'number',
+        title: 'InfluxDB port',
+        default: INFLUX_DEFAULTS.influxPort
+      },
+      influxDatabase: {
+        type: 'string',
+        title: 'InfluxDB database'
+      },
+      influxUsername: {
+        type: 'string',
+        title: 'InfluxDB username',
+        description: 'Leave empty if the database needs none'
+      },
+      influxPassword: {
+        type: 'string',
+        title: 'InfluxDB password',
+        format: 'password'
+      },
+      influxProtocol: {
+        type: 'string',
+        title: 'InfluxDB protocol',
+        enum: ['http', 'https'],
+        default: INFLUX_DEFAULTS.influxProtocol
       }
     }
   };
@@ -304,7 +338,13 @@ module.exports = function (app) {
           : 'en',
         logbookTimeZone: config.logbookTimeZone || null,
         windSpeedThresholds: config.windSpeedThresholds ?? EVENT_DEFAULTS.windSpeedThresholds,
-        pressureDropThreshold: config.pressureDropThreshold ?? EVENT_DEFAULTS.pressureDropThreshold
+        pressureDropThreshold: config.pressureDropThreshold ?? EVENT_DEFAULTS.pressureDropThreshold,
+        influxHost: config.influxHost || null,
+        influxPort: config.influxPort ?? INFLUX_DEFAULTS.influxPort,
+        influxDatabase: config.influxDatabase || null,
+        influxUsername: config.influxUsername || null,
+        influxPassword: config.influxPassword || null,
+        influxProtocol: config.influxProtocol || INFLUX_DEFAULTS.influxProtocol
       };
 
       if (settings.logbookTimeZone && !isTimeZone(settings.logbookTimeZone)) {
@@ -347,6 +387,12 @@ module.exports = function (app) {
       pdfOptions,
       log: (level, message) => (level === 'error' ? app.error(message) : app.debug(message))
     });
+    replayJob = createReplayJob({
+      db: database,
+      settings,
+      app,
+      log: (level, message) => (level === 'error' ? app.error(message) : app.debug(message))
+    });
     namingTimer = setTimeout(runNaming, FIRST_NAMING_DELAY_MS);
     tideTimer = setTimeout(runTides, FIRST_TIDE_DELAY_MS);
     lastStatus = null;
@@ -379,6 +425,8 @@ module.exports = function (app) {
     tideForecaster = null;
     usbExport?.stop();
     usbExport = null;
+    replayJob?.cancel();
+    replayJob = null;
     detector = null;
     if (database) {
       database.close();
@@ -405,6 +453,7 @@ module.exports = function (app) {
           vesselPosition: () => readVesselPosition(app),
           observeEvent: (entryId, time) => detector.observeEvent(entryId, time),
           usbExport,
+          replayJob,
           pdfOptions,
           detection: () => ({
             mode: detector.mode(),
