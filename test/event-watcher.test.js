@@ -284,7 +284,7 @@ describe('automatic events', () => {
       });
       assert.equal(events[1].payload.state, 'wind');
       assert.equal(events[2].payload.target, null, 'no stale target once disengaged');
-      assert.equal(vessel.snapshots.length, 0);
+      assert.equal(vessel.snapshots.length, 3, 'a snapshot with each engagement/mode change');
     });
 
     it('follows engaged and mode from the Autopilot API', () => {
