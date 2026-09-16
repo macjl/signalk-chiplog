@@ -428,7 +428,10 @@ describe('entries', () => {
       assert.equal((await ctx.request('GET', `/entries/${later}`)).status, 404);
     });
 
-    it('records the stop the merge folds away as an event on the surviving entry', async () => {
+    it('dates the stop no earlier than the entry_end reading, so it follows it on the timeline', async () => {
+      // Detection dates the entry's own end from the last movement it saw,
+      // but only takes the entry_end snapshot once the stop has held past
+      // the closure threshold — typically ~30 minutes later.
       const earlier = insertEntry(ctx.db, {
         start_time: at(0),
         end_time: at(2),
@@ -437,6 +440,7 @@ describe('entries', () => {
         end_place_name: 'Ile de Ré',
         end_place_pending: 1
       });
+      insert(ctx.db, 'observations', { entry_id: earlier, time: at(2.5), reason: 'entry_end' });
       const later = insertEntry(ctx.db, {
         start_time: at(3),
         end_time: at(5),
@@ -449,14 +453,28 @@ describe('entries', () => {
       assert.equal(status, 200);
 
       const { body } = await ctx.request('GET', `/entries/${earlier}/events`);
-      assert.equal(body.items.length, 1);
-      const [event] = body.items;
-      assert.equal(event.type, 'stopover');
-      assert.equal(event.time, at(2));
-      assert.deepEqual(event.position, { lat: 46.16, lon: -1.15 });
-      assert.equal(event.comment, 'Ile de Ré');
-      assert.equal(event.source, 'auto');
-      assert.deepEqual(event.payload, { placeName: 'Ile de Ré', placePending: true });
+      const stopover = body.items.find((event) => event.type === 'stopover');
+      assert.equal(stopover.time, at(2.5), 'follows the entry_end reading, not the raw stop time');
+      assert.deepEqual(stopover.position, { lat: 46.16, lon: -1.15 });
+      assert.equal(stopover.comment, 'Ile de Ré');
+      assert.equal(stopover.source, 'auto');
+      assert.deepEqual(stopover.payload, { placeName: 'Ile de Ré', placePending: true });
+    });
+
+    it('dates the stop at the entry itself ending when there is no entry_end reading to follow', async () => {
+      const earlier = insertEntry(ctx.db, {
+        start_time: at(0),
+        end_time: at(2),
+        end_lat: 46.16,
+        end_lon: -1.15,
+        end_place_name: 'Ile de Ré'
+      });
+      const later = insertEntry(ctx.db, { start_time: at(3), end_time: at(5) });
+
+      await ctx.request('POST', `/entries/${earlier}/merge`, { withEntryId: later });
+
+      const { body } = await ctx.request('GET', `/entries/${earlier}/events`);
+      assert.equal(body.items.find((event) => event.type === 'stopover').time, at(2));
     });
 
     it('does not record a stop with no place — nothing was known there', async () => {

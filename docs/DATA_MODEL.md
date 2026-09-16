@@ -88,7 +88,7 @@ Events the plugin produces (SPEC §4.6), all with `source: 'auto'`:
 
 `propulsion_change` (migration 7) and `stopover` (migration 10) needed `type`'s CHECK constraint widened, which SQLite can only do by rebuilding the table — `lib/database.js`'s `addPropulsionChangeEventType` and `addStopoverEventType`. Foreign keys are turned off around the rebuild: `log_entries.opened_by_event_id` references `events`, and with them enforced, `DROP TABLE events` would fire its `ON DELETE SET NULL` for every referencing row before the table (and the reference) is gone.
 
-`stopover`'s `lat`/`lon` and `comment` are also set, unlike the other automatic types: `comment` carries the raw place name, like an `sk_alarm`'s message, so it still reads in a CSV export or before a crew annotation is added on top of it.
+`stopover`'s `lat`/`lon` and `comment` are also set, unlike the other automatic types: `comment` carries the raw place name, like an `sk_alarm`'s message, so it still reads in a CSV export or before a crew annotation is added on top of it. Its `time` is the merged-away entry's own `entry_end` observation, not `end_time`: detection dates `end_time` from the last movement it saw, but only takes that observation once the stop has held past the closure threshold and the entry actually closes — up to `stopClosureMinutes` later — and the event needs to sort after it, not before.
 
 An event's `time` may fall **after its entry's `end_time`**: alarms and weather events between passages go to the passage that ended where the vessel still is.
 

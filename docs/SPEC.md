@@ -34,7 +34,7 @@ A log entry corresponds to a start → underway → stop cycle, **with configura
 - A `stop_closure_threshold` parameter (e.g. default value 30 min, user-configurable) defines the stop duration below which we stay within the same entry (e.g. waiting at a lock, lunch anchorage).
 - Beyond the threshold, the entry is closed; a new underway cycle will trigger a new entry.
 - Each entry carries: start date/time, end date/time, start/end position, **start/end place name** (see §4.8), distance covered, engine vs sail duration, GPS track.
-- Manual concatenation of two entries is possible. The earlier entry's own end — the stop the merge is folding away — would otherwise leave no trace once overwritten by the later entry's end; it is kept as a `stopover` event on the surviving entry instead (§4.6), at that stop's own time and position.
+- Manual concatenation of two entries is possible. The earlier entry's own end — the stop the merge is folding away — would otherwise leave no trace once overwritten by the later entry's end; it is kept as a `stopover` event on the surviving entry instead (§4.6), at that stop's position, dated no earlier than the entry's own arrival reading so it still follows it on the timeline rather than the raw, earlier moment detection dated the stop from.
 
 ### 3.2 Grouping by day
 
