@@ -374,13 +374,20 @@ Reconstructs passages for a past date range from a signalk-to-influxdb history (
 {
   "configured": true,
   "running": true,
-  "progress": { "from": "2026-01-01T00:00:00.000Z", "to": "2026-01-08T00:00:00.000Z", "now": "2026-01-03T11:20:00.000Z" },
+  "progress": {
+    "from": "2026-01-01T00:00:00.000Z",
+    "to": "2026-01-08T00:00:00.000Z",
+    "now": "2026-01-03T11:20:00.000Z",
+    "phase": "fetching"
+  },
   "lastResult": null,
   "lastError": null
 }
 ```
 
 - `configured` says whether an InfluxDB connection is set in the plugin configuration. `progress` is `null` while nothing runs.
+- `progress.phase` is `"fetching"` while history is being pulled from InfluxDB, then `"replaying"` while the detection pipeline runs over it; `progress.now` tracks whichever phase is in flight — during `"fetching"` it is how far through the range history has been retrieved, during `"replaying"` it is the detector's simulated clock.
+- History is fetched one day at a time regardless of the requested range, with a short pause between requests, so one query cannot overwhelm a resource-constrained host running both Signal K and InfluxDB (SPEC §4.10).
 - `lastResult` — `{ at, from, to, cancelled? }` — and `lastError` — `{ at, from, to, message }` — describe the latest attempt; both are kept in memory and start empty when the plugin starts. `lastError.message` names the InfluxDB vessel contexts actually found when none match the one configured (SPEC §4.10) — the usual cause of a replay that runs to completion but reconstructs nothing. An InfluxDB query that does not answer within 20 s fails with that instead of hanging.
 
 ### `POST /replay` — admin
@@ -391,7 +398,7 @@ Body: `{ from, to }`, ISO 8601 timestamps, `to` after `from`. Answers `{ from, t
 
 ### `POST /replay/cancel` — admin
 
-Stops the reconstruction in progress; `204`. The range already reconstructed up to that point stays on record — cancelling does not roll it back. `409 replay_not_running` with nothing to cancel.
+Stops the reconstruction in progress, whether it is still fetching history or already replaying; `204`. The range already reconstructed up to that point stays on record — cancelling does not roll it back. `409 replay_not_running` with nothing to cancel.
 
 ## Not yet provided
 
