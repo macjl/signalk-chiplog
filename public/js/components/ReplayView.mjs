@@ -98,6 +98,7 @@ export function ReplayView() {
 
   const running = Boolean(status?.running);
   const notConfigured = error?.code === 'replay_not_configured';
+  const navigationActive = error?.code === 'replay_navigation_active';
 
   return html`
     <h1 class="page-title">${t('replay.title')}</h1>
@@ -132,7 +133,10 @@ export function ReplayView() {
           <a href=${PLUGIN_CONFIGURATION}>${t('export.pluginConfiguration')}</a>
         </p>`
       }
-      ${error && !notConfigured && html`<${ErrorNotice} error=${error} />`}
+      ${
+        navigationActive && html`<p class="notice notice-error">${t('replay.navigationActive')}</p>`
+      }
+      ${error && !notConfigured && !navigationActive && html`<${ErrorNotice} error=${error} />`}
       <div class="replay-actions">
         <button
           type="button"

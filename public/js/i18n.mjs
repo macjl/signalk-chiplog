@@ -223,6 +223,7 @@ export const MESSAGES = {
     'replay.cancelled': 'Reconstruction cancelled at {time}.',
     'replay.failed': 'Reconstruction failed at {time}: {message}',
     'replay.notConfigured': 'No InfluxDB connection is set.',
+    'replay.navigationActive': 'A passage is under way. Stop or close it before reconstructing.',
 
     'nav.entry': 'Helm entry',
     'entry.title': 'Chiplog helm',
@@ -522,6 +523,8 @@ export const MESSAGES = {
     'replay.cancelled': 'Reconstruction annulée à {time}.',
     'replay.failed': 'Échec de la reconstruction à {time} : {message}',
     'replay.notConfigured': 'Aucune connexion InfluxDB n’est configurée.',
+    'replay.navigationActive':
+      'Une navigation est en cours. Arrêtez-la ou clôturez-la avant de reconstruire.',
 
     'nav.entry': 'Saisie à bord',
     'entry.title': 'Chiplog à bord',
