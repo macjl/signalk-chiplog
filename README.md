@@ -313,6 +313,10 @@ The InfluxDB server did not answer — unreachable, overloaded, a firewall or a 
 
 History is fetched one day at a time, whatever the size of the requested range, with a short pause between each day, specifically so this does not happen — a boat's InfluxDB often shares a resource-constrained host (a Raspberry Pi) with Signal K itself, and one query spanning weeks across every path at once can overwhelm it. If it still struggles on a very small or busy host, run the reconstruction over shorter date ranges instead of the whole history at once.
 
+### Reconstructed passages keep their provisional place names for a while
+
+A replay wakes the geocoding lookup as soon as it finishes, but the lookup itself still needs internet access to succeed — the passage page shows the raw coordinates until it does. If the boat (or the Signal K server running the replay) has no internet access at the time, naming is retried on the same backoff as any other departure or arrival, up to an hour between attempts; nothing is lost, it just takes longer to resolve.
+
 ## Limitations
 
 - **Not yet:** a places page, and editing manoeuvre shortcuts from the webapps.
