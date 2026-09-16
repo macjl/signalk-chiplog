@@ -42,12 +42,32 @@ function fakeInflux(rowsByMeasurement, { onRequest, contexts } = {}) {
       const match = /FROM "([^"]+)"/.exec(statement);
       const allRows = (match && rowsByMeasurement[match[1]]) ?? [];
       const range = /time >= '([^']+)' AND time <= '([^']+)'/.exec(statement);
+      const before = /time < '([^']+)'/.exec(statement);
       const [fromMs, toMs] = range
         ? [Date.parse(range[1]), Date.parse(range[2])]
-        : [-Infinity, Infinity];
+        : before
+          ? [-Infinity, Date.parse(before[1]) - 1]
+          : [-Infinity, Infinity];
       const rows = allRows.filter((row) => row.time >= fromMs && row.time <= toMs);
       if (rows.length === 0) {
         return {};
+      }
+      // Rows are answered as they are, not aggregated; a GROUP BY on source
+      // splits them into one tagged series per source, like InfluxDB does.
+      if (/GROUP BY .*"source"/.test(statement)) {
+        const sources = [...new Set(rows.map((row) => row.source))];
+        return {
+          series: sources.map((source) => {
+            const own = rows.filter((row) => row.source === source);
+            const columns = Object.keys(own[0]).filter((c) => c !== 'source');
+            return {
+              name: match[1],
+              tags: { source },
+              columns,
+              values: own.map((row) => columns.map((c) => row[c]))
+            };
+          })
+        };
       }
       const columns = Object.keys(rows[0]);
       return {
@@ -346,6 +366,130 @@ describe('InfluxDB history', () => {
 
       const sog = requests.filter((r) => r.q.includes('"navigation.speedOverGround"'));
       assert.equal(sog.length, 1);
+    });
+  });
+
+  describe('bucketed loading', () => {
+    it('asks for the last value of each bucket, per source for navigation.state', async () => {
+      const { influx, requests } = history({});
+      await influx.preload(T0, T0 + MINUTE, null, { bucketMs: 15000 });
+
+      const data = requests.find((r) => r.q.includes('"navigation.speedOverGround"'));
+      assert.match(
+        data.q,
+        /SELECT last\("value"\) AS "value" FROM "navigation.speedOverGround" .* GROUP BY time\(15000ms\) fill\(none\)/
+      );
+      assert.match(data.q, /FROM "navigation.state" .* GROUP BY time\(15000ms\), "source"/);
+    });
+
+    it('dates each value at the end of its bucket', async () => {
+      const { influx } = history({
+        'navigation.speedOverGround': [{ time: T0, value: 1 }],
+        'navigation.state': [{ time: T0, stringValue: 'sailing', source: 'signalk-autostate.1' }]
+      });
+      await influx.preload(T0, T0 + MINUTE, null, { bucketMs: 15000 });
+
+      assert.equal(influx.readSelfPath('navigation.speedOverGround', T0 + 14999), undefined);
+      assert.deepEqual(influx.readSelfPath('navigation.speedOverGround', T0 + 15000), {
+        value: 1,
+        timestamp: new Date(T0 + 15000).toISOString()
+      });
+      const state = influx.readSelfPath('navigation.state', T0 + 15000);
+      assert.equal(state.value, 'sailing');
+      assert.equal(state.$source, 'signalk-autostate.1');
+    });
+
+    it('checks the context and discovers engines only once across loads', async () => {
+      const { influx, requests } = history({});
+      await influx.preload(T0, T0 + MINUTE);
+      await influx.preload(T0 + 10 * MINUTE, T0 + 11 * MINUTE);
+
+      assert.equal(requests.filter((r) => r.q.includes('SHOW MEASUREMENTS')).length, 1);
+      assert.equal(requests.filter((r) => r.q.includes('SHOW TAG VALUES')).length, 1);
+    });
+
+    it('forgets what was loaded on clear', async () => {
+      const { influx } = history({
+        'navigation.speedOverGround': [{ time: T0, value: 1 }],
+        'navigation.state': [{ time: T0, stringValue: 'sailing', source: 'signalk-autostate.1' }]
+      });
+      await influx.preload(T0, T0 + MINUTE);
+      influx.clear();
+
+      assert.equal(influx.readSelfPath('navigation.speedOverGround', T0), undefined);
+      assert.equal(influx.readSelfPath('navigation.state', T0), undefined);
+    });
+  });
+
+  describe('motion scan', () => {
+    const KNOT = 1852 / 3600;
+    const HOUR = 60 * MINUTE;
+
+    it('counts the minutes whose mean speed reaches the stopped threshold', async () => {
+      const { influx, requests } = history({
+        'navigation.speedOverGround': [
+          { time: T0, value: 0.1 * KNOT },
+          { time: T0 + MINUTE, value: 3 * KNOT },
+          { time: T0 + 2 * MINUTE, value: 0.2 * KNOT }
+        ]
+      });
+
+      const intervals = await influx.scanMotion(T0, T0 + HOUR, { stoppedSpeed: 0.5 * KNOT });
+
+      assert.deepEqual(intervals, [{ from: T0 + MINUTE, to: T0 + 2 * MINUTE }]);
+      const scan = requests.find((r) => r.q.includes('mean("value")'));
+      assert.match(scan.q, /GROUP BY time\(60000ms\) fill\(none\)/);
+    });
+
+    it('follows signalk-autostate until its next state, ignoring other sources', async () => {
+      const { influx } = history({
+        'navigation.state': [
+          { time: T0, stringValue: 'motoring', source: 'ais.1' },
+          { time: T0 + MINUTE, stringValue: 'sailing', source: 'signalk-autostate.1' },
+          { time: T0 + 6 * MINUTE, stringValue: 'sailing', source: 'signalk-autostate.1' },
+          { time: T0 + 10 * MINUTE, stringValue: 'moored', source: 'signalk-autostate.1' }
+        ]
+      });
+
+      const intervals = await influx.scanMotion(T0, T0 + HOUR, { stoppedSpeed: KNOT });
+
+      assert.deepEqual(intervals, [
+        { from: T0 + MINUTE, to: T0 + 6 * MINUTE },
+        { from: T0 + 6 * MINUTE, to: T0 + 10 * MINUTE }
+      ]);
+    });
+
+    it('stops trusting an under-way state once it would have gone stale', async () => {
+      const { influx } = history({
+        'navigation.state': [
+          { time: T0, stringValue: 'sailing', source: 'signalk-autostate.1' },
+          { time: T0 + 5 * HOUR, stringValue: 'moored', source: 'signalk-autostate.1' }
+        ]
+      });
+
+      const intervals = await influx.scanMotion(T0, T0 + 6 * HOUR, { stoppedSpeed: KNOT });
+
+      assert.deepEqual(intervals, [{ from: T0, to: T0 + 21 * MINUTE }]);
+    });
+
+    it('starts from the state already in force before the range', async () => {
+      const { influx } = history({
+        'navigation.state': [
+          { time: T0 - 2 * MINUTE, stringValue: 'motoring', source: 'signalk-autostate.1' },
+          { time: T0 + 3 * MINUTE, stringValue: 'anchored', source: 'signalk-autostate.1' }
+        ]
+      });
+
+      const intervals = await influx.scanMotion(T0, T0 + HOUR, { stoppedSpeed: KNOT });
+
+      assert.deepEqual(intervals, [{ from: T0, to: T0 + 3 * MINUTE }]);
+    });
+
+    it('scans a week per request', async () => {
+      const { influx, requests } = history({});
+      await influx.scanMotion(T0, T0 + 15 * 24 * HOUR, { stoppedSpeed: KNOT });
+
+      assert.equal(requests.filter((r) => r.q.includes('mean("value")')).length, 3);
     });
   });
 });

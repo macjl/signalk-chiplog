@@ -34,6 +34,12 @@ describe('display formatting', () => {
     assert.equal(english.hours(null), '');
   });
 
+  it('groups the thousands of a count', () => {
+    assert.equal(english.count(43230), '43,230');
+    assert.equal(french.count(43230), '43\u202f230');
+    assert.equal(english.count(null), '');
+  });
+
   it('writes durations in hours and minutes', () => {
     assert.equal(english.duration(45 * 60), '45 min');
     assert.equal(english.duration(3 * 3600 + 5 * 60), '3 h 05');

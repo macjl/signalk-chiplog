@@ -30,6 +30,38 @@ function Progress({ progress }) {
   `;
 }
 
+// What the latest run added -- also after a cancellation, since what was
+// reconstructed up to that point stays on record.
+function Summary({ summary }) {
+  const { t, format } = useLocale();
+  if (!summary) {
+    return null;
+  }
+  if (summary.passages === 0) {
+    return html`<p class="muted">${t('replay.summaryEmpty')}</p>`;
+  }
+  const facts = [
+    ['replay.summaryPassages', format.count(summary.passages)],
+    ['replay.summaryDistance', format.distance(summary.distance)],
+    ['replay.summaryEngine', format.duration(summary.engineDuration), 'fact-engine'],
+    ['replay.summarySail', format.duration(summary.sailDuration), 'fact-sail'],
+    ['replay.summaryTrackPoints', format.count(summary.trackPoints)],
+    ['replay.summaryEvents', format.count(summary.events)]
+  ];
+  return html`
+    <dl class="facts">
+      ${facts.map(
+        ([key, value, className]) => html`
+          <div>
+            <dt>${t(key)}</dt>
+            <dd class=${className}>${value}</dd>
+          </div>
+        `
+      )}
+    </dl>
+  `;
+}
+
 function Outcome({ status }) {
   const { t, format } = useLocale();
   if (status.lastError) {
@@ -43,11 +75,14 @@ function Outcome({ status }) {
   }
   if (status.lastResult) {
     const { lastResult } = status;
-    return html`<p class="notice ${lastResult.cancelled ? '' : 'notice-ok'}">
-      ${t(lastResult.cancelled ? 'replay.cancelled' : 'replay.done', {
-        time: format.time(lastResult.at)
-      })}
-    </p>`;
+    return html`
+      <p class="notice ${lastResult.cancelled ? '' : 'notice-ok'}">
+        ${t(lastResult.cancelled ? 'replay.cancelled' : 'replay.done', {
+          time: format.time(lastResult.at)
+        })}
+      </p>
+      <${Summary} summary=${lastResult.summary} />
+    `;
   }
   return null;
 }

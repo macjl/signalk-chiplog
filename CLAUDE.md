@@ -52,7 +52,7 @@ The plugin's data side is in place: it opens and closes logbook entries from liv
 
 `index.js` owns the plugin lifecycle and hands the API a `getContext()` that throws `503` when the database is closed. This matters because the server calls `registerWithRouter` once — before `start()`, even while the plugin is disabled — and never removes the routes.
 
-`node:sqlite` has no transaction helper; use `withTransaction` from `lib/database.js` for any multi-statement write, and don't nest it.
+`node:sqlite` has no transaction helper; use `withTransaction` from `lib/database.js` for any multi-statement write. A call made inside another joins the outer transaction (only the outermost commits or rolls back) — the retrospective replay relies on it to commit once per slice; never hold one open across an `await`, since live code shares the connection.
 
 When a design decision is made or changed in conversation, update `docs/SPEC.md` to match; the spec is meant to stay the single source of truth rather than drift behind the code.
 

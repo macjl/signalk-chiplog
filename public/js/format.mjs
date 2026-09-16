@@ -85,6 +85,7 @@ export function createFormatter({ locale, units, timeZone }) {
     },
     // An engine hour counter: hours with one decimal, as the gauge shows them.
     hours: (seconds) => (missing(seconds) ? '' : `${oneDecimal.format(seconds / 3600)} h`),
+    count: (value) => (missing(value) ? '' : noDecimal.format(value)),
     depth: (metres) => (missing(metres) ? '' : `${oneDecimal.format(metres)} m`),
     pressure: (pascals) => (missing(pascals) ? '' : `${noDecimal.format(pascals / 100)} hPa`),
     temperature: (kelvin) => (missing(kelvin) ? '' : `${oneDecimal.format(kelvin - 273.15)} °C`),

@@ -5,7 +5,7 @@ const path = require('node:path');
 const { describe, it, afterEach } = require('node:test');
 const { openDatabase } = require('../lib/database');
 const { createReplayJob } = require('../lib/replay-job');
-const { insertEntry } = require('./helpers');
+const { insert, insertEntry } = require('./helpers');
 
 const T0 = Date.parse('2026-09-13T08:00:00.000Z');
 const MINUTE = 60 * 1000;
@@ -111,7 +111,7 @@ describe('replay job', () => {
     const result = job.start(iso(T0), iso(T0 + 3 * MINUTE));
     assert.deepEqual(result, { from: iso(T0), to: iso(T0 + 3 * MINUTE) });
     assert.equal(job.status().running, true);
-    assert.equal(job.status().progress.phase, 'fetching', 'starts by fetching the history');
+    assert.equal(job.status().progress.phase, 'scanning', 'starts by scanning the history');
 
     await waitUntilIdle(job);
 
@@ -121,9 +121,83 @@ describe('replay job', () => {
     assert.deepEqual(status.lastResult, {
       at: status.lastResult.at,
       from: iso(T0),
-      to: iso(T0 + 3 * MINUTE)
+      to: iso(T0 + 3 * MINUTE),
+      summary: {
+        passages: 0,
+        distance: 0,
+        engineDuration: 0,
+        sailDuration: 0,
+        trackPoints: 0,
+        events: 0
+      }
     });
     assert.equal(status.lastError, null);
+  });
+
+  it('sums up what the run reconstructed, and only that', async () => {
+    ({ db, dataDir } = openDb());
+    // Already on record before the run, outside its range.
+    insertEntry(db, {
+      start_time: iso(T0 - 120 * MINUTE),
+      end_time: iso(T0 - 60 * MINUTE),
+      distance: 5000
+    });
+    const empty = emptyInfluxFetch();
+    let reconstructed = false;
+    const job = createReplayJob({
+      db,
+      settings: configuredSettings(),
+      app: { selfContext: 'vessels.self' },
+      fetch: async (url, options) => {
+        if (!reconstructed) {
+          reconstructed = true;
+          // What the replay would have written...
+          const id = insertEntry(db, {
+            start_time: iso(T0 + 5 * MINUTE),
+            end_time: iso(T0 + 40 * MINUTE),
+            distance: 7000,
+            engine_duration: 600,
+            sail_duration: 1500
+          });
+          insert(db, 'track_points', {
+            entry_id: id,
+            time: iso(T0 + 6 * MINUTE),
+            lat: 46,
+            lon: -1
+          });
+          insert(db, 'track_points', {
+            entry_id: id,
+            time: iso(T0 + 7 * MINUTE),
+            lat: 46,
+            lon: -1
+          });
+          insert(db, 'events', {
+            entry_id: id,
+            time: iso(T0 + 8 * MINUTE),
+            type: 'autopilot',
+            subtype: 'engaged',
+            payload: '{}',
+            source: 'auto',
+            created_at: iso(T0 + 8 * MINUTE)
+          });
+          // ...and a passage live detection opened meanwhile, today.
+          insertEntry(db, { state: 'active', start_time: iso(T0 + 365 * 24 * 60 * MINUTE) });
+        }
+        return empty(url, options);
+      }
+    });
+
+    job.start(iso(T0), iso(T0 + 60 * MINUTE));
+    await waitUntilIdle(job);
+
+    assert.deepEqual(job.status().lastResult.summary, {
+      passages: 1,
+      distance: 7000,
+      engineDuration: 600,
+      sailDuration: 1500,
+      trackPoints: 2,
+      events: 1
+    });
   });
 
   it('refuses a second replay while one is already running', async () => {

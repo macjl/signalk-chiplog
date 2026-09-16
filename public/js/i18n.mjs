@@ -224,6 +224,13 @@ export const MESSAGES = {
     'replay.failed': 'Reconstruction failed at {time}: {message}',
     'replay.notConfigured': 'No InfluxDB connection is set.',
     'replay.navigationActive': 'A passage is under way. Stop or close it before reconstructing.',
+    'replay.summaryEmpty': 'No passage was found in this range.',
+    'replay.summaryPassages': 'Passages',
+    'replay.summaryDistance': 'Distance',
+    'replay.summaryEngine': 'Engine',
+    'replay.summarySail': 'Sail',
+    'replay.summaryTrackPoints': 'Track points',
+    'replay.summaryEvents': 'Events',
 
     'nav.entry': 'Helm entry',
     'entry.title': 'Chiplog helm',
@@ -525,6 +532,13 @@ export const MESSAGES = {
     'replay.notConfigured': 'Aucune connexion InfluxDB n’est configurée.',
     'replay.navigationActive':
       'Une navigation est en cours. Arrêtez-la ou clôturez-la avant de reconstruire.',
+    'replay.summaryEmpty': 'Aucune navigation trouvée sur cette période.',
+    'replay.summaryPassages': 'Navigations',
+    'replay.summaryDistance': 'Distance',
+    'replay.summaryEngine': 'Moteur',
+    'replay.summarySail': 'Voile',
+    'replay.summaryTrackPoints': 'Points de trace',
+    'replay.summaryEvents': 'Événements',
 
     'nav.entry': 'Saisie à bord',
     'entry.title': 'Chiplog à bord',

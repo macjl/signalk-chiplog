@@ -240,10 +240,10 @@ None of these is required except position and speed over ground; each feature us
 Already have a history of the boat's Signal K data before Chiplog was installed, or from a period the plugin was stopped? The **Retrospective** page (admin access) reconstructs those passages from it, using the exact same detection Chiplog runs live — the same thresholds, so a reconstructed passage is one Chiplog would have logged had it been running at the time.
 
 - **Requires [signalk-to-influxdb](https://github.com/tkurki/signalk-to-influxdb)** (a recommended companion plugin) already having written the boat's data into an InfluxDB 1.x database — local or on another machine, set in **Apps & Plugins → Configuration**: host, port, database, and a username/password if it needs one.
-- Pick a **from** and **to** date on the Retrospective page and start it. It runs in the background — the page shows its progress, fetching history six hours at a time before reconstruction itself begins — and can be cancelled at either stage; what was already reconstructed up to that point stays on record.
+- Pick a **from** and **to** date on the Retrospective page and start it. It runs in the background — the page shows its progress — and can be cancelled at any point; a first quick pass finds when the boat moved, and only those stretches are then fetched and reconstructed, so weeks in port take next to no time. Once done, the page sums up what it added: passages, distance, time under engine and sail, track points and events; what was already reconstructed up to that point stays on record.
 - **Refuses to run while a passage is under way**, whatever the date range asked for — it would be reconstructing history through the same detection that is simultaneously tracking the live passage.
 - **Refuses a range that overlaps a passage already logged**, to avoid a duplicate or a conflicting one. Reconstruction only ever adds passages; it does not edit or merge into an existing one.
-- **What is not reconstructed**: Signal K alarms and emergencies (`sk_alarm` events), since a typical InfluxDB history does not archive notifications the way it does a numeric reading. Everything read from a continuously published path — position, speed, wind, engine, autopilot, depth, barometer — is reconstructed the same as live.
+- **What is not reconstructed**: Signal K alarms and emergencies (`sk_alarm` events), since a typical InfluxDB history does not archive notifications the way it does a numeric reading; strong-wind and falling-barometer events while the boat lay still between passages; and the extra track points recorded live on turns and speed changes — a reconstructed track has one point per **Track point interval**. Everything else read from a continuously published path — position, speed, wind, engine, autopilot, depth, barometer — is reconstructed the same as live.
 
 ## Privacy and online services
 
@@ -312,7 +312,7 @@ The InfluxDB server did not answer — unreachable, overloaded, a firewall or a 
 
 ### A retrospective analysis over several days makes the InfluxDB server unresponsive
 
-History is fetched six hours at a time, whatever the size of the requested range, with a short pause between each chunk, specifically so this does not happen — a boat's InfluxDB often shares a resource-constrained host (a Raspberry Pi) with Signal K itself, and one query spanning weeks across every path at once can overwhelm it. If it still struggles on a very small or busy host, run the reconstruction over shorter date ranges instead of the whole history at once.
+The replay first reads one mean speed per minute, a week at a time, then fetches only the stretches where the boat moved, six hours at a time and already reduced to one value per track interval, with a short pause between requests, specifically so this does not happen — a boat's InfluxDB often shares a resource-constrained host (a Raspberry Pi) with Signal K itself, and one query spanning weeks across every path at once can overwhelm it. If it still struggles on a very small or busy host, run the reconstruction over shorter date ranges instead of the whole history at once.
 
 ### Reconstructed passages keep their provisional place names for a while
 
