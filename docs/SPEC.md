@@ -209,6 +209,7 @@ Reconstructs passages Chiplog never saw live — installed after the fact, or st
 - **Every InfluxDB query is bounded to 30 s.** Node's `fetch` has no timeout of its own, so an unreachable or overloaded database would otherwise hang far longer than that for an error no clearer once it arrived — a bare "fetch failed" instead of the actual connection problem.
 - **One reconstruction at a time**, run in the background from the webapp: `POST /replay` starts it and returns immediately, `GET /replay` reports progress (including which phase is in flight), `POST /replay/cancel` stops one in flight, fetching or replaying (`lib/replay-job.js`).
 - **Refuses a range that overlaps a passage already on record**, rather than risking a duplicate or a conflicting one — reconstruction only ever adds passages, never merges into or edits an existing one.
+- **Refuses to run while a passage is under way**, whatever the requested range: the replay drives the same detector, track recorder and event watcher as live detection, against the same database, so the two touching the open passage's row at once would corrupt it rather than merely disagree.
 - **Known gaps, by what a typical InfluxDB history holds:**
   - Signal K notifications (alarms) usually are not archived as a time series the way a numeric reading is, so critical-notification events are not reconstructed.
   - True wind angle is derived from true wind direction and heading rather than read as its own path, since it needs no sensor of its own — the same as live.

@@ -66,6 +66,22 @@ describe('replay job', () => {
     assert.throws(() => job.start(iso(T0), iso(T0 + MINUTE)), /InfluxDB/);
   });
 
+  it('refuses to start while a passage is under way, whatever the requested range', () => {
+    ({ db, dataDir } = openDb());
+    // Under way now, long after the range being replayed: the point isn't
+    // that the dates overlap, it's that the live detector and the replay
+    // would both be driving this same passage's row at once.
+    insertEntry(db, { state: 'active', start_time: iso(T0 + 365 * 24 * 60 * MINUTE) });
+    const job = createReplayJob({
+      db,
+      settings: configuredSettings(),
+      app: { selfContext: 'vessels.self' },
+      fetch: emptyInfluxFetch()
+    });
+
+    assert.throws(() => job.start(iso(T0), iso(T0 + MINUTE)), /under way/);
+  });
+
   it('refuses a range overlapping a passage already on record', () => {
     ({ db, dataDir } = openDb());
     insertEntry(db, {

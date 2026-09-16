@@ -395,7 +395,7 @@ Reconstructs passages for a past date range from a signalk-to-influxdb history (
 
 Body: `{ from, to }`, ISO 8601 timestamps, `to` after `from`. Answers `{ from, to }` as soon as the reconstruction has started, without waiting for it to finish — poll [`GET /replay`](#get-replay--readonly) for its progress.
 
-`409 replay_not_configured` without an InfluxDB connection configured; `409 replay_running` if one is already running; `409 replay_overlaps` if the range overlaps a passage already on record — nothing is reconstructed in that case, on purpose (SPEC §4.10).
+`409 replay_not_configured` without an InfluxDB connection configured; `409 replay_running` if one is already running; `409 replay_navigation_active` if a passage is currently under way, whatever the requested range — the replay drives the same detector against the same database as live detection, and the two running at once would corrupt that passage; `409 replay_overlaps` if the range overlaps a passage already on record — nothing is reconstructed in that case, on purpose (SPEC §4.10).
 
 ### `POST /replay/cancel` — admin
 

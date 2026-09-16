@@ -241,6 +241,7 @@ Already have a history of the boat's Signal K data before Chiplog was installed,
 
 - **Requires [signalk-to-influxdb](https://github.com/tkurki/signalk-to-influxdb)** (a recommended companion plugin) already having written the boat's data into an InfluxDB 1.x database — local or on another machine, set in **Apps & Plugins → Configuration**: host, port, database, and a username/password if it needs one.
 - Pick a **from** and **to** date on the Retrospective page and start it. It runs in the background — the page shows its progress, fetching history six hours at a time before reconstruction itself begins — and can be cancelled at either stage; what was already reconstructed up to that point stays on record.
+- **Refuses to run while a passage is under way**, whatever the date range asked for — it would be reconstructing history through the same detection that is simultaneously tracking the live passage.
 - **Refuses a range that overlaps a passage already logged**, to avoid a duplicate or a conflicting one. Reconstruction only ever adds passages; it does not edit or merge into an existing one.
 - **What is not reconstructed**: Signal K alarms and emergencies (`sk_alarm` events), since a typical InfluxDB history does not archive notifications the way it does a numeric reading. Everything read from a continuously published path — position, speed, wind, engine, autopilot, depth, barometer — is reconstructed the same as live.
 
