@@ -126,6 +126,7 @@ export const MESSAGES = {
     'event.windBelow': 'Wind back below {threshold}',
     'event.pressureDrop': 'Barometer down {drop} over 3 h',
     'event.correction': 'Corrected: {before} → {after}',
+    'event.stopover': 'Stopped at {place}',
 
     'type.engine': 'engine',
     'type.sail': 'sail',
@@ -422,6 +423,7 @@ export const MESSAGES = {
     'event.windBelow': 'Vent retombé sous {threshold}',
     'event.pressureDrop': 'Baromètre en baisse de {drop} en 3 h',
     'event.correction': 'Corrigé : {before} → {after}',
+    'event.stopover': 'Arrêt à {place}',
 
     'type.engine': 'moteur',
     'type.sail': 'voile',

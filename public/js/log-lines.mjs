@@ -129,6 +129,14 @@ export function describeEvent(event, { t, format, manoeuvreLabels = {} }) {
           payload.after?.type === 'engine' ? 'status.underwayEngine' : 'status.underwaySail'
         )
       };
+    case 'stopover': {
+      // The plugin copies the place name into the comment, for the CSV; a
+      // comment the crew changed is still shown.
+      if (line.comment === payload.placeName) {
+        line.comment = null;
+      }
+      return { ...line, detail: t('event.stopover', { place: payload.placeName }) };
+    }
     default:
       return { ...line, detail: event.comment ?? event.type, comment: null };
   }

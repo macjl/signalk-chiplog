@@ -428,6 +428,47 @@ describe('entries', () => {
       assert.equal((await ctx.request('GET', `/entries/${later}`)).status, 404);
     });
 
+    it('records the stop the merge folds away as an event on the surviving entry', async () => {
+      const earlier = insertEntry(ctx.db, {
+        start_time: at(0),
+        end_time: at(2),
+        end_lat: 46.16,
+        end_lon: -1.15,
+        end_place_name: 'Ile de Ré',
+        end_place_pending: 1
+      });
+      const later = insertEntry(ctx.db, {
+        start_time: at(3),
+        end_time: at(5),
+        end_place_name: 'Les Sables'
+      });
+
+      const { status } = await ctx.request('POST', `/entries/${earlier}/merge`, {
+        withEntryId: later
+      });
+      assert.equal(status, 200);
+
+      const { body } = await ctx.request('GET', `/entries/${earlier}/events`);
+      assert.equal(body.items.length, 1);
+      const [event] = body.items;
+      assert.equal(event.type, 'stopover');
+      assert.equal(event.time, at(2));
+      assert.deepEqual(event.position, { lat: 46.16, lon: -1.15 });
+      assert.equal(event.comment, 'Ile de Ré');
+      assert.equal(event.source, 'auto');
+      assert.deepEqual(event.payload, { placeName: 'Ile de Ré', placePending: true });
+    });
+
+    it('does not record a stop with no place — nothing was known there', async () => {
+      const earlier = insertEntry(ctx.db, { start_time: at(0), end_time: at(2) });
+      const later = insertEntry(ctx.db, { start_time: at(3), end_time: at(5) });
+
+      await ctx.request('POST', `/entries/${earlier}/merge`, { withEntryId: later });
+
+      const { body } = await ctx.request('GET', `/entries/${earlier}/events`);
+      assert.equal(body.items.length, 0);
+    });
+
     it('refuses entries that are not consecutive', async () => {
       const a = insertEntry(ctx.db, { start_time: at(0), end_time: at(1) });
       insertEntry(ctx.db, { start_time: at(2), end_time: at(3) });

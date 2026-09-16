@@ -112,6 +112,22 @@ describe('logbook lines', () => {
     );
   });
 
+  it('describes a stop uncovered by merging two entries', () => {
+    const stopover = describe_({
+      type: 'stopover',
+      comment: 'Ile de Ré',
+      payload: { placeName: 'Ile de Ré', placePending: true }
+    });
+    assert.deepEqual([stopover.detail, stopover.comment], ['Stopped at Ile de Ré', null]);
+
+    const annotated = describe_({
+      type: 'stopover',
+      comment: 'Anchored to wait out the tide',
+      payload: { placeName: 'Ile de Ré', placePending: false }
+    });
+    assert.equal(annotated.comment, 'Anchored to wait out the tide');
+  });
+
   it('gives each engine its counter at departure and arrival and the hours run', () => {
     const hours = (value) => value * 3600;
     assert.deepEqual(

@@ -69,7 +69,7 @@ A **passage** is one logbook entry: from leaving a berth or anchorage to arrivin
 - **Power cuts and restarts.** If the server comes back after the boat has been still for longer than the tolerance, the passage is closed at its last movement. A short restart carries on with the same passage.
 - **Under way or stopped** comes from `navigation.state` when signalk-autostate provides it. Otherwise Chiplog averages speed over ground over 3 minutes: under way above 1 knot, stopped below half a knot. This keeps a boat swinging at anchor from starting passages.
 
-A passage that was split in two — a stop just longer than the tolerance, for instance — can be merged back from the logbook webapp.
+A passage that was split in two — a stop just longer than the tolerance, for instance — can be merged back from the logbook webapp. The stop the merge folds away is kept on the timeline as its own line, naming the place, since it would otherwise leave no trace once the merge takes the later passage's arrival as its own.
 
 ### Track and distance
 

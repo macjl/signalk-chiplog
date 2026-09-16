@@ -82,10 +82,13 @@ Events the plugin produces (SPEC §4.6), all with `source: 'auto'`:
 | `weather_threshold` | `pressure_drop` | `{ drop, over, pressure }` — Pa, seconds, Pa |
 | `manual_correction` | `propulsion` | `{ segmentId, before, after }` |
 | `propulsion_change` (migration 7) | *(none)* | `{ segmentId, before, after }` — same shape as `manual_correction`, for an automatic switch rather than a crew override |
+| `stopover` (migration 10) | *(none)* | `{ placeName, placePending }` — the place and position an entry ended at, before a merge (SPEC §3.1) folded it into the middle of the surviving passage |
 
 `client_ref` (migration 4) is an optional idempotency key chosen by the client, unique when present. The tablet sets it on every entry, so one replayed from its offline queue after a lost response returns the event already logged instead of a duplicate.
 
-`propulsion_change` (migration 7) needed `type`'s CHECK constraint widened, which SQLite can only do by rebuilding the table — `lib/database.js`'s `addPropulsionChangeEventType`. Foreign keys are turned off around the rebuild: `log_entries.opened_by_event_id` references `events`, and with them enforced, `DROP TABLE events` would fire its `ON DELETE SET NULL` for every referencing row before the table (and the reference) is gone.
+`propulsion_change` (migration 7) and `stopover` (migration 10) needed `type`'s CHECK constraint widened, which SQLite can only do by rebuilding the table — `lib/database.js`'s `addPropulsionChangeEventType` and `addStopoverEventType`. Foreign keys are turned off around the rebuild: `log_entries.opened_by_event_id` references `events`, and with them enforced, `DROP TABLE events` would fire its `ON DELETE SET NULL` for every referencing row before the table (and the reference) is gone.
+
+`stopover`'s `lat`/`lon` and `comment` are also set, unlike the other automatic types: `comment` carries the raw place name, like an `sk_alarm`'s message, so it still reads in a CSV export or before a crew annotation is added on top of it.
 
 An event's `time` may fall **after its entry's `end_time`**: alarms and weather events between passages go to the passage that ended where the vessel still is.
 
