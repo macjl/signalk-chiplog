@@ -104,6 +104,28 @@ describe('facsimile PDF logbook', () => {
     );
   });
 
+  it('notes the weather forecast at departure, a line every 3 hours', async () => {
+    const french = await render({ language: 'fr', timeZone: 'Europe/Paris' });
+    assert.ok(
+      french.text.includes(
+        'Départ de La Rochelle (Les Minimes)\nHeures moteur : bâbord 812,4 h, tribord 798,1 h\n' +
+          'Prévisions météo :\n10:00 Couvert, vent SO 8,0 nd F3 (rafales 13,9 nd), vagues 0,9 m 6 s SO,'
+      )
+    );
+    assert.ok(
+      french.text.includes('13:00 Averses, vent SO 10,3 nd F3 (rafales 16,9 nd), pluie 1,6 mm')
+    );
+    assert.ok(french.text.includes('Orage, vent'));
+    // Three passages with a forecast, eight lines each, dated once past the
+    // departure's day.
+    const steps = french.text.match(/^(\d+ sept\. )?\d\d:00 \p{L}/gmu);
+    assert.equal(steps.length, 24);
+    assert.ok(steps.some((step) => step.startsWith('11 sept. 01:00')));
+
+    const english = await render({ language: 'en', timeZone: 'Europe/Paris' });
+    assert.ok(english.text.includes('Weather forecast:\n10:00 Overcast, wind SW 8.0 kn F3'));
+  });
+
   it('says when a period holds no passage', async () => {
     const { pages } = await render(
       { language: 'fr', timeZone: 'Europe/Paris' },

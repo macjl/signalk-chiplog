@@ -96,6 +96,10 @@ export function createFormatter({ locale, units, timeZone }) {
     count: (value) => (missing(value) ? '' : noDecimal.format(value)),
     depth: (metres) => (missing(metres) ? '' : `${oneDecimal.format(metres)} m`),
     pressure: (pascals) => (missing(pascals) ? '' : `${noDecimal.format(pascals / 100)} hPa`),
+    // Rain is metres (kg/m² of water) in SI, read in millimetres.
+    precipitation: (metres) => (missing(metres) ? '' : `${oneDecimal.format(metres * 1000)} mm`),
+    // A wave or swell period.
+    period: (seconds) => (missing(seconds) ? '' : `${noDecimal.format(seconds)} s`),
     temperature: (kelvin) => (missing(kelvin) ? '' : `${oneDecimal.format(kelvin - 273.15)} °C`),
     duration: (seconds) => {
       if (missing(seconds)) {

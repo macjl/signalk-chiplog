@@ -41,7 +41,7 @@ On a server too old to provide `router.access()`, every route falls back to admi
 | Status | When | Codes |
 |---|---|---|
 | `400` | Malformed request | `invalid_request`, `unknown_manoeuvre_type` |
-| `404` | Unknown resource | `entry_not_found`, `event_not_found`, `place_not_found`, `propulsion_segment_not_found`, `manoeuvre_type_not_found`, `tide_not_found` |
+| `404` | Unknown resource | `entry_not_found`, `event_not_found`, `place_not_found`, `propulsion_segment_not_found`, `manoeuvre_type_not_found`, `tide_not_found`, `weather_not_found` |
 | `409` | The request conflicts with current state | `no_passage`, `entry_active`, `entry_already_closed`, `entries_not_consecutive`, `manoeuvre_type_exists`, `builtin_manoeuvre_type`, `usb_export_not_configured`, `usb_export_unavailable`, `constraint_violation` |
 | `500` | Unexpected failure — detail goes to the server log, not the client | `internal_error` |
 | `503` | The plugin is disabled or stopped | `plugin_not_started` |
@@ -215,6 +215,40 @@ The tide forecast fetched near this entry's departure (SPEC §4.5.2): hourly wat
 
 `datum` is always `"msl"` today: heights are relative to mean sea level, the only reference Open-Meteo's `sea_level_height_msl` offers — not the lowest-astronomical-tide chart datum nautical tide tables use. A client showing `points` or the derived extremes should say so, as the webapp does, rather than imply a charted "hauteur d'eau".
 
+### `GET /entries/:id/weather` — `readonly`
+
+```json
+{
+  "position": { "lat": 46.1466, "lon": -1.1686 },
+  "fetchedAt": "2026-09-13T08:00:12.000Z",
+  "points": [
+    {
+      "time": "2026-09-13T09:00:00.000Z",
+      "windSpeed": 6.2,
+      "windDirection": 3.93,
+      "windGust": 9.8,
+      "pressure": 101600,
+      "weatherCode": 80,
+      "visibility": 24000,
+      "precipitation": 0.0004,
+      "cloudCover": 0.75,
+      "airTemperature": 291.2,
+      "waveHeight": 1.1,
+      "waveDirection": 4.71,
+      "wavePeriod": 6.5,
+      "swellHeight": 0.8,
+      "swellDirection": 4.89,
+      "swellPeriod": 11,
+      "seaTemperature": 289.6,
+      "currentSpeed": 0.3,
+      "currentDirection": 0.79
+    }
+  ]
+}
+```
+
+The marine weather forecast fetched near this entry's departure (SPEC §4.5.3): hourly, in SI units, for the 24 h starting at departure. Fields are described in the [data model](DATA_MODEL.md#weather_forecasts-migration-12); any of them is `null` when the service did not give it — all the sea fields, far from the sea. Wind, wave and swell directions are where they come from; the current's is where it flows to. `404 weather_not_found` while none has been fetched yet, or none is available for the position.
+
 ## Events
 
 ### `GET /entries/:id/events` — `readonly`
@@ -319,7 +353,7 @@ Accepts `label`, `icon`, `sortOrder`, `enabled` — on built-in types too. The k
 
 Query: `format` — `json` (default), `csv`, `gpx` or `pdf`; `from`, `to` as for [`GET /entries`](#get-entries--readonly); for `pdf`, `lang` (`en` or `fr`) and `tz` (an IANA time zone such as `Europe/Paris`), which default to the plugin's logbook language and time zone — `400` for an unknown value. Served as an attachment named `chiplog.<format>`.
 
-- **`json`** — the complete record, in SI units: `{ exportedAt, schemaVersion, units, entries }`, where each entry carries its `trackPoints`, `observations`, `propulsion` and `events`. This is the machine-readable abandon-ship payload (SPEC §4.5).
+- **`json`** — the complete record, in SI units: `{ exportedAt, schemaVersion, units, entries }`, where each entry carries its `trackPoints`, `observations`, `propulsion`, `events` and `weather` (the body of [`GET /entries/:id/weather`](#get-entriesidweather--readonly), or `null`). This is the machine-readable abandon-ship payload (SPEC §4.5).
 - **`csv`** — one chronological line per departure, observation, event and arrival: a paper logbook readable in any spreadsheet. Unlike everything else, it is **converted to nautical units** — knots, degrees, hPa, °C, nautical miles, engine hours — with units in the column names. After the fixed columns, one `engine_runtime_<engine>_h` column per engine found in the export (e.g. `engine_runtime_port_h`) keeps each engine's hour counter; `engine_runtime_h` is the main or first engine's. Free text that a spreadsheet would execute as a formula is prefixed with `'`.
 - **`gpx`** — one track per entry.
 - **`pdf`** — the facsimile logbook (SPEC §4.5): A4 landscape, a page per day in the given time zone, with time, position, course, speed over ground, wind, barometer, depth, engine or sail and remarks; departures and arrivals with their totals, day totals, handwritten notes drawn. The wording is the webapp's, in `lang`.
@@ -350,7 +384,7 @@ What the USB copy is set to do and how it last went, for the export screen.
 Copies the logbook to a `chiplog/` subdirectory of the directory set in the plugin configuration, as one JSON, CSV, GPX and PDF file per passage, in the same formats as [`GET /export`](#get-export--readonly) restricted to that passage; the PDF uses the plugin's logbook language and time zone.
 
 - **Names sort by departure**: `<start date>_<start time>Z_<departure>_<arrival>.<format>`, in UTC, with place names reduced to ASCII letters, digits and hyphens — e.g. `2026-09-13_0612Z_La-Rochelle_Les-Sables-d-Olonne.json`. A passage in progress ends in `underway`; one with no name has `unnamed`; two passages starting in the same minute get `_2` on the later one.
-- **Incremental.** Only passages that are new or changed since the last export are written. What was exported is recorded in `chiplog/.chiplog-export.json`, with a fingerprint of each passage's content, so a correction made later — a renamed place, a switched engine period, an edited comment, an alarm added at anchor — rewrites that passage, and so does a change of the logbook language, time zone or vessel name. A new plugin version does not. Files already on the drive with no record are kept as they are; a missing file is written again.
+- **Incremental.** Only passages that are new or changed since the last export are written. What was exported is recorded in `chiplog/.chiplog-export.json`, with a fingerprint of each passage's content, so a correction made later — a renamed place, a switched engine period, an edited comment, an alarm added at anchor, a weather forecast arriving after departure — rewrites that passage, and so does a change of the logbook language, time zone or vessel name. A new plugin version does not. Files already on the drive with no record are kept as they are; a missing file is written again.
 - **Obsolete files are removed**: those of passages deleted, merged or renamed. Only files named like passage files are touched in `chiplog/`.
 - Each file is flushed to the device and renamed into place, so pulling the drive never leaves a half-written export.
 

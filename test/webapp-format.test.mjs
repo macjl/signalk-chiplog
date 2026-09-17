@@ -43,6 +43,14 @@ describe('display formatting', () => {
     assert.equal(english.percent(null), '');
   });
 
+  it('writes rain in millimetres and wave periods in seconds', () => {
+    assert.equal(english.precipitation(0.0024), '2.4 mm');
+    assert.equal(french.precipitation(0.0005), '0,5 mm');
+    assert.equal(english.period(7.4), '7 s');
+    assert.equal(english.precipitation(null), '');
+    assert.equal(english.period(undefined), '');
+  });
+
   it('groups the thousands of a count', () => {
     assert.equal(english.count(43230), '43,230');
     assert.equal(french.count(43230), '43\u202f230');

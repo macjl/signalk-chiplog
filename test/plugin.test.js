@@ -21,7 +21,7 @@ describe('plugin', () => {
       assert.equal(body.detection, 'autostate');
       assert.equal(body.motion, 'underway');
       assert.equal(body.propulsion, 'sail');
-      assert.equal(body.schemaVersion, 11);
+      assert.equal(body.schemaVersion, 12);
       const entry = await ctx.request('GET', `/entries/${body.activeEntryId}`);
       assert.equal(entry.body.state, 'active');
     });
@@ -44,7 +44,7 @@ describe('plugin', () => {
           value: 'sailing',
           updatedAt: '2026-01-01T00:00:00.000Z'
         },
-        schemaVersion: 11
+        schemaVersion: 12
       });
     });
 

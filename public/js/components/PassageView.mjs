@@ -9,6 +9,7 @@ import { TideCard } from './TideCard.mjs';
 import { Timeline } from './Timeline.mjs';
 import { TrackMap } from './TrackMap.mjs';
 import { TrackScrubber } from './TrackScrubber.mjs';
+import { WeatherCard } from './WeatherCard.mjs';
 import { trackPoints } from '../track.mjs';
 
 const ACTIVE_REFRESH_MS = 60 * 1000;
@@ -31,11 +32,11 @@ async function findNext(entry) {
 
 // No forecast is a normal outcome (not yet fetched, or none for the
 // position), not an error the page should show.
-async function loadTide(id) {
+async function loadForecast(id, kind) {
   try {
-    return await get(`/entries/${id}/tide`);
+    return await get(`/entries/${id}/${kind}`);
   } catch (err) {
-    if (err.code === 'tide_not_found') {
+    if (err.code === `${kind}_not_found`) {
       return null;
     }
     throw err;
@@ -43,15 +44,17 @@ async function loadTide(id) {
 }
 
 async function loadPassage(id) {
-  const [entry, track, segments, events, observations, manoeuvreTypes, tide] = await Promise.all([
-    get(`/entries/${id}`),
-    get(`/entries/${id}/track`),
-    fetchAll(`/entries/${id}/propulsion`),
-    fetchAll(`/entries/${id}/events`),
-    fetchAll(`/entries/${id}/observations`),
-    fetchAll('/manoeuvre-types'),
-    loadTide(id)
-  ]);
+  const [entry, track, segments, events, observations, manoeuvreTypes, tide, weather] =
+    await Promise.all([
+      get(`/entries/${id}`),
+      get(`/entries/${id}/track`),
+      fetchAll(`/entries/${id}/propulsion`),
+      fetchAll(`/entries/${id}/events`),
+      fetchAll(`/entries/${id}/observations`),
+      fetchAll('/manoeuvre-types'),
+      loadForecast(id, 'tide'),
+      loadForecast(id, 'weather')
+    ]);
   const [previous, next] = await Promise.all([findPrevious(entry), findNext(entry)]);
   return {
     entry,
@@ -61,6 +64,7 @@ async function loadPassage(id) {
     observations,
     manoeuvreLabels: Object.fromEntries(manoeuvreTypes.map((type) => [type.key, type.label])),
     tide,
+    weather,
     previous,
     next
   };
@@ -434,6 +438,8 @@ export function PassageView({ id }) {
           : html`<p class="muted">${t('passage.noTrack')}</p>`
       }
     </section>
+
+    ${data.weather && html`<${WeatherCard} weather=${data.weather} />`}
 
     <div class="card-row">
       ${data.tide && html`<${TideCard} tide=${data.tide} placeName=${entry.startPlaceName} />`}

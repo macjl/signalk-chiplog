@@ -9,6 +9,7 @@ const { createPlaceNamer, GEOCODING_DEFAULTS } = require('./lib/place-names');
 const { PROPULSION_DEFAULTS } = require('./lib/propulsion-detector');
 const { createReplayJob } = require('./lib/replay-job');
 const { createTideForecaster, TIDE_DEFAULTS } = require('./lib/tide-forecaster');
+const { createWeatherForecaster, WEATHER_DEFAULTS } = require('./lib/weather-forecaster');
 const { createTrackRecorder, SAMPLE_INTERVAL_MS, TRACK_DEFAULTS } = require('./lib/track-recorder');
 const {
   createUsbExportScheduler,
@@ -23,8 +24,8 @@ const { version } = require('./package.json');
 const DEFAULT_PLACE_MATCH_RADIUS = 200;
 const FIRST_NAMING_DELAY_MS = 5 * 1000;
 const NAMING_ERROR_RETRY_MS = 5 * 60 * 1000;
-const FIRST_TIDE_DELAY_MS = 5 * 1000;
-const TIDE_ERROR_RETRY_MS = 5 * 60 * 1000;
+const FIRST_FORECAST_DELAY_MS = 5 * 1000;
+const FORECAST_ERROR_RETRY_MS = 5 * 60 * 1000;
 
 const MOTION_LABELS = { underway: 'Under way', stopped: 'Stopped', unknown: 'Waiting for data' };
 const MODE_LABELS = { autostate: 'navigation.state', fallback: 'speed fallback' };
@@ -55,11 +56,10 @@ module.exports = function (app) {
   let settings = null;
   let detector = null;
   let namer = null;
-  let tideForecaster = null;
+  let forecasters = [];
   let usbExport = null;
   let replayJob = null;
   let namingTimer = null;
-  let tideTimer = null;
   let timers = [];
   let lastStatus = null;
 
@@ -139,9 +139,23 @@ module.exports = function (app) {
       },
       tideUrl: {
         type: 'string',
-        title: 'Tide service (Open-Meteo Marine-compatible)',
-        description: 'The public Open-Meteo instance by default, or a self-hosted one',
+        title: 'Marine service (Open-Meteo Marine-compatible)',
+        description:
+          'Tides, and waves, swell, sea temperature and current for the weather forecast. The public Open-Meteo instance by default, or a self-hosted one',
         default: TIDE_DEFAULTS.tideUrl
+      },
+      weatherEnabled: {
+        type: 'boolean',
+        title: 'Fetch the marine weather forecast at departure',
+        description:
+          'Sends the departure position to the weather service below and to the marine service above for the next 24 hours of wind, sky, sea state and current. Data comes from Open-Meteo (CC BY 4.0)',
+        default: WEATHER_DEFAULTS.weatherEnabled
+      },
+      weatherUrl: {
+        type: 'string',
+        title: 'Weather service (Open-Meteo-compatible)',
+        description: 'The public Open-Meteo instance by default, or a self-hosted one',
+        default: WEATHER_DEFAULTS.weatherUrl
       },
       usbExportPath: {
         type: 'string',
@@ -284,27 +298,32 @@ module.exports = function (app) {
     namingTimer = setTimeout(runNaming, result.retryInMs);
   }
 
-  // Same idea as geocoding: a network call fetching the tide forecast near a
-  // recent departure, on its own chain rather than inside detection.
-  async function runTides() {
-    const current = tideForecaster;
-    let result;
-    try {
-      result = await current.resolveNext();
-    } catch (err) {
-      app.error(`Tide forecast failed: ${err.stack ?? err}`);
-      result = { retryInMs: TIDE_ERROR_RETRY_MS };
+  // Same idea as geocoding: network calls fetching the tide and weather
+  // forecasts near a recent departure, each on its own chain rather than
+  // inside detection.
+  function startForecastChain(label, forecaster) {
+    const chain = { forecaster, timer: null };
+    async function run() {
+      let result;
+      try {
+        result = await forecaster.resolveNext();
+      } catch (err) {
+        app.error(`${label} forecast failed: ${err.stack ?? err}`);
+        result = { retryInMs: FORECAST_ERROR_RETRY_MS };
+      }
+      if (!forecasters.includes(chain) || result.outcome === 'stopped') {
+        return;
+      }
+      if (result.outcome === 'failed') {
+        // Expected whenever the boat is out of reach of a network.
+        app.debug(
+          `${label} forecast unavailable, retrying in ${Math.round(result.retryInMs / 60000)} min: ${result.error.message}`
+        );
+      }
+      chain.timer = setTimeout(run, result.retryInMs);
     }
-    if (tideForecaster !== current || result.outcome === 'stopped') {
-      return;
-    }
-    if (result.outcome === 'failed') {
-      // Expected whenever the boat is out of reach of a network.
-      app.debug(
-        `Tide forecast unavailable, retrying in ${Math.round(result.retryInMs / 60000)} min: ${result.error.message}`
-      );
-    }
-    tideTimer = setTimeout(runTides, result.retryInMs);
+    chain.timer = setTimeout(run, FIRST_FORECAST_DELAY_MS);
+    return chain;
   }
 
   // For work that runs every second: log a failure once, not on every run.
@@ -347,6 +366,8 @@ module.exports = function (app) {
         geocodingUrl: config.geocodingUrl || GEOCODING_DEFAULTS.geocodingUrl,
         tidesEnabled: config.tidesEnabled ?? TIDE_DEFAULTS.tidesEnabled,
         tideUrl: config.tideUrl || TIDE_DEFAULTS.tideUrl,
+        weatherEnabled: config.weatherEnabled ?? WEATHER_DEFAULTS.weatherEnabled,
+        weatherUrl: config.weatherUrl || WEATHER_DEFAULTS.weatherUrl,
         usbExportPath: config.usbExportPath || null,
         usbExportIntervalMinutes:
           config.usbExportIntervalMinutes ?? USB_EXPORT_DEFAULTS.usbExportIntervalMinutes,
@@ -395,11 +416,6 @@ module.exports = function (app) {
       settings,
       userAgent: `signalk-chiplog/${version}`
     });
-    tideForecaster = createTideForecaster({
-      db: database,
-      settings,
-      userAgent: `signalk-chiplog/${version}`
-    });
     usbExport = createUsbExportScheduler({
       db: database,
       settings,
@@ -414,7 +430,11 @@ module.exports = function (app) {
       onDone: nudgeNaming
     });
     namingTimer = setTimeout(runNaming, FIRST_NAMING_DELAY_MS);
-    tideTimer = setTimeout(runTides, FIRST_TIDE_DELAY_MS);
+    const forecastOptions = { db: database, settings, userAgent: `signalk-chiplog/${version}` };
+    forecasters = [
+      startForecastChain('Tide', createTideForecaster(forecastOptions)),
+      startForecastChain('Weather', createWeatherForecaster(forecastOptions))
+    ];
     lastStatus = null;
     runDetection();
     timers = [
@@ -440,9 +460,11 @@ module.exports = function (app) {
     clearTimeout(namingTimer);
     namer?.stop();
     namer = null;
-    clearTimeout(tideTimer);
-    tideForecaster?.stop();
-    tideForecaster = null;
+    for (const chain of forecasters) {
+      clearTimeout(chain.timer);
+      chain.forecaster.stop();
+    }
+    forecasters = [];
     usbExport?.stop();
     usbExport = null;
     replayJob?.cancel();

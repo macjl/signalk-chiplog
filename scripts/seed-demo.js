@@ -10,7 +10,8 @@
 // Times are relative to now, so the log always reads as recent. The data covers
 // what the webapp shows: tracks, engine and sail segments, instrument snapshots,
 // manoeuvres, automatic events, a handwritten note, a passage across midnight,
-// a place name pending geocoding, and a passage still in progress.
+// a place name pending geocoding, marine weather forecasts (one passage has
+// none), and a passage still in progress.
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -536,6 +537,57 @@ function seedDemoLogbook(db, { now = Date.now() } = {}) {
       ];
       setBoatState.run(JSON.stringify(tanks), JSON.stringify(batteries), id);
     }
+
+    // The marine weather forecast fetched at departure: hourly, for the 24 h
+    // after it, a breeze building from the south-west and veering, with
+    // showers, and a thunderstorm with a near gale for `stormAt` hours in.
+    // The short hop has none, as when the boat was offline at departure.
+    const saveForecast = (id, { stormAt, baseWind }) => {
+      const {
+        start_time: startTime,
+        start_lat: lat,
+        start_lon: lon
+      } = db
+        .prepare('SELECT start_time, start_lat, start_lon FROM log_entries WHERE id = ?')
+        .get(id);
+      const first = Math.ceil(Date.parse(startTime) / (60 * MINUTE)) * 60 * MINUTE;
+      const points = Array.from({ length: 24 }, (_, hour) => {
+        const storm = hour >= stormAt && hour < stormAt + 3;
+        const wind = (baseWind + 6 * Math.sin((hour / 24) * Math.PI) + (storm ? 12 : 0)) * KNOT;
+        const codes = [1, 2, 3, 3, 61, 80, 80, 3, 2, 1, 0, 0];
+        return {
+          time: iso(first + hour * 60 * MINUTE),
+          windSpeed: wind,
+          windDirection: radians(215 + hour * 3),
+          windGust: wind * 1.45,
+          pressure: 101700 - hour * 40 - (storm ? 300 : 0),
+          weatherCode: storm ? 95 : codes[hour % codes.length],
+          visibility: storm ? 3000 : 22000,
+          precipitation: storm ? 0.004 : [61, 80].includes(codes[hour % codes.length]) ? 0.0008 : 0,
+          cloudCover: storm ? 1 : 0.6,
+          airTemperature: 290.5 + 3 * Math.sin((hour / 24) * Math.PI),
+          waveHeight: 0.6 + wind / 12,
+          waveDirection: radians(230 + hour * 2),
+          wavePeriod: 5 + wind / 6,
+          swellHeight: 0.9,
+          swellDirection: radians(285),
+          swellPeriod: 11,
+          seaTemperature: 290.1,
+          currentSpeed: 0.2 + 0.4 * Math.abs(Math.sin((hour / 12.42) * 2 * Math.PI)),
+          currentDirection: radians(hour % 12 < 6 ? 45 : 225)
+        };
+      });
+      insert('weather_forecasts', {
+        entry_id: id,
+        lat,
+        lon,
+        fetched_at: startTime,
+        points: JSON.stringify(points)
+      });
+    };
+    saveForecast(beat, { stormAt: 30, baseWind: 8 });
+    saveForecast(night, { stormAt: 4, baseWind: 12 });
+    saveForecast(current, { stormAt: 30, baseWind: 10 });
 
     return [beat, night, hop, current];
   });

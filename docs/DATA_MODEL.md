@@ -127,6 +127,29 @@ There is no `datum` column: every row is Open-Meteo `sea_level_height_msl`, rela
 
 High and low tide are not stored: they are the local peaks and troughs of `points`, found when read (`public/js/tide.mjs`'s `tideExtremes`), the same principle as `maxSpeed`/`maxWindSpeed` on `GET /entries/:id`.
 
+### `weather_forecasts` (migration 12)
+
+Same shape and lifecycle as `tide_forecasts` (SPEC §4.5.3): one row per entry, `lat`/`lon` the position asked about, `points` the hourly JSON for the 24 h from departure, `[]` once fetched if neither service had anything for the position. `getWeatherForecast` (`lib/weather-forecaster.js`) treats `[]` as no forecast. Each point is:
+
+| Field | Unit | Open-Meteo variable |
+| --- | --- | --- |
+| `time` | ISO 8601 UTC, on the hour | |
+| `windSpeed`, `windGust` | m/s | `wind_speed_10m`, `wind_gusts_10m` |
+| `windDirection` | rad, where it comes from | `wind_direction_10m` |
+| `pressure` | Pa, at sea level | `pressure_msl` |
+| `weatherCode` | WMO code | `weather_code` |
+| `visibility` | m | `visibility` |
+| `precipitation` | m of water over the hour | `precipitation` |
+| `cloudCover` | ratio | `cloud_cover` |
+| `airTemperature`, `seaTemperature` | K | `temperature_2m`, `sea_surface_temperature` |
+| `waveHeight`, `swellHeight` | m | `wave_height`, `swell_wave_height` |
+| `wavePeriod`, `swellPeriod` | s | `wave_period`, `swell_wave_period` |
+| `waveDirection`, `swellDirection` | rad, where they come from | `wave_direction`, `swell_wave_direction` |
+| `currentSpeed` | m/s | `ocean_current_velocity` |
+| `currentDirection` | rad, where it flows to | `ocean_current_direction` |
+
+Every field is `null` when the service did not give it — all the sea fields, inland. An hour with nothing at all is left out. The 3-hour steps the webapp and the PDF show are derived when read (`public/js/weather.mjs`'s `forecastSteps`), not stored.
+
 ## Migrations
 
 `MIGRATIONS` in `lib/database.js` is an ordered, **append-only** list; the applied index is stored in SQLite's `user_version`. Once a version has shipped to a boat, editing its entry would leave that installation on a schema the code no longer expects — add a new entry instead.

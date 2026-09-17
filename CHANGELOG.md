@@ -4,6 +4,14 @@ All notable changes to Chiplog are documented here. The format follows [Keep a C
 
 ## [Unreleased]
 
+### Added
+
+- Marine weather forecast: fetched near the departure position for the next 24 hours when a passage opens (Open-Meteo Forecast and Marine, free and keyless, can be turned off with its own setting), shown on the passage page as a table every 3 hours — sky and rain, wind as a Beaufort force with direction, speed and gusts, waves, swell, pressure, visibility, air and sea temperature, and current — and listed under the departure in the PDF logbook and in the JSON export (`GET /entries/:id/weather`). Far from the sea, the atmospheric part is kept on its own.
+
+### Changed
+
+- The "Tide service" setting is now titled "Marine service", since the weather forecast also reads the sea state and current from it. The setting itself (`tideUrl`) is unchanged.
+
 ## [2.0.0] - 2026-09-16
 
 ### Added

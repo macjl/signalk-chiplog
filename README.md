@@ -107,6 +107,12 @@ When a passage opens, Chiplog fetches the predicted water height near the depart
 
 **Heights are relative to mean sea level, not a charted "hauteur d'eau".** The free tide service used has no notion of chart datum (the lowest-astronomical-tide reference SHOM and other official tide tables use), so a reading here can be several metres off what a nautical chart or an official tide table would say for the same moment — the app says so under the chart. Tide _times_ are unaffected by this: a vertical offset does not move when high or low water falls.
 
+### Marine weather forecast
+
+When a passage opens, Chiplog also fetches the marine weather forecast near the departure for the next 24 hours (on by default, can be turned off) and shows it on the passage page as a table every 3 hours: sky and rain, wind (Beaufort force, direction, speed and gusts), waves and swell (height, period, direction), pressure, visibility, air and sea temperature, and current. A thunderstorm or a force 7 or more stands out in red. Each row gives the strongest gust and the rain over its three hours. The PDF logbook lists the same forecast under the departure.
+
+Arrows point where the wind, the sea and the current are going; the compass point next to them is where wind, waves and swell come _from_, but where the current flows _to_, as sailors usually read them. Like the tide, it is fetched once at departure and not updated afterwards; far from the sea, only the atmospheric part is shown.
+
 ### Place names
 
 Departures and arrivals are named automatically:
@@ -121,7 +127,7 @@ Open **Chiplog** from the Signal K webapps, or `/signalk-chiplog/`. Reading need
 
 - **Status bar** — under way under sail or engine, stopped, or waiting for data, with a link to the passage in progress. A warning shows when detection works from speed alone because signalk-autostate is missing.
 - **Logbook** — a summary above the list (number of passages, total distance, total time, across every passage logged, not just what is loaded), then passages grouped by day, newest first, with times, departure and arrival, distance, duration and an engine/sail bar. A passage across midnight appears on both days. Provisional place names are shown as such.
-- **Passage page** — summary (distance, duration, average speed, and the highest speed and wind seen), map of the track (OpenStreetMap with OpenSeaMap seamarks, which can be hidden) with a small boat marker at the selected point, a scrubber under the map to step back and forth through its history (defaulting to the latest point, so it shows the current position on a passage in progress) with a band of that point's time, SOG, COG, STW, TWS, TWD, TWA and AWA, the tide forecast near the departure (place, high/low times and heights, height curve) when one was fetched, the engine and sail periods, the boat's status (each engine's hour counter at departure and arrival and the hours run, and the tank levels and battery charge, voltage and current noted at departure), and the log: every reading and event in order, including handwritten notes. A passage in progress refreshes every minute. Each line's comment can be edited (read/write access); a manoeuvre or note the crew logged themselves can also be deleted — automatic lines (alarms, autopilot, weather, corrections) can only be annotated.
+- **Passage page** — summary (distance, duration, average speed, and the highest speed and wind seen), map of the track (OpenStreetMap with OpenSeaMap seamarks, which can be hidden) with a small boat marker at the selected point, a scrubber under the map to step back and forth through its history (defaulting to the latest point, so it shows the current position on a passage in progress) with a band of that point's time, SOG, COG, STW, TWS, TWD, TWA and AWA, the marine weather forecast every 3 hours from departure, the tide forecast near the departure (place, high/low times and heights, height curve) when one was fetched, the engine and sail periods, the boat's status (each engine's hour counter at departure and arrival and the hours run, and the tank levels and battery charge, voltage and current noted at departure), and the log: every reading and event in order, including handwritten notes. A passage in progress refreshes every minute. Each line's comment can be edited (read/write access); a manoeuvre or note the crew logged themselves can also be deleted — automatic lines (alarms, autopilot, weather, corrections) can only be annotated.
 - **Corrections** (read/write access):
   - rename the departure, or the arrival once the passage is closed — a passage in progress has none yet to rename;
   - switch an engine period to sail or back;
@@ -200,7 +206,9 @@ In the Signal K admin, **Apps & Plugins → Configuration → Chiplog**.
 | Name departures and arrivals with online geocoding | on                                            | Turn off to never send positions online; places are then named after their coordinates until corrected.                                                 |
 | Geocoding service                                  | `https://nominatim.openstreetmap.org`         | Any Nominatim-compatible service, e.g. a self-hosted one.                                                                                               |
 | Fetch the tide forecast at departure               | on                                            | Turn off to never send the departure position online; the passage page then shows no tide.                                                              |
-| Tide service                                       | `https://marine-api.open-meteo.com/v1/marine` | Any Open-Meteo Marine-compatible service, e.g. a self-hosted one.                                                                                       |
+| Marine service                                     | `https://marine-api.open-meteo.com/v1/marine` | Any Open-Meteo Marine-compatible service, e.g. a self-hosted one. Serves the tide, and the sea state and current of the weather forecast.               |
+| Fetch the marine weather forecast at departure     | on                                            | Turn off to never send the departure position to the weather services; the passage page and the PDF then show no forecast.                              |
+| Weather service                                    | `https://api.open-meteo.com/v1/forecast`      | Any Open-Meteo-compatible forecast service, e.g. a self-hosted one.                                                                                     |
 | USB export directory                               | —                                             | Where the abandon-ship copy is written, e.g. `/media/usb`. Empty turns the USB copy off.                                                                |
 | Automatic USB copy interval                        | 15 min                                        | How often the USB copy is brought up to date. 0 turns the periodic copy off.                                                                            |
 | Copy to the USB drive at each arrival              | on                                            | Brings the USB copy up to date as soon as a passage ends.                                                                                               |
@@ -250,11 +258,12 @@ Already have a history of the boat's Signal K data before Chiplog was installed,
 
 - **Place names.** With geocoding on, the position of each departure and arrival that matches no known place is sent to the geocoding service — OpenStreetMap's public Nominatim by default. Nothing else is sent, and nothing at all when it is off.
 - **Tide forecast.** With it on, the departure position of each passage is sent to the tide service — the public Open-Meteo by default — once, at departure. Nothing at all when it is off.
+- **Weather forecast.** With it on, the departure position of each passage is sent to the weather service and to the marine service — both the public Open-Meteo by default — once, at departure. Nothing at all when it is off.
 - **Maps.** The logbook webapp loads map tiles from OpenStreetMap and OpenSeaMap while the device viewing it is online. Offline, the track is still drawn, on a blank background.
 - **Retrospective analysis.** Running one queries the InfluxDB database set in the plugin configuration — the boat's own, local or remote, never a third party — for the Signal K history in the requested range.
 - **Nothing else** leaves the boat. There is no account, analytics or cloud service.
 
-Map data and place names © OpenStreetMap contributors (ODbL); seamarks © OpenSeaMap; tide data © [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0).
+Map data and place names © OpenStreetMap contributors (ODbL); seamarks © OpenSeaMap; tide and weather data © [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0).
 
 ## Troubleshooting
 

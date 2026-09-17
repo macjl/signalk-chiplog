@@ -45,8 +45,11 @@ async function startServer({ config = {}, self = {} } = {}) {
   const plugin = createPlugin(app);
   const { router, permissions } = createPluginRouter();
   plugin.registerWithRouter(router);
-  // Tests must never reach the public geocoding or tide service.
-  plugin.start({ geocodingEnabled: false, tidesEnabled: false, ...config }, () => {});
+  // Tests must never reach the public geocoding, tide or weather service.
+  plugin.start(
+    { geocodingEnabled: false, tidesEnabled: false, weatherEnabled: false, ...config },
+    () => {}
+  );
 
   const server = express();
   server.use(express.json({ limit: '10mb' }));

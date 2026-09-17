@@ -44,7 +44,10 @@ describe('demo logbook', () => {
     );
 
     const types = new Set();
+    const forecasts = [];
     for (const entry of entries.items) {
+      const weather = await ctx.request('GET', `/entries/${entry.id}/weather`);
+      forecasts.push(weather.status === 200 ? weather.body : null);
       const { body } = await ctx.request('GET', `/entries/${entry.id}/events?limit=500`);
       body.items.forEach((event) => types.add(event.type));
       assert.ok(entry.startTanks.length > 0, `passage ${entry.id} notes its tanks`);
@@ -52,6 +55,11 @@ describe('demo logbook', () => {
       const track = await ctx.request('GET', `/entries/${entry.id}/track`);
       assert.equal(track.body.geometry.type, 'LineString');
     }
+    assert.ok(forecasts.includes(null), 'a passage without a weather forecast');
+    const stormy = forecasts.find((forecast) => forecast?.points.some((p) => p.weatherCode >= 95));
+    assert.ok(stormy, 'a forecast with a thunderstorm');
+    assert.equal(stormy.points.length, 24);
+    assert.ok(stormy.points.every((point) => typeof point.currentSpeed === 'number'));
     assert.deepEqual([...types].sort(), [
       'autopilot',
       'handwritten_annotation',

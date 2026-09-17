@@ -150,6 +150,20 @@ As implemented (`lib/tide-forecaster.js`):
 - **One fetch per passage, at departure**, not a continuous subscription: the position and the 24 h window are fixed at that moment. Requested and stored in one call — no separate lookup for extremes; a high or low is a local peak or trough in the stored hourly curve, found when displayed rather than by asking the service twice.
 - **Offline is normal, as for geocoding**: a failed request is retried after 5 minutes, doubling up to an hour, for as long as the departure is still recent enough for a fetch to mean anything (3 hours); past that, or once the service answers with nothing usable for the position (an inland lake, a river far from tidal water), no forecast is recorded and none is asked for again for that passage.
 - **Hourly resolution**, so a high or low tide time is accurate to within about half an hour — adequate for a logbook reference, not for a lock or a bar crossing planned to the minute.
+- **Shared fetch engine** with the weather forecast (§4.5.3): `lib/departure-forecast.js` holds the pending-entry selection, retry schedule, give-up age and 24 h window for both.
+
+### 4.5.3 Marine weather forecast
+
+When a passage opens, the plugin also fetches the marine weather forecast near the departure position for the next 24 hours, as a skipper notes the bulletin before casting off, and shows it on the passage page and in the PDF.
+
+As implemented (`lib/weather-forecaster.js`, on the same engine and schedule as the tide — one fetch per passage at departure, retried while offline for up to 3 hours after departure, then given up):
+
+- **Source.** Open-Meteo, free and keyless under CC BY 4.0, in two requests: the [Forecast API](https://open-meteo.com/en/docs) (`weatherUrl`) for the atmosphere, and the Marine API — the same service as the tide (`tideUrl`, titled "Marine service" in the settings) — for the sea. `weatherEnabled` turns the whole forecast off, independently of the tide.
+- **Content**, hourly: wind speed, direction and gusts at 10 m; sky (WMO weather code), precipitation, cloud cover, visibility, pressure at sea level, air temperature; significant wave height, period and direction; swell height, period and direction; sea surface temperature; surface current speed and direction. Stored in SI units like everything else, converted from the units each answer declares rather than those asked for (the Marine API gives the current in km/h whatever `wind_speed_unit` says).
+- **Directions keep the usual conventions**: wind, waves and swell are where they come *from*, the current where it flows *towards* — as in Signal K. The passage page says so.
+- **The sea is a complement.** Far from the sea (a lake, a river) or when only the Marine request fails, the forecast is kept with the atmosphere alone; the passage page leaves out the columns it has nothing for. Only a Forecast request that fails for lack of network, rate limiting or a server error is retried; when neither service has anything, an empty forecast is recorded and not asked for again.
+- **Display: a row every 3 hours**, like a coastal bulletin — eight rows for the 24 h. A row shows its first hour's readings, with the strongest gust, the rain summed and the most significant sky over its three hours, so a squall between two rows is not lost. Wind is shown as a Beaufort force as well as in knots; a thunderstorm or a force 7 or more stands out.
+- **PDF**: the same eight steps, one line each, under the departure's remarks.
 
 ### 4.6 Automatically logged Signal K events
 
@@ -223,7 +237,7 @@ Reconstructs passages Chiplog never saw live — installed after the fact, or st
 
 ## 5. Data model and API
 
-The data model has been refined into a precise schema: the authoritative DDL lives in [`lib/database.js`](../lib/database.js), with the conventions and rationale documented in [DATA_MODEL.md](DATA_MODEL.md). Entities: `log_entries`, `track_points`, `observations`, `propulsion_segments`, `events`, `places`, `manoeuvre_types`, `tide_forecasts`.
+The data model has been refined into a precise schema: the authoritative DDL lives in [`lib/database.js`](../lib/database.js), with the conventions and rationale documented in [DATA_MODEL.md](DATA_MODEL.md). Entities: `log_entries`, `track_points`, `observations`, `propulsion_segments`, `events`, `places`, `manoeuvre_types`, `tide_forecasts`, `weather_forecasts`.
 
 Two points worth carrying back into this document:
 
@@ -271,6 +285,7 @@ Deferred to V2: full shortcut customization, publication to a remote server, ded
 | Map tiles | OpenStreetMap with the OpenSeaMap seamark overlay, online; offline the track is still drawn on a blank map. Offline charts are V2 |
 | Instrument snapshots | At departure, hourly on the clock (configurable), at arrival and with each live manoeuvre, note or sketch (§4.5.1) |
 | Tide forecast | Open-Meteo Marine, free and keyless, fetched once at departure for the next 24 h; extremes found from the stored curve, not asked for separately; heights relative to mean sea level, disclosed as such rather than presented as a charted datum (§4.5.2) |
+| Marine weather forecast | Open-Meteo Forecast + Marine, free and keyless, fetched once at departure for the next 24 h, stored hourly; shown every 3 h on the passage page and under the departure in the PDF; the sea part optional (§4.5.3) |
 | Speed fallback | SOG averaged over 3 min; under way above a configurable speed (1 kn), stopped below half of it. Transitions dated from raw speed in both modes (§4.2) |
 | GPS track sampling | Configurable fixed interval (15 s) + extra point on a 15° course or 1 kn speed change (§4.1) |
 | PDF export | Traditional logbook facsimile, A4 landscape, a page per day in ship's time, English or French; home-made PDF writer with the standard fonts, no dependency (§4.5) |

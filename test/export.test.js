@@ -119,7 +119,7 @@ describe('export', () => {
 
       assert.equal(status, 200);
       assert.match(headers.get('content-disposition'), /chiplog\.json/);
-      assert.equal(body.schemaVersion, 11);
+      assert.equal(body.schemaVersion, 12);
       assert.equal(body.entries.length, 1);
       const [bundle] = body.entries;
       assert.equal(bundle.entry.distance, 68500);
@@ -132,6 +132,7 @@ describe('export', () => {
       assert.deepEqual(bundle.entry.startTanks, [{ type: 'fuel', id: '0', level: 0.8 }]);
       assert.equal(bundle.entry.startBatteries, null);
       assert.equal(bundle.events.length, 1);
+      assert.equal(bundle.weather, null);
     });
 
     it('exports CSV logbook lines converted to nautical units', async () => {
@@ -287,6 +288,26 @@ describe('export', () => {
       for (const name of passageFiles()) {
         assert.equal(after[name] !== before[name], name.startsWith('2026-09-13'), name);
       }
+    });
+
+    it('rewrites a passage once its weather forecast arrives, and exports it', async () => {
+      const first = seedPassage(ctx.db);
+      await exportUsb();
+      await pause();
+
+      ctx.db
+        .prepare(
+          `INSERT INTO weather_forecasts (entry_id, lat, lon, fetched_at, points)
+           VALUES (?, 46.15, -1.17, ?, ?)`
+        )
+        .run(first, at(0), JSON.stringify([{ time: at(0), windSpeed: 6 }]));
+      const body = await exportUsb();
+
+      assert.deepEqual([body.written, body.unchanged], [1, 0]);
+      const json = JSON.parse(
+        fs.readFileSync(path.join(usbDir(), '2026-09-13_0800Z_La-Rochelle_Les-Sables.json'), 'utf8')
+      );
+      assert.deepEqual(json.entries[0].weather.points, [{ time: at(0), windSpeed: 6 }]);
     });
 
     it('removes the files of passages renamed, merged or deleted, and nothing else', async () => {
