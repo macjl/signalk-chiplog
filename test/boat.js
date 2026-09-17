@@ -27,19 +27,28 @@ function createBoat({ settings = {}, clockOffsetMs = 0 } = {}) {
   const self = {};
   let detector = null;
 
-  // getSelfPath('propulsion') returns the engines keyed by id, like the server.
+  // A branch such as getSelfPath('propulsion') or getSelfPath('tanks') returns
+  // the tree below it, like the server.
   function readSelfPath(skPath) {
-    if (skPath !== 'propulsion') {
+    if (self[skPath]) {
       return self[skPath];
     }
-    const engines = {};
-    for (const key of Object.keys(self)) {
-      const [root, id] = key.split('.');
-      if (root === 'propulsion') {
-        engines[id] = engines[id] ?? {};
+    const prefix = `${skPath}.`;
+    let tree;
+    for (const [key, node] of Object.entries(self)) {
+      if (!key.startsWith(prefix)) {
+        continue;
       }
+      tree = tree ?? {};
+      const parts = key.slice(prefix.length).split('.');
+      let branch = tree;
+      for (const part of parts.slice(0, -1)) {
+        branch[part] = branch[part] ?? {};
+        branch = branch[part];
+      }
+      branch[parts.at(-1)] = node;
     }
-    return Object.keys(engines).length > 0 ? engines : undefined;
+    return tree;
   }
 
   const boat = {

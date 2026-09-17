@@ -47,6 +47,8 @@ describe('demo logbook', () => {
     for (const entry of entries.items) {
       const { body } = await ctx.request('GET', `/entries/${entry.id}/events?limit=500`);
       body.items.forEach((event) => types.add(event.type));
+      assert.ok(entry.startTanks.length > 0, `passage ${entry.id} notes its tanks`);
+      assert.ok(entry.startBatteries.length > 0, `passage ${entry.id} notes its batteries`);
       const track = await ctx.request('GET', `/entries/${entry.id}/track`);
       assert.equal(track.body.geometry.type, 'LineString');
     }

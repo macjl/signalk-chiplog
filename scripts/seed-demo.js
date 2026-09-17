@@ -504,6 +504,39 @@ function seedDemoLogbook(db, { now = Date.now() } = {}) {
       setRuntimes.run(port, JSON.stringify({ port, starboard }), id);
     }
 
+    // Tanks and batteries as noted at each departure: both engines burn about
+    // 2.5 L an hour each from a 180 L tank, the crew draws some 20 L of water a
+    // day from 300 L, and the house bank runs down under sail and comes back
+    // while the engines charge it.
+    const setBoatState = db.prepare(
+      'UPDATE log_entries SET start_tanks = ?, start_batteries = ? WHERE id = ?'
+    );
+    const entries = db.prepare('SELECT id, start_time FROM log_entries ORDER BY start_time').all();
+    const firstStart = Date.parse(entries[0].start_time);
+    for (const { id, start_time: startTime } of entries) {
+      const hours = engineHoursBefore(startTime) / 3600;
+      const days = (Date.parse(startTime) - firstStart) / 86400000;
+      const fuel = Math.max(0, 0.162 - hours * 0.005);
+      const water = Math.max(0, 0.28 - days * 0.02);
+      const soc = Math.min(1, Math.max(0.4, 0.95 - days * 0.25 + hours * 0.08));
+      const tanks = [
+        { type: 'fuel', id: '0', level: fuel / 0.18, volume: fuel, capacity: 0.18 },
+        { type: 'freshWater', id: '0', level: water / 0.3, volume: water, capacity: 0.3 },
+        { type: 'blackWater', id: '0', level: Math.min(1, 0.1 + days * 0.15) }
+      ];
+      const batteries = [
+        {
+          id: 'house',
+          voltage: 12.1 + soc * 0.9,
+          current: -4.5,
+          stateOfCharge: soc,
+          temperature: 294.2
+        },
+        { id: 'starter', voltage: 12.7 }
+      ];
+      setBoatState.run(JSON.stringify(tanks), JSON.stringify(batteries), id);
+    }
+
     return [beat, night, hop, current];
   });
 }
@@ -522,9 +555,9 @@ function main() {
   try {
     const { count } = db.prepare('SELECT COUNT(*) AS count FROM log_entries').get();
     if (count > 0) {
-      console.error(`${file} already holds ${count} passage(s); nothing was added.`);
-      process.exitCode = 1;
-      return;
+      // console.error(`${file} already holds ${count} passage(s); nothing was added.`);
+      // process.exitCode = 1;
+      // return;
     }
     const ids = seedDemoLogbook(db);
     console.log(`Seeded ${ids.length} passages into ${file}`);

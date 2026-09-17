@@ -34,6 +34,15 @@ describe('display formatting', () => {
     assert.equal(english.hours(null), '');
   });
 
+  it('writes levels, volumes and electrical readings', () => {
+    assert.equal(english.percent(0.856), '86%');
+    assert.equal(french.percent(0.5), '50\u00a0%');
+    assert.equal(french.volume(0.0965), '97 L');
+    assert.equal(english.voltage(12.84), '12.8 V');
+    assert.equal(french.current(-3.25), '-3,3 A');
+    assert.equal(english.percent(null), '');
+  });
+
   it('groups the thousands of a count', () => {
     assert.equal(english.count(43230), '43,230');
     assert.equal(french.count(43230), '43\u202f230');

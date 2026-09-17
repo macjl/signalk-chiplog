@@ -2,7 +2,14 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { createFormatter } from '../public/js/format.mjs';
 import { createTranslator } from '../public/js/i18n.mjs';
-import { buildRows, describeEvent, engineHours, engineName } from '../public/js/log-lines.mjs';
+import {
+  batteryName,
+  buildRows,
+  describeEvent,
+  engineHours,
+  engineName,
+  tankName
+} from '../public/js/log-lines.mjs';
 
 const t = createTranslator('en');
 const format = createFormatter({ locale: 'en', units: { knots: 'kn', nauticalMiles: 'nm' } });
@@ -145,6 +152,22 @@ describe('logbook lines', () => {
     assert.deepEqual(engineHours([{ engineRuntimes: null }, {}]), []);
     assert.equal(engineName('starboard', createTranslator('fr')), 'tribord');
     assert.equal(engineName('2', t), '2');
+  });
+
+  it('names tanks and batteries as the crew does', () => {
+    const fr = createTranslator('fr');
+    const fuel0 = { type: 'fuel', id: '0' };
+    const fuel1 = { type: 'fuel', id: '1' };
+    const water = { type: 'freshWater', id: '0' };
+    assert.equal(tankName(water, fr, [fuel0, fuel1, water]), 'Eau douce');
+    assert.equal(tankName(fuel1, t, [fuel0, fuel1, water]), 'Fuel 1');
+    assert.equal(tankName({ type: 'fuel', id: '0', name: 'Day tank' }, t), 'Day tank');
+    assert.equal(tankName({ type: 'hydrogen', id: '0' }, t), 'hydrogen');
+
+    assert.equal(batteryName({ id: 'house' }, fr), 'Servitude');
+    assert.equal(batteryName({ id: '2' }, t), 'Battery 2');
+    assert.equal(batteryName({ id: 'bow', name: 'Bow thruster' }, t), 'Bow thruster');
+    assert.equal(batteryName({ id: 'bow' }, t), 'bow');
   });
 
   it('puts a snapshot taken for an event on the event line', () => {

@@ -130,6 +130,68 @@ describe('instrument snapshots', () => {
     assert.equal(snapshot.engine_runtimes, null);
   });
 
+  it('note every tank and battery on the passage as it opens, tanks in a fixed order', () => {
+    const state = {
+      'tanks.freshWater.0.currentLevel': 0.5,
+      'tanks.freshWater.0.capacity': 0.2,
+      'tanks.fuel.1.currentLevel': 0.25,
+      'tanks.fuel.0.currentLevel': 0.8,
+      'tanks.fuel.0.currentVolume': 0.096,
+      'tanks.fuel.0.capacity': 0.12,
+      'tanks.fuel.0.name': 'Main fuel',
+      'tanks.blackWater.0.capacity': 0.05, // no level: nothing to record
+      'electrical.batteries.house.voltage': 12.8,
+      'electrical.batteries.house.current': -3.2,
+      'electrical.batteries.house.capacity.stateOfCharge': 0.86,
+      'electrical.batteries.house.temperature': 295.1,
+      'electrical.batteries.starter.voltage': 12.6
+    };
+    boat = createBoat()
+      .start()
+      .sail(5, { sog: 0, instruments: state })
+      .sail(5, { sog: 5, instruments: state })
+      // Drawn down under way: the departure state stays as it was noted.
+      .sail(70, { sog: 5, instruments: { ...state, 'tanks.fuel.0.currentLevel': 0.5 } });
+
+    const [entry] = boat.entries();
+    assert.deepEqual(JSON.parse(entry.start_tanks), [
+      { type: 'fuel', id: '0', name: 'Main fuel', level: 0.8, volume: 0.096, capacity: 0.12 },
+      { type: 'fuel', id: '1', level: 0.25 },
+      { type: 'freshWater', id: '0', level: 0.5, capacity: 0.2 }
+    ]);
+    assert.deepEqual(JSON.parse(entry.start_batteries), [
+      { id: 'house', voltage: 12.8, current: -3.2, stateOfCharge: 0.86, temperature: 295.1 },
+      { id: 'starter', voltage: 12.6 }
+    ]);
+    const columns = Object.keys(boat.observations()[0]);
+    assert.ok(!columns.some((column) => /tank|batter/.test(column)), 'not with the readings');
+  });
+
+  it('keep a tank level that has not moved, but not a battery reading', () => {
+    boat = createBoat()
+      .start()
+      .sail(1, {
+        sog: 0,
+        instruments: {
+          'tanks.fuel.0.currentLevel': 0.8,
+          'electrical.batteries.house.voltage': 12.8
+        }
+      })
+      .sail(30, { sog: 0 })
+      .sail(5, { sog: 5 });
+
+    const [entry] = boat.entries();
+    assert.deepEqual(JSON.parse(entry.start_tanks), [{ type: 'fuel', id: '0', level: 0.8 }]);
+    assert.equal(entry.start_batteries, null, 'a battery unrefreshed for half an hour');
+  });
+
+  it('note no tanks or batteries on a boat without them', () => {
+    boat = createBoat().start().sail(5, { sog: 0 }).sail(5, { sog: 5 });
+    const [entry] = boat.entries();
+    assert.equal(entry.start_tanks, null);
+    assert.equal(entry.start_batteries, null);
+  });
+
   it('leave out readings that are no longer current', () => {
     boat = createBoat()
       .start()

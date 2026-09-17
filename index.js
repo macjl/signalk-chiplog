@@ -472,6 +472,7 @@ module.exports = function (app) {
           now: () => new Date().toISOString(),
           vesselPosition: () => readVesselPosition(app),
           observeEvent: (entryId, time) => detector.observeEvent(entryId, time),
+          noteDeparture: (entryId) => detector.noteDeparture(entryId),
           usbExport,
           replayJob,
           pdfOptions,

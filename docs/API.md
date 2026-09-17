@@ -114,6 +114,8 @@ One entry, with the counts the detail view needs:
   "engineDuration": 4200,
   "sailDuration": 30330,
   "openedByEventId": null,
+  "startTanks": [{ "type": "fuel", "id": "0", "level": 0.8, "volume": 0.096, "capacity": 0.12 }],
+  "startBatteries": [{ "id": "house", "voltage": 12.8, "current": -3.2, "stateOfCharge": 0.86 }],
   "createdAt": "2026-09-13T06:12:00.000Z",
   "updatedAt": "2026-09-13T15:47:30.000Z",
   "counts": { "trackPoints": 1187, "observations": 11, "events": 9 },
@@ -126,6 +128,8 @@ One entry, with the counts the detail view needs:
 On an active entry, `endPosition` is the last position detection saw — not yet an arrival.
 
 `maxSpeed` is the highest speed over ground seen in the track, `null` with none. `maxWindSpeed` is the highest true wind speed seen, from the track and the instrument snapshots (SPEC §4.5.1) combined, falling back to apparent wind — flagged by `maxWindApparent` — only for a passage with no true-wind reading at all; `null` with neither.
+
+`startTanks` — `[{ type, id, name?, level?, volume?, capacity? }]` — and `startBatteries` — `[{ id, name?, voltage?, current?, stateOfCharge?, temperature? }]` — are the boat's state noted as the passage opened (SPEC §4.5.1): ratios, m³, V, A (negative discharging), K, a field absent when not published. `null` when the boat published none, for a passage opened after the fact (a queued tablet entry, a retrospective replay), or one opened before migration 11.
 
 `startPlacePending`/`endPlacePending` mean the name was generated from coordinates (`"46.1234N 1.5678W"`) and online geocoding has not answered yet (SPEC §4.8); the name may still change on its own. A UI can show it as provisional. Geocoded names from the public instance are OpenStreetMap data and need its attribution.
 

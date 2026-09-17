@@ -18,7 +18,9 @@ describe('POST /events', () => {
         navigation: {
           position: { value: { latitude: HERE.lat, longitude: HERE.lon }, timestamp }
         },
-        environment: { wind: { speedTrue: { value: 8.2, timestamp } } }
+        environment: { wind: { speedTrue: { value: 8.2, timestamp } } },
+        tanks: { fuel: { 0: { currentLevel: { value: 0.8, timestamp } } } },
+        electrical: { batteries: { house: { voltage: { value: 12.8, timestamp } } } }
       }
     });
   });
@@ -73,6 +75,26 @@ describe('POST /events', () => {
     const { body: detail } = await ctx.request('GET', `/entries/${entry.id}`);
     assert.equal(detail.openedByEventId, body.id);
     assert.equal(detail.counts.observations, 1, 'a live manoeuvre takes a snapshot');
+  });
+
+  it('notes the boat state on a passage the crew opens, but not on one opened after the fact', async () => {
+    const { body } = await post({ type: 'manoeuvre', subtype: 'cast_off' });
+
+    const { body: detail } = await ctx.request('GET', `/entries/${body.entryId}`);
+    assert.deepEqual(detail.startTanks, [{ type: 'fuel', id: '0', level: 0.8 }]);
+    assert.deepEqual(detail.startBatteries, [{ id: 'house', voltage: 12.8 }]);
+
+    await ctx.request('POST', `/entries/${body.entryId}/close`);
+    ctx.db.prepare('UPDATE log_entries SET end_lat = 0, end_lon = 0').run();
+    const queued = await post({
+      type: 'manoeuvre',
+      subtype: 'cast_off',
+      time: new Date().toISOString()
+    });
+    assert.equal(queued.body.openedEntry, true);
+    const { body: late } = await ctx.request('GET', `/entries/${queued.body.entryId}`);
+    assert.equal(late.startTanks, null);
+    assert.equal(late.startBatteries, null);
   });
 
   it('opens a passage when weighing anchor too, pending a name away from known places', async () => {

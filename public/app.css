@@ -775,34 +775,35 @@ main {
   height: 0.6rem;
 }
 
-.engine-hours {
+.state-table {
   margin-top: 1rem;
+  width: 100%;
   border-collapse: collapse;
   font-variant-numeric: tabular-nums;
 }
 
-.engine-hours caption {
+.state-table caption {
   text-align: left;
   font-weight: 600;
   padding-bottom: 0.35rem;
 }
 
-.engine-hours th,
-.engine-hours td {
+.state-table th,
+.state-table td {
   padding: 0.3rem 1rem 0.3rem 0;
   text-align: right;
   border-bottom: 1px solid var(--border);
 }
 
-.engine-hours th:first-child {
+.state-table th:first-child {
   text-align: left;
 }
 
-.engine-hours tbody th::first-letter {
+.state-table tbody th::first-letter {
   text-transform: uppercase;
 }
 
-.engine-hours thead th {
+.state-table thead th {
   color: var(--muted);
   font-weight: 500;
 }

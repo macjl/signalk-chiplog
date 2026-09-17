@@ -18,6 +18,7 @@ export function createFormatter({ locale, units, timeZone }) {
     new Intl.NumberFormat(locale, { minimumFractionDigits: digits, maximumFractionDigits: digits });
   const oneDecimal = number(1);
   const noDecimal = number(0);
+  const percentFormat = new Intl.NumberFormat(locale, { style: 'percent' });
   const missing = (value) => value === null || value === undefined || Number.isNaN(value);
 
   const dayFormat = new Intl.DateTimeFormat(locale, {
@@ -85,6 +86,13 @@ export function createFormatter({ locale, units, timeZone }) {
     },
     // An engine hour counter: hours with one decimal, as the gauge shows them.
     hours: (seconds) => (missing(seconds) ? '' : `${oneDecimal.format(seconds / 3600)} h`),
+    // Signal K ratios (0–1): tank levels, state of charge.
+    percent: (ratio) => (missing(ratio) ? '' : percentFormat.format(ratio)),
+    // Cubic metres, read in litres aboard.
+    volume: (cubicMetres) =>
+      missing(cubicMetres) ? '' : `${noDecimal.format(cubicMetres * 1000)} L`,
+    voltage: (volts) => (missing(volts) ? '' : `${oneDecimal.format(volts)} V`),
+    current: (amperes) => (missing(amperes) ? '' : `${oneDecimal.format(amperes)} A`),
     count: (value) => (missing(value) ? '' : noDecimal.format(value)),
     depth: (metres) => (missing(metres) ? '' : `${oneDecimal.format(metres)} m`),
     pressure: (pascals) => (missing(pascals) ? '' : `${noDecimal.format(pascals / 100)} hPa`),

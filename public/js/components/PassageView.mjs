@@ -2,7 +2,7 @@ import { html, useEffect, useRef, useState } from '../../vendor/preact-htm.mjs';
 import { apiUrl, fetchAll, get, request } from '../api.mjs';
 import { useLocale, usePolling } from '../context.mjs';
 import { dayKey } from '../days.mjs';
-import { engineHours, engineName } from '../log-lines.mjs';
+import { batteryName, engineHours, engineName, tankName } from '../log-lines.mjs';
 import { elapsedSeconds, ErrorNotice, Loading, PlaceName, passageTitle } from './common.mjs';
 import { PropulsionStrip } from './PropulsionStrip.mjs';
 import { TideCard } from './TideCard.mjs';
@@ -66,38 +66,97 @@ async function loadPassage(id) {
   };
 }
 
-// Each engine's hour counter at departure and arrival (or latest reading for a
-// passage in progress), as a paper log records them.
-function EngineHours({ observations, active }) {
-  const { t, format } = useLocale();
-  const engines = engineHours(observations);
-  if (engines.length === 0) {
+// One table of the boat's state: a row per engine, tank or battery, its
+// reading at departure, and optionally at arrival (or the latest, for a
+// passage in progress) and what changed in between.
+function StateTable({ caption, subject, rows, active, withEnd, change }) {
+  const { t } = useLocale();
+  if (rows.length === 0) {
     return null;
   }
   return html`
-    <table class="engine-hours">
+    <table class="state-table">
       <caption>
-        ${t('passage.engineHours')}
+        ${caption}
       </caption>
       <thead>
         <tr>
-          <th scope="col">${t('passage.engineHoursEngine')}</th>
+          <th scope="col">${subject}</th>
           <th scope="col">${t('passage.engineHoursStart')}</th>
-          <th scope="col">${active ? t('passage.engineHoursLatest') : t('passage.engineHoursEnd')}</th>
-          <th scope="col">${t('passage.engineHoursRun')}</th>
+          ${withEnd && html`<th scope="col">${active ? t('passage.engineHoursLatest') : t('passage.engineHoursEnd')}</th>`}
+          ${change && html`<th scope="col">${change}</th>`}
         </tr>
       </thead>
       <tbody>
-        ${engines.map(
-          (engine) => html`<tr key=${engine.engine}>
-            <th scope="row">${engineName(engine.engine, t)}</th>
-            <td>${format.hours(engine.start)}</td>
-            <td>${format.hours(engine.end)}</td>
-            <td>${format.hours(engine.run)}</td>
+        ${rows.map(
+          (row) => html`<tr key=${row.key}>
+            <th scope="row">${row.name}</th>
+            <td>${row.start}</td>
+            ${withEnd && html`<td>${row.end}</td>`}
+            ${change && html`<td>${row.change}</td>`}
           </tr>`
         )}
       </tbody>
     </table>
+  `;
+}
+
+// What a paper log notes before casting off: engine hours -- with the same at
+// arrival -- and the tanks and batteries noted as the passage opened.
+function BoatState({ entry, observations, active }) {
+  const { t, format } = useLocale();
+  const engines = engineHours(observations).map((engine) => ({
+    key: engine.engine,
+    name: engineName(engine.engine, t),
+    start: format.hours(engine.start),
+    end: format.hours(engine.end),
+    change: format.hours(engine.run)
+  }));
+  const tanks = entry.startTanks ?? [];
+  const batteries = entry.startBatteries ?? [];
+  const tank = (reading) =>
+    [format.percent(reading.level), format.volume(reading.volume)].filter(Boolean).join(' · ');
+  const battery = (reading) =>
+    [
+      format.percent(reading.stateOfCharge),
+      format.voltage(reading.voltage),
+      format.current(reading.current)
+    ]
+      .filter(Boolean)
+      .join(' · ');
+  if (engines.length + tanks.length + batteries.length === 0) {
+    return null;
+  }
+  return html`
+    <section class="card">
+      <h2>${t('passage.boatState')}</h2>
+      <${StateTable}
+        caption=${t('passage.engineHours')}
+        subject=${t('passage.engineHoursEngine')}
+        rows=${engines}
+        active=${active}
+        withEnd
+        change=${t('passage.engineHoursRun')}
+      />
+      <${StateTable}
+        caption=${t('passage.tanks')}
+        subject=${t('passage.tank')}
+        rows=${tanks.map((item) => ({
+          key: `${item.type}.${item.id}`,
+          name: tankName(item, t, tanks),
+          start: tank(item)
+        }))}
+      />
+      <${StateTable}
+        caption=${t('passage.batteries')}
+        subject=${t('passage.battery')}
+        rows=${batteries.map((item) => ({
+          key: item.id,
+          name: batteryName(item, t),
+          start: battery(item)
+        }))}
+      />
+    </section>
   `;
 }
 
@@ -387,8 +446,9 @@ export function PassageView({ id }) {
           busy=${busy}
           onSwitch=${switchSegment}
         />
-        <${EngineHours} observations=${data.observations} active=${active} />
       </section>
+
+      <${BoatState} entry=${entry} observations=${data.observations} active=${active} />
     </div>
 
     <section class="card">

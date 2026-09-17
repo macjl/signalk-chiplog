@@ -37,6 +37,27 @@ export function engineHours(observations) {
   }));
 }
 
+// A tank as the crew calls it: the name the boat gives it, else its kind --
+// "fuel 1" when there is more than one of that kind.
+export function tankName(tank, t, tanks = []) {
+  if (tank.name) {
+    return tank.name;
+  }
+  const type = t.has(`tank.${tank.type}`) ? t(`tank.${tank.type}`) : tank.type;
+  const sameType = tanks.filter((other) => other.type === tank.type);
+  return sameType.length > 1 ? `${type} ${tank.id}` : type;
+}
+
+export function batteryName(battery, t) {
+  if (battery.name) {
+    return battery.name;
+  }
+  if (t.has(`battery.${battery.id}`)) {
+    return t(`battery.${battery.id}`);
+  }
+  return /^\d+$/.test(battery.id) ? t('battery.numbered', { id: battery.id }) : battery.id;
+}
+
 export function manoeuvreName(key, t, manoeuvreLabels = {}) {
   const translation = `manoeuvre.${key}`;
   return t.has(translation) ? t(translation) : (manoeuvreLabels[key] ?? key);

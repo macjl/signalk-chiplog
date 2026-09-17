@@ -135,6 +135,8 @@ The logbook lines the facsimile PDF renders — and the CSV export already lists
 
 A snapshot already in a periodic slot, such as one taken for a manoeuvre, stands in for the periodic one.
 
+As a passage opens, the boat's state is noted on the passage itself (`log_entries`), as a skipper does before casting off — once, not with the readings along the way: every tank that publishes a level or volume (`tanks.<type>.<id>`), and every battery (`electrical.batteries.<id>`: state of charge, voltage, current, temperature). Detection notes it when it opens the passage; for a passage the crew opens by casting off on the tablet, it is noted as that manoeuvre is logged — live only, like snapshots. The passage page shows it in a **Boat status** card alongside the engine hours. A tank level is kept like a counter, whatever its age, since many senders only publish when it moves; battery readings must be current within 15 minutes. The PDF and CSV do not carry them yet; the JSON export does.
+
 Engine hours are recorded for every engine that publishes an hour counter (`propulsion.<id>.runTime`), so a twin-engine boat logs both. The passage page and the PDF show each engine's counter at departure and at arrival — the latest reading for a passage in progress — and the hours run in between; the CSV has a column per engine. Sensors are followed on every detection cycle, not only when a snapshot is due, so a sensor that died during the hour is recognised as such.
 
 ### 4.5.2 Tide forecast

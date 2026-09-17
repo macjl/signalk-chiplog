@@ -15,6 +15,7 @@ function seedPassage(db) {
     end_lon: -1.79,
     start_place_name: 'La Rochelle',
     end_place_name: 'Les Sables',
+    start_tanks: JSON.stringify([{ type: 'fuel', id: '0', level: 0.8 }]),
     distance: 68500
   });
   insert(db, 'track_points', { entry_id: entryId, time: at(0), lat: 46.1591, lon: -1.1522 });
@@ -118,7 +119,7 @@ describe('export', () => {
 
       assert.equal(status, 200);
       assert.match(headers.get('content-disposition'), /chiplog\.json/);
-      assert.equal(body.schemaVersion, 10);
+      assert.equal(body.schemaVersion, 11);
       assert.equal(body.entries.length, 1);
       const [bundle] = body.entries;
       assert.equal(bundle.entry.distance, 68500);
@@ -128,6 +129,8 @@ describe('export', () => {
         port: 812.5 * 3600,
         starboard: 798.25 * 3600
       });
+      assert.deepEqual(bundle.entry.startTanks, [{ type: 'fuel', id: '0', level: 0.8 }]);
+      assert.equal(bundle.entry.startBatteries, null);
       assert.equal(bundle.events.length, 1);
     });
 

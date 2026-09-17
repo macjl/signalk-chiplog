@@ -26,6 +26,15 @@ One row per passage (start → underway → stop), per SPEC §3.1.
 
 `last_moving_at` (migration 2) is a heartbeat: passage detection refreshes it about once a minute while under way. It exists for restarts — when the plugin comes back to an open entry, it is the only record of when the boat was last seen moving, and so dates the end of a passage that stopped while the plugin was off. It is not exposed by the API.
 
+`start_tanks` and `start_batteries` (migration 11) hold the boat's state noted as the passage opened (SPEC §4.5.1) — once, on the passage, since it is what a skipper checks before casting off, not a reading to follow along the way like those in `observations`. Both are JSON arrays in SI units, `NULL` when the boat publishes none or the passage was opened after the fact:
+
+| Column | Signal K paths | Current for |
+|---|---|---|
+| `start_tanks` | every `tanks.<type>.<id>` with a `currentLevel` or `currentVolume`: `[{"type": "fuel", "id": "0", "name": "…", "level": 0.8, "volume": 0.096, "capacity": 0.12}]` — ratio and m³ (`.name`, `.capacity`), a field absent when not published; fuel first, then fresh water, grey and black water, the others after | counter |
+| `start_batteries` | every `electrical.batteries.<id>` with a current reading: `[{"id": "house", "name": "…", "voltage": 12.8, "current": -3.2, "stateOfCharge": 0.86, "temperature": 295.1}]` — V, A (negative discharging), ratio (`capacity.stateOfCharge`), K | 15 min |
+
+They are written by detection as it opens the entry, or, for an entry the crew opens by hand, as the departure manoeuvre is logged live. Merging keeps the earlier entry's, its departure being the merged passage's.
+
 `opened_by_event_id` (migration 4) points to the departure manoeuvre — cast off or anchor up — that opened the entry by hand before the vessel moved (SPEC §4.3). Such an entry starts with `stopped_since` equal to `start_time` and `last_moving_at` null: detection sees a stopped passage, resumes it on the first movement and closes it like any long stop if the vessel never leaves. Deleting that event while `last_moving_at` is still null and nothing else was logged deletes the entry too — the undo of a mistaken tap.
 
 While an entry is **active**, `end_lat`/`end_lon` hold the last position seen moving, then the position where the vessel stopped; they become the arrival position when the entry closes. Clients should not present them as an arrival until `state` is `closed`.
