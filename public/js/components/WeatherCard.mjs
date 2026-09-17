@@ -1,9 +1,13 @@
 import { html } from '../../vendor/preact-htm.mjs';
 import { useLocale } from '../context.mjs';
-import { beaufort, compassPoint, forecastSteps, toDegrees, weatherKind } from '../weather.mjs';
-
-const has = (steps, fields) =>
-  steps.some((step) => fields.some((field) => typeof step[field] === 'number'));
+import {
+  beaufort,
+  compassPoint,
+  forecastSteps,
+  toDegrees,
+  weatherColumns,
+  weatherKind
+} from '../weather.mjs';
 
 // An arrow pointing where the flow goes: wind, waves and swell are given as
 // where they come from, so theirs is turned round; the current's is not.
@@ -28,27 +32,18 @@ function Sea({ height, period, direction }) {
     <span class="weather-sub">${format.period(period)} <${Flow} radians=${direction} from /></span>`;
 }
 
-export function WeatherCard({ weather }) {
+export function WeatherCard({ weather, placeName }) {
   const { t, format } = useLocale();
   const steps = forecastSteps(weather.points, 3);
   if (steps.length === 0) {
     return null;
   }
   // Columns the forecast has nothing for are left out: no sea state inland.
-  const columns = {
-    sky: has(steps, ['weatherCode', 'precipitation']),
-    wind: has(steps, ['windSpeed']),
-    waves: has(steps, ['waveHeight']),
-    swell: has(steps, ['swellHeight']),
-    pressure: has(steps, ['pressure']),
-    visibility: has(steps, ['visibility']),
-    temperature: has(steps, ['airTemperature', 'seaTemperature']),
-    current: has(steps, ['currentSpeed'])
-  };
+  const columns = weatherColumns(steps);
 
   return html`
     <section class="card weather-card">
-      <h2>${t('passage.weather')}</h2>
+      <h2>${t('passage.weather', { place: placeName ?? t('place.unknown') })}</h2>
       <div class="weather-scroll">
         <table class="weather-table" aria-label=${t('weather.tableLabel')}>
           <thead>

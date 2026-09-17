@@ -6,8 +6,9 @@ import {
   beaufort,
   compassPoint,
   COMPASS_POINTS,
-  describeStep,
+  describeStepColumns,
   forecastSteps,
+  weatherColumns,
   weatherKind
 } from '../public/js/weather.mjs';
 
@@ -97,7 +98,7 @@ describe('weather reading helpers', () => {
   });
 });
 
-describe('a forecast step as a line of text', () => {
+describe('a forecast step split by column', () => {
   const t = createTranslator('fr');
   const format = createFormatter({
     locale: 'fr',
@@ -105,8 +106,8 @@ describe('a forecast step as a line of text', () => {
     timeZone: 'Europe/Paris'
   });
 
-  it('says everything the forecast has', () => {
-    const line = describeStep(
+  it('says everything the forecast has, one column at a time', () => {
+    const columns = describeStepColumns(
       {
         time: at(8),
         weatherCode: 80,
@@ -130,21 +131,41 @@ describe('a forecast step as a line of text', () => {
       { t, format }
     );
 
-    assert.equal(
-      line,
-      '10:00 Averses, vent SO 14,0 nd F4 (rafales 22,0 nd), pluie 1,2 mm, vagues 1,2 m 7 s O, ' +
-        'houle 0,8 m 11 s O, 1 015 hPa, visibilité 13,0 M, air 18,0 °C, eau 16,0 °C, ' +
-        'courant 1,0 nd vers NE'
-    );
+    assert.deepEqual(columns, {
+      sky: { main: 'Averses', sub: '1,2 mm' },
+      wind: { main: 'Force 4 SO 14,0 nd', sub: 'rafales 22,0 nd' },
+      waves: { main: '1,2 m', sub: '7 s O' },
+      swell: { main: '0,8 m', sub: '11 s O' },
+      pressure: { main: '1 015 hPa', sub: null },
+      visibility: { main: '13,0 M', sub: null },
+      temperature: { main: '18,0 °C', sub: 'eau 16,0 °C' },
+      current: { main: '1,0 nd', sub: 'NE' }
+    });
   });
 
-  it('leaves out what it lacks, and can carry the date', () => {
-    assert.equal(
-      describeStep(
-        { time: at(8), windSpeed: 5, precipitation: 0, currentSpeed: 0.2 },
-        { t, format, withDate: true }
-      ),
-      '13 sept. 10:00 vent 9,7 nd F3, courant 0,4 nd'
+  it('leaves out the columns it lacks', () => {
+    assert.deepEqual(
+      describeStepColumns({ time: at(8), windSpeed: 5, precipitation: 0 }, { t, format }),
+      { wind: { main: 'Force 3 9,7 nd', sub: null } }
     );
+  });
+});
+
+describe('which columns a forecast has', () => {
+  it('finds only the columns with at least one value', () => {
+    const steps = [
+      { time: at(8), windSpeed: 5 },
+      { time: at(11), waveHeight: 1 }
+    ];
+    assert.deepEqual(weatherColumns(steps), {
+      sky: false,
+      wind: true,
+      waves: true,
+      swell: false,
+      pressure: false,
+      visibility: false,
+      temperature: false,
+      current: false
+    });
   });
 });

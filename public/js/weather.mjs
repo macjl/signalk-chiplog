@@ -104,75 +104,90 @@ export function toDegrees(radians) {
   return typeof radians === 'number' && !Number.isNaN(radians) ? (radians * 180) / Math.PI : null;
 }
 
-// One step as a line of text, for the PDF: only what the forecast has.
-export function describeStep(step, { t, format, withDate = false }) {
+// Which columns a set of steps has anything to show in -- a table (the
+// passage page, the PDF block) leaves out the rest: no sea state inland.
+export function weatherColumns(steps) {
+  const has = (fields) =>
+    steps.some((step) => fields.some((field) => typeof step[field] === 'number'));
+  return {
+    sky: has(['weatherCode', 'precipitation']),
+    wind: has(['windSpeed']),
+    waves: has(['waveHeight']),
+    swell: has(['swellHeight']),
+    pressure: has(['pressure']),
+    visibility: has(['visibility']),
+    temperature: has(['airTemperature', 'seaTemperature']),
+    current: has(['currentSpeed'])
+  };
+}
+
+// One step as a `{ main, sub }` per column, shared by the passage page's
+// table and the PDF's weather block -- only for the columns it has data for.
+export function describeStepColumns(step, { t, format }) {
   const direction = (radians) => {
     const point = compassPoint(radians);
-    return point ? t(`compass.${point}`) : '';
+    return point ? t(`compass.${point}`) : null;
   };
-  const joined = (...parts) => parts.filter(Boolean).join(' ');
-  const parts = [];
+  const columns = {};
   const kind = weatherKind(step.weatherCode);
-  if (kind) {
-    parts.push(t(`weather.kind.${kind}`));
+  const hasRain = typeof step.precipitation === 'number' && step.precipitation > 0;
+  if (kind || hasRain) {
+    columns.sky = {
+      main: kind ? t(`weather.kind.${kind}`) : null,
+      sub: hasRain ? format.precipitation(step.precipitation) : null
+    };
   }
   if (typeof step.windSpeed === 'number') {
     const force = beaufort(step.windSpeed);
-    parts.push(
-      joined(
-        t('weather.lineWind'),
+    columns.wind = {
+      main: [
+        t('weather.beaufort', { force }),
         direction(step.windDirection),
-        format.speed(step.windSpeed),
-        t('weather.beaufortShort', { force }),
-        typeof step.windGust === 'number' &&
-          `(${t('weather.gust', { speed: format.speed(step.windGust) })})`
-      )
-    );
-  }
-  if (typeof step.precipitation === 'number' && step.precipitation > 0) {
-    parts.push(t('weather.lineRain', { amount: format.precipitation(step.precipitation) }));
+        format.speed(step.windSpeed)
+      ]
+        .filter(Boolean)
+        .join(' '),
+      sub:
+        typeof step.windGust === 'number'
+          ? t('weather.gust', { speed: format.speed(step.windGust) })
+          : null
+    };
   }
   if (typeof step.waveHeight === 'number') {
-    parts.push(
-      joined(
-        t('weather.lineWaves', { height: format.depth(step.waveHeight) }),
-        format.period(step.wavePeriod),
-        direction(step.waveDirection)
-      )
-    );
+    columns.waves = {
+      main: format.depth(step.waveHeight),
+      sub: [format.period(step.wavePeriod), direction(step.waveDirection)].filter(Boolean).join(' ')
+    };
   }
   if (typeof step.swellHeight === 'number') {
-    parts.push(
-      joined(
-        t('weather.lineSwell', { height: format.depth(step.swellHeight) }),
-        format.period(step.swellPeriod),
-        direction(step.swellDirection)
-      )
-    );
+    columns.swell = {
+      main: format.depth(step.swellHeight),
+      sub: [format.period(step.swellPeriod), direction(step.swellDirection)]
+        .filter(Boolean)
+        .join(' ')
+    };
   }
   if (typeof step.pressure === 'number') {
-    parts.push(format.pressure(step.pressure));
+    columns.pressure = { main: format.pressure(step.pressure), sub: null };
   }
   if (typeof step.visibility === 'number') {
-    parts.push(t('weather.lineVisibility', { distance: format.distance(step.visibility) }));
+    columns.visibility = { main: format.distance(step.visibility), sub: null };
   }
-  if (typeof step.airTemperature === 'number') {
-    parts.push(t('weather.lineAir', { temperature: format.temperature(step.airTemperature) }));
-  }
-  if (typeof step.seaTemperature === 'number') {
-    parts.push(t('weather.lineSea', { temperature: format.temperature(step.seaTemperature) }));
+  if (typeof step.airTemperature === 'number' || typeof step.seaTemperature === 'number') {
+    columns.temperature = {
+      main:
+        typeof step.airTemperature === 'number' ? format.temperature(step.airTemperature) : null,
+      sub:
+        typeof step.seaTemperature === 'number'
+          ? t('weather.lineSea', { temperature: format.temperature(step.seaTemperature) })
+          : null
+    };
   }
   if (typeof step.currentSpeed === 'number') {
-    const towards = direction(step.currentDirection);
-    parts.push(
-      joined(
-        t('weather.lineCurrent', { speed: format.speed(step.currentSpeed) }),
-        towards && t('weather.towards', { direction: towards })
-      )
-    );
+    columns.current = {
+      main: format.speed(step.currentSpeed),
+      sub: direction(step.currentDirection)
+    };
   }
-  const when = withDate
-    ? `${format.shortDate(step.time)} ${format.time(step.time)}`
-    : format.time(step.time);
-  return `${when} ${parts.join(', ')}`;
+  return columns;
 }

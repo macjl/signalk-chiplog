@@ -104,26 +104,43 @@ describe('facsimile PDF logbook', () => {
     );
   });
 
-  it('notes the weather forecast at departure, a line every 3 hours', async () => {
+  it('gives the weather forecast its own block above the day, not mixed into its events', async () => {
     const french = await render({ language: 'fr', timeZone: 'Europe/Paris' });
+    // A block per passage that has a forecast, named after the place it was
+    // fetched near, one per day it departed on.
+    assert.deepEqual(french.text.match(/Prévisions météo marine — [^\n]+/g), [
+      'Prévisions météo marine — La Rochelle (Les Minimes)',
+      'Prévisions météo marine — Saint-Martin-de-Ré',
+      'Prévisions météo marine — Port Bourgenay'
+    ]);
+    // The block, and its own table, come before the day's table of events
+    // and observations -- above it, not one of its rows.
     assert.ok(
       french.text.includes(
-        'Départ de La Rochelle (Les Minimes)\nHeures moteur : bâbord 812,4 h, tribord 798,1 h\n' +
-          'Prévisions météo :\n10:00 Couvert, vent SO 8,0 nd F3 (rafales 13,9 nd), vagues 0,9 m 6 s SO,'
+        'Prévisions météo marine — La Rochelle (Les Minimes)\n' +
+          'Heure\nCiel\nVent\nVagues\nHoule\nPression\nVisibilité\nAir / eau\nCourant\n' +
+          '10:00\n10 sept.\nCouvert\nForce 3 SO 8,0 nd\nrafales 13,9 nd\n0,9 m\n6 s SO'
       )
     );
     assert.ok(
-      french.text.includes('13:00 Averses, vent SO 10,3 nd F3 (rafales 16,9 nd), pluie 1,6 mm')
+      french.text.includes(
+        'Heure\nPosition\nRoute\nVitesse\nVent\nBaro\nSonde\nMoteur/voile\nRemarques\n' +
+          "10:00\n46°08.80'N 001°10.12'W\n250°\n2,5 nd\n10,7 nd 281°\n1 017 hPa\n14,2 m\n" +
+          'Moteur\nDépart de La Rochelle (Les Minimes)'
+      )
     );
-    assert.ok(french.text.includes('Orage, vent'));
-    // Three passages with a forecast, eight lines each, dated once past the
-    // departure's day.
-    const steps = french.text.match(/^(\d+ sept\. )?\d\d:00 \p{L}/gmu);
-    assert.equal(steps.length, 24);
-    assert.ok(steps.some((step) => step.startsWith('11 sept. 01:00')));
+    assert.ok(french.text.includes('Orage'));
+    // Eight three-hourly steps per passage, each showing a Beaufort force.
+    assert.equal((french.text.match(/Force \d/g) ?? []).length, 24);
 
     const english = await render({ language: 'en', timeZone: 'Europe/Paris' });
-    assert.ok(english.text.includes('Weather forecast:\n10:00 Overcast, wind SW 8.0 kn F3'));
+    assert.ok(
+      english.text.includes(
+        'Weather forecast — La Rochelle (Les Minimes)\n' +
+          'Time\nSky\nWind\nWaves\nSwell\nPressure\nVisibility\nAir / sea\nCurrent\n' +
+          '10:00\nSep 10\nOvercast\nForce 3 SW 8.0 kn\ngusts 13.9 kn'
+      )
+    );
   });
 
   it('says when a period holds no passage', async () => {

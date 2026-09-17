@@ -164,7 +164,7 @@ As implemented (`lib/weather-forecaster.js`, on the same engine and schedule as 
 - **Directions keep the usual conventions**: wind, waves and swell are where they come *from*, the current where it flows *towards* — as in Signal K. The passage page says so.
 - **The sea is a complement.** Far from the sea (a lake, a river) or when only the Marine request fails, the forecast is kept with the atmosphere alone; the passage page leaves out the columns it has nothing for. Only a Forecast request that fails for lack of network, rate limiting or a server error is retried; when neither service has anything, an empty forecast is recorded and not asked for again.
 - **Display: a row every 3 hours**, like a coastal bulletin — eight rows for the 24 h. A row shows its first hour's readings, with the strongest gust, the rain summed and the most significant sky over its three hours, so a squall between two rows is not lost. Wind is shown as a Beaufort force as well as in knots; a thunderstorm or a force 7 or more stands out.
-- **PDF**: the same eight steps, one line each, under the departure's remarks.
+- **PDF**: the same eight steps, as a block of its own spanning the full page width above the day's table of events and observations — not one of its rows — titled with the place the forecast was fetched near (the departure place, known or pending). The passage page's title carries the same place.
 
 ### 4.6 Automatically logged Signal K events
 
@@ -286,7 +286,7 @@ Deferred to V2: full shortcut customization, publication to a remote server, ded
 | Map tiles | OpenStreetMap with the OpenSeaMap seamark overlay, online; offline the track is still drawn on a blank map. Offline charts are V2 |
 | Instrument snapshots | At departure, hourly on the clock (configurable), at arrival and with each live manoeuvre, note or sketch (§4.5.1) |
 | Tide forecast | Open-Meteo Marine, free and keyless, fetched once at departure for the next 24 h; extremes found from the stored curve, not asked for separately; heights relative to mean sea level, disclosed as such rather than presented as a charted datum (§4.5.2) |
-| Marine weather forecast | Open-Meteo Forecast + Marine, free and keyless, fetched once at departure for the next 24 h, stored hourly; shown every 3 h on the passage page and under the departure in the PDF; the sea part optional (§4.5.3) |
+| Marine weather forecast | Open-Meteo Forecast + Marine, free and keyless, fetched once at departure for the next 24 h, stored hourly; shown every 3 h, titled with the departure place, on the passage page and in a full-width PDF block above the day's table; the sea part optional (§4.5.3) |
 | Speed fallback | SOG averaged over 3 min; under way above a configurable speed (1 kn), stopped below half of it. Transitions dated from raw speed in both modes (§4.2) |
 | GPS track sampling | Configurable fixed interval (15 s) + extra point on a 15° course or 1 kn speed change (§4.1) |
 | PDF export | Traditional logbook facsimile, A4 landscape, a page per day in ship's time, English or French; home-made PDF writer with the standard fonts, no dependency (§4.5) |

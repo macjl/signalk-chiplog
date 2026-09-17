@@ -109,7 +109,7 @@ When a passage opens, Chiplog fetches the predicted water height near the depart
 
 ### Marine weather forecast
 
-When a passage opens, Chiplog also fetches the marine weather forecast near the departure for the next 24 hours (on by default, can be turned off) and shows it on the passage page as a table every 3 hours: sky and rain, wind (Beaufort force, direction, speed and gusts), waves and swell (height, period, direction), pressure, visibility, air and sea temperature, and current. A thunderstorm or a force 7 or more stands out in red. Each row gives the strongest gust and the rain over its three hours. The PDF logbook lists the same forecast under the departure.
+When a passage opens, Chiplog also fetches the marine weather forecast near the departure for the next 24 hours (on by default, can be turned off) and shows it, titled with the departure place, as a table every 3 hours: sky and rain, wind (Beaufort force, direction, speed and gusts), waves and swell (height, period, direction), pressure, visibility, air and sea temperature, and current. A thunderstorm or a force 7 or more stands out in red. Each row gives the strongest gust and the rain over its three hours. The PDF logbook lists the same forecast, titled the same way, in its own full-width block above the day's table of events and observations.
 
 Arrows point where the wind, the sea and the current are going; the compass point next to them is where wind, waves and swell come _from_, but where the current flows _to_, as sailors usually read them. Like the tide, it is fetched once at departure and not updated afterwards; far from the sea, only the atmospheric part is shown.
 

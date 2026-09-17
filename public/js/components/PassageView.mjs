@@ -439,7 +439,7 @@ export function PassageView({ id }) {
       }
     </section>
 
-    ${data.weather && html`<${WeatherCard} weather=${data.weather} />`}
+    ${data.weather && html`<${WeatherCard} weather=${data.weather} placeName=${entry.startPlaceName} />`}
 
     <div class="card-row">
       ${data.tide && html`<${TideCard} tide=${data.tide} placeName=${entry.startPlaceName} />`}
