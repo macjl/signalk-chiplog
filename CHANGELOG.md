@@ -4,6 +4,8 @@ All notable changes to Chiplog are documented here. The format follows [Keep a C
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-09-16
+
 ### Added
 
 - The passage page has a **Boat status** card: each engine's hour counter, at departure and arrival, and every tank's level (and volume) and every battery's charge, voltage and current as noted at departure. Tanks and batteries are noted once on the passage as it opens (`startTanks`, `startBatteries`), whether detection or the crew opens it, and included in the JSON export.
@@ -100,7 +102,8 @@ First release.
 - REST API under `/plugins/signalk-chiplog/api`, documented in [docs/API.md](docs/API.md).
 - Single SQLite database through Node's built-in `node:sqlite`: no native module to build.
 
-[Unreleased]: https://github.com/ricard33/signalk-chiplog/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/ricard33/signalk-chiplog/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/ricard33/signalk-chiplog/compare/v1.2.0...v2.0.0
 [1.2.0]: https://github.com/ricard33/signalk-chiplog/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/ricard33/signalk-chiplog/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/ricard33/signalk-chiplog/releases/tag/v1.0.0
