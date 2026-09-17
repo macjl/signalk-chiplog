@@ -310,6 +310,26 @@ describe('export', () => {
       assert.deepEqual(json.entries[0].weather.points, [{ time: at(0), windSpeed: 6 }]);
     });
 
+    it('rewrites a passage once its tide forecast arrives, and exports it', async () => {
+      const first = seedPassage(ctx.db);
+      await exportUsb();
+      await pause();
+
+      ctx.db
+        .prepare(
+          `INSERT INTO tide_forecasts (entry_id, lat, lon, fetched_at, points)
+           VALUES (?, 46.15, -1.17, ?, ?)`
+        )
+        .run(first, at(0), JSON.stringify([{ time: at(0), height: 2.1 }]));
+      const body = await exportUsb();
+
+      assert.deepEqual([body.written, body.unchanged], [1, 0]);
+      const json = JSON.parse(
+        fs.readFileSync(path.join(usbDir(), '2026-09-13_0800Z_La-Rochelle_Les-Sables.json'), 'utf8')
+      );
+      assert.deepEqual(json.entries[0].tide.points, [{ time: at(0), height: 2.1 }]);
+    });
+
     it('removes the files of passages renamed, merged or deleted, and nothing else', async () => {
       const first = seedPassage(ctx.db);
       const second = seedSecondPassage(ctx.db);

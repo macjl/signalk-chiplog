@@ -150,6 +150,93 @@ describe('facsimile PDF logbook', () => {
     );
   });
 
+  it('shows the tanks and batteries noted at departure below the weather block', async () => {
+    const { text } = await render({ language: 'en', timeZone: 'Europe/Paris' });
+    // Drawn after the weather block and before the day's table, one per
+    // departure that has a boat state recorded.
+    assert.ok(
+      text.includes(
+        '1.1 kn\nSW\n' +
+          'Boat status\n' +
+          'Fuel: 90% · 162 L\nFresh water: 93% · 280 L\nBlack water: 10%\n' +
+          'House: 95% · 13.0 V · -4.5 A\nStarter: 12.7 V\n' +
+          'Time\nPosition\nCourse\nSOG\nWind\nBaro\nDepth\nEngine/sail\nRemarks'
+      )
+    );
+
+    const french = await render({ language: 'fr', timeZone: 'Europe/Paris' });
+    assert.ok(french.text.includes('État du bord\nCarburant: 90 % · 162 L'));
+  });
+
+  it('draws the tide and boat-status blocks side by side, either optional', async () => {
+    const start = Date.parse('2026-06-01T06:00:00.000Z');
+    const minutes = (n) => new Date(start + n * 60 * 1000).toISOString();
+    const points = Array.from({ length: 24 }, (_, i) => ({
+      time: new Date(start + i * 60 * 60 * 1000).toISOString(),
+      height: 2 + 2 * Math.sin((i / 12) * Math.PI)
+    }));
+    const bundleOf = (id, boatState, tide) => ({
+      entry: {
+        id,
+        startTime: minutes(id * 120),
+        endTime: minutes(id * 120 + 60),
+        startPlaceName: `Place ${id}`,
+        endPlaceName: 'B',
+        startPosition: { lat: 46, lon: -1 },
+        endPosition: { lat: 46.1, lon: -1 },
+        distance: 1000,
+        engineDuration: 0,
+        sailDuration: 3600,
+        ...boatState
+      },
+      trackPoints: [],
+      propulsion: [{ type: 'sail', startTime: minutes(id * 120), endTime: minutes(id * 120 + 60) }],
+      observations: [],
+      events: [],
+      tide
+    });
+    const both = bundleOf(
+      1,
+      {
+        startTanks: [{ type: 'fuel', id: '0', level: 0.8, volume: 0.12 }],
+        startBatteries: [{ id: '0', stateOfCharge: 0.9, voltage: 12.6, current: -3.2 }]
+      },
+      { points }
+    );
+    const tideOnly = bundleOf(2, {}, { points });
+    const statusOnly = bundleOf(
+      3,
+      { startTanks: [{ type: 'fuel', id: '0', level: 0.5, volume: 0.09 }] },
+      null
+    );
+
+    const { text: both1 } = readPdf(
+      await renderLogbookPdf([both], { language: 'en', timeZone: 'UTC', now: minutes(200) })
+    );
+    // Drawn as two separate blocks -- all of the tide's lines, then all of
+    // the boat status's, not interleaved row by row like the weather table.
+    assert.ok(
+      both1.includes(
+        'Tide\n' +
+          'High tide Jun 1 12:00 — 4.0 m\nLow tide Jun 2 00:00 — 0.0 m\n' +
+          'Boat status\n' +
+          'Fuel: 80% · 120 L\nBattery 0: 90% · 12.6 V · -3.2 A'
+      )
+    );
+
+    const { text: tideText } = readPdf(
+      await renderLogbookPdf([tideOnly], { language: 'en', timeZone: 'UTC', now: minutes(320) })
+    );
+    assert.ok(tideText.includes('Tide\nHigh tide'));
+    assert.ok(!tideText.includes('Boat status'));
+
+    const { text: statusText } = readPdf(
+      await renderLogbookPdf([statusOnly], { language: 'en', timeZone: 'UTC', now: minutes(440) })
+    );
+    assert.ok(statusText.includes('Boat status\nFuel: 50% · 90 L'));
+    assert.ok(!statusText.includes('Tide\n'));
+  });
+
   it('says when a period holds no passage', async () => {
     const { pages } = await render(
       { language: 'fr', timeZone: 'Europe/Paris' },
