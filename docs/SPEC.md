@@ -7,6 +7,7 @@ Status: draft v0.2 — result of two scoping sessions; the structuring points (�
 ## 1. Context and goal
 
 Chiplog aims to replace the paper logbook with a Signal K plugin that:
+
 - leverages data already available on the Signal K bus to automate entries (position, speed, engine/sail state, stopped/underway);
 - allows fast manual entry (handwritten or keyboard annotations) for anything sensors can't infer;
 - remains consultable and usable even if the vessel is lost (export/external sync).
@@ -31,6 +32,7 @@ Functional references: [meri-imperiumi/signalk-logbook](https://github.com/meri-
 ### 3.1 Granularity of an entry ("passage")
 
 A log entry corresponds to a start → underway → stop cycle, **with configurable tolerance for short stops**:
+
 - A `stop_closure_threshold` parameter (`stopClosureMinutes`, 30 min by default, user-configurable) defines the stop duration below which we stay within the same entry (e.g. waiting at a lock, lunch anchorage).
 - The entry is closed as soon as the vessel stops, so the logbook shows the arrival straight away. Getting under way again within the threshold reopens it, the stop being kept as a `stopover` event (§4.2); beyond the threshold, a new underway cycle triggers a new entry.
 - Each entry carries: start date/time, end date/time, start/end position, **start/end place name** (see §4.8), distance covered, engine vs sail duration, GPS track.
@@ -45,6 +47,7 @@ Above the day-grouped list, a summary line totals every entry, not just the page
 ### 3.3 Events within an entry
 
 Within an entry in progress, a timestamped timeline of events is recorded:
+
 - engine ↔ sail changes (automatic, with the option of manual correction);
 - manoeuvres (see §4.3);
 - free-form annotations (text or handwritten);
@@ -63,6 +66,7 @@ No notion of author per event/annotation in V1: the logbook is a single shared d
   As implemented (`lib/track-recorder.js`), position fixes are read once a second:
   - an **interval point** every `trackIntervalSeconds` (15 s by default), skipped until the vessel has moved 10 m, so a wait at a lock does not pile up identical points;
   - an extra point on a **course change of 15° or more** — only above 2 kn, since course over ground is noise at low speed — or a **speed change of 1 kn or more**, at most every 2 s.
+
 - **Points belong to a moving passage.** They are held in memory while no passage is open or while the open one is stopped, and attached once it moves: detection dates a departure back to when the vessel left its berth, up to 20 minutes before it opens the entry, so the held points make the track start there rather than a mile out. Up to 20 minutes of points are held.
 - **Wind and heading ride along with each point** (migration 6), and **speed through water** since migration 9: true and apparent wind speed/angle, heading and STW — the same readings `observations` takes hourly, but at the track's own resolution, so a figure like the highest wind speed seen on a passage reflects an actual gust rather than whatever an hourly sample happened to catch.
 - **Distance** is the sum of the distances between consecutive track points, updated as points are recorded.
@@ -116,6 +120,7 @@ Known limitation: timestamps written to the logbook come from the host's clock, 
 ### 4.5 Backup / continuity in case of abandoning ship
 
 Two complementary mechanisms adopted for V1:
+
 1. **Automatic export to USB drive** (PDF, CSV, JSON, GPX) — **configurable** write frequency (e.g. every X minutes, or on each entry closure). Requires a USB drive to be permanently plugged into the Signal K host.
    - The copy holds **one file per format per passage**, named `2026-09-13_0612Z_La-Rochelle_Les-Sables-d-Olonne.json` so that sorting by name sorts by departure, in a `chiplog/` subdirectory. Each export writes only new or changed passages — a USB drive is slow and wears — and removes the files of passages deleted, merged or renamed. Written automatically every `usbExportIntervalMinutes` (15 by default; 0 turns it off) and at each arrival (`usbExportOnArrival`, on by default), and on demand from the webapp. A missing drive is logged once, shown in the plugin status and on the export page, and the copy resumes when it is back.
    - The PDF follows a **traditional logbook facsimile** layout, delivered in V1.1:
@@ -163,7 +168,7 @@ As implemented (`lib/weather-forecaster.js`, on the same engine and schedule as 
 
 - **Source.** Open-Meteo, free and keyless under CC BY 4.0, in two requests: the [Forecast API](https://open-meteo.com/en/docs) (`weatherUrl`) for the atmosphere, and the Marine API — the same service as the tide (`tideUrl`, titled "Marine service" in the settings) — for the sea. `weatherEnabled` turns the whole forecast off, independently of the tide.
 - **Content**, hourly: wind speed, direction and gusts at 10 m; sky (WMO weather code), precipitation, cloud cover, visibility, pressure at sea level, air temperature; significant wave height, period and direction; swell height, period and direction; sea surface temperature; surface current speed and direction. Stored in SI units like everything else, converted from the units each answer declares rather than those asked for (the Marine API gives the current in km/h whatever `wind_speed_unit` says).
-- **Directions keep the usual conventions**: wind, waves and swell are where they come *from*, the current where it flows *towards* — as in Signal K. The passage page says so.
+- **Directions keep the usual conventions**: wind, waves and swell are where they come _from_, the current where it flows _towards_ — as in Signal K. The passage page says so.
 - **The sea is a complement.** Far from the sea (a lake, a river) or when only the Marine request fails, the forecast is kept with the atmosphere alone; the passage page leaves out the columns it has nothing for. Only a Forecast request that fails for lack of network, rate limiting or a server error is retried; when neither service has anything, an empty forecast is recorded and not asked for again.
 - **Display: a row every 3 hours**, like a coastal bulletin — eight rows for the 24 h. A row shows its first hour's readings, with the strongest gust, the rain summed and the most significant sky over its three hours, so a squall between two rows is not lost. Wind is shown as a Beaufort force as well as in knots; a thunderstorm or a force 7 or more stands out.
 - **PDF**: the same eight steps, as a block of its own spanning the full page width above the day's table of events and observations — not one of its rows — titled with the place the forecast was fetched near (the departure place, known or pending). The passage page's title carries the same place.
@@ -171,6 +176,7 @@ As implemented (`lib/weather-forecaster.js`, on the same engine and schedule as 
 ### 4.6 Automatically logged Signal K events
 
 In addition to engine/sail and manual manoeuvres, the log automatically captures:
+
 - **critical SK notifications** (`alarm`/`emergency` levels: MOB, engine alarm, anchor watch triggered, etc.);
 - **autopilot state changes** (engaged/disengaged);
 - **configurable weather threshold crossings** (e.g. wind > X knots), to automatically trace the conditions that prompted a manoeuvre.
@@ -203,12 +209,12 @@ When creating and closing an entry, Chiplog attempts to associate a **place name
 
 **As implemented** (`lib/place-names.js`):
 
-- **Steps 1 and 3 happen at once, step 2 later.** Detection cannot wait on the network — usually absent at sea — so a departure or arrival gets a known place's name immediately or, failing that, a name from its coordinates flagged as *pending*. A background queue then looks pending names up online, newest passage first.
+- **Steps 1 and 3 happen at once, step 2 later.** Detection cannot wait on the network — usually absent at sea — so a departure or arrival gets a known place's name immediately or, failing that, a name from its coordinates flagged as _pending_. A background queue then looks pending names up online, newest passage first.
 - **The service** is any Nominatim-compatible endpoint (`geocodingUrl`), the public OpenStreetMap instance by default. `geocodingEnabled` turns lookups off for privacy; pending names then keep their coordinates until corrected, and are looked up if it is turned back on. Its usage policy is respected: an identifying `User-Agent`, at most one request every 2 seconds, and a handful of requests per passage.
 - **Offline is normal.** A failed request keeps the name pending and retries after 5 minutes, doubling up to an hour, so names fill in once the boat is back in range.
 - **Choosing the name.** Near a marina Nominatim answers with the quay's road, and at sea with a bare administrative boundary; neither is a logbook place name. The name is the settlement with its district when there is one — "La Rochelle (Les Minimes)" — or a marina's or harbour's own name when that is what was found. No settlement at all is a final answer: the coordinates stay, and the position is not asked about again.
 - **The places table is the cache.** Each geocoded name becomes a place with `source: geocoding`, so the next departure or arrival within the radius is named from it with no request — and a crew correction of that name (`source: manual`) wins from then on.
-- **A lookup never overrides the crew.** A result is written only if the name is still pending *for the position that was looked up*: a name typed or removed, or a position corrected, while the request was out stays as the crew left it.
+- **A lookup never overrides the crew.** A result is written only if the name is still pending _for the position that was looked up_: a name typed or removed, or a position corrected, while the request was out stays as the crew left it.
 - **Attribution.** Names from the public instance are OpenStreetMap data (© OpenStreetMap contributors, ODbL); a UI displaying them must say so.
 
 ### 4.9 Tablet entry and the boat's network
@@ -253,7 +259,7 @@ The data model has been refined into a precise schema: the authoritative DDL liv
 Two points worth carrying back into this document:
 
 - Dense track geometry (`track_points`) and sparse instrument snapshots (`observations`) are separate tables: the first feeds the map and GPX export (§4.1), the second provides the hourly condition lines the facsimile PDF renders (§4.5).
-- No per-event author field in V1 (cf. §3.4) — a per-passage crew *list* is recorded instead (§4.11). The exported GPX file is derived from track points, not stored as such.
+- No per-event author field in V1 (cf. §3.4) — a per-passage crew _list_ is recorded instead (§4.11). The exported GPX file is derived from track points, not stored as such.
 
 The plugin's REST API is specified in [API.md](API.md).
 
@@ -271,44 +277,44 @@ The plugin's REST API is specified in [API.md](API.md).
 
 Brought forward from V2: handwritten annotations, in the tablet PWA (§4.4).
 
-Deferred to V2: full shortcut customization, publication to a remote server, dedicated mobile companion app, crew profiles/permissions (per-event authorship and skipper/crew access rights — the crew *list* itself, §4.11, shipped in V1), advanced map (offline tiles, etc.).
+Deferred to V2: full shortcut customization, publication to a remote server, dedicated mobile companion app, crew profiles/permissions (per-event authorship and skipper/crew access rights — the crew _list_ itself, §4.11, shipped in V1), advanced map (offline tiles, etc.).
 
-*(This MVP breakdown is a proposal — to be validated with you before committing to it.)*
+_(This MVP breakdown is a proposal — to be validated with you before committing to it.)_
 
 ## 7. Decisions settled during scoping
 
-| Topic | Decision |
-|---|---|
-| Storage | SQLite (single database: entries, events, track, annotations) |
-| SQLite driver | Node's built-in `node:sqlite` — no native compilation, which matters on Raspberry Pi. Raises the floor to Node >= 22.13 |
-| Handwritten annotation format | Vector (timestamped strokes/points + pressure, canvas size); implemented in V1 in the tablet PWA |
-| Author / crew list | No per-event author in V1; a per-passage crew list is, picked from an editable global roster, carried over from the preceding passage (§4.11). Per-event authorship deferred to V2 if confirmed |
-| signalk-autostate dependency | Optional, with internal fallback (SOG threshold) if absent |
-| Engine/sail sources | `propulsion.*.revolutions`, then `propulsion.*.state`, then `navigation.state`, then a configurable default (`sail`); segments only cover time under way (§4.2) |
-| Critical notifications | Any notification in `alarm` or `emergency`, whatever its path (§4.6) |
-| Weather thresholds | True wind averaged over 2 min against configurable speeds (20 and 30 kn); barometric fall of 4 hPa over 3 h (§4.6) |
-| Events between passages | Attached to the last passage while within 1 nm of its arrival; otherwise not logged (§4.6) |
-| Webapp stack | Preact + htm as one vendored ES module, no build step, no CDN (a boat is usually offline); Leaflet for the map. The tablet PWA shares it |
-| Entry with no passage open | Cast off / anchor up opens a passage, or goes to the one detection closed less than the tolerance before; other entries go to the last passage within 1 nm of its arrival, else are refused (§4.3) |
-| Passage closure | At once when the vessel stops; a departure within `stopClosureMinutes` (30 min) reopens it, the stop kept as a stopover. A crew close is final (§4.2) |
-| Tablet offline | Entries queued on the tablet with their time and an idempotency key, replayed in order (§4.9) |
-| Tablet access | Signal K device access request, token kept on the tablet; a user login works too (§4.9) |
-| Webapp languages | English and French, chosen from the browser (`?lang=` overrides) |
-| Map tiles | OpenStreetMap with the OpenSeaMap seamark overlay, online; offline the track is still drawn on a blank map. Offline charts are V2 |
-| Instrument snapshots | At departure, hourly on the clock (configurable), at arrival and with each live manoeuvre, note or sketch (§4.5.1) |
-| Tide forecast | Open-Meteo Marine, free and keyless, fetched once at departure for the next 24 h; extremes found from the stored curve, not asked for separately; heights relative to mean sea level, disclosed as such rather than presented as a charted datum (§4.5.2) |
-| Marine weather forecast | Open-Meteo Forecast + Marine, free and keyless, fetched once at departure for the next 24 h, stored hourly; shown every 3 h, titled with the departure place, on the passage page and in a full-width PDF block above the day's table; the sea part optional (§4.5.3) |
-| Speed fallback | SOG averaged over 3 min; under way above a configurable speed (1 kn), stopped below half of it. Transitions dated from raw speed in both modes (§4.2) |
-| GPS track sampling | Configurable fixed interval (15 s) + extra point on a 15° course or 1 kn speed change (§4.1) |
-| PDF export | Traditional logbook facsimile, A4 landscape, a page per day in ship's time, English or French; home-made PDF writer with the standard fonts, no dependency (§4.5) |
-| USB copy | One JSON, CSV and GPX file per passage, written when new or changed; every 15 min and at each arrival by default (§4.5) |
-| Automatic SK events (beyond engine/sail/manoeuvre) | Critical notifications, autopilot, configurable weather thresholds |
-| Multi-vessel | One vessel per Signal K instance, no multi-profiles |
-| Remote server target | Undefined for V1; designed as a generic extension point (configurable webhook/API) |
-| Automatic place names | Online geocoding (e.g. Nominatim/OSM) with fallback to already-known local places |
-| Geocoding service | Any Nominatim-compatible endpoint, public OpenStreetMap instance by default, can be disabled; looked up in the background, retried when offline (§4.8) |
-| Place matching radius | A single global configurable radius (no per-place setting in V1) |
-| Place not found (offline, first visit) | Name generated from coordinates, manually correctable |
+| Topic                                              | Decision                                                                                                                                                                                                                                                              |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Storage                                            | SQLite (single database: entries, events, track, annotations)                                                                                                                                                                                                         |
+| SQLite driver                                      | Node's built-in `node:sqlite` — no native compilation, which matters on Raspberry Pi. Raises the floor to Node >= 22.13                                                                                                                                               |
+| Handwritten annotation format                      | Vector (timestamped strokes/points + pressure, canvas size); implemented in V1 in the tablet PWA                                                                                                                                                                      |
+| Author / crew list                                 | No per-event author in V1; a per-passage crew list is, picked from an editable global roster, carried over from the preceding passage (§4.11). Per-event authorship deferred to V2 if confirmed                                                                       |
+| signalk-autostate dependency                       | Optional, with internal fallback (SOG threshold) if absent                                                                                                                                                                                                            |
+| Engine/sail sources                                | `propulsion.*.revolutions`, then `propulsion.*.state`, then `navigation.state`, then a configurable default (`sail`); segments only cover time under way (§4.2)                                                                                                       |
+| Critical notifications                             | Any notification in `alarm` or `emergency`, whatever its path (§4.6)                                                                                                                                                                                                  |
+| Weather thresholds                                 | True wind averaged over 2 min against configurable speeds (20 and 30 kn); barometric fall of 4 hPa over 3 h (§4.6)                                                                                                                                                    |
+| Events between passages                            | Attached to the last passage while within 1 nm of its arrival; otherwise not logged (§4.6)                                                                                                                                                                            |
+| Webapp stack                                       | Preact + htm as one vendored ES module, no build step, no CDN (a boat is usually offline); Leaflet for the map. The tablet PWA shares it                                                                                                                              |
+| Entry with no passage open                         | Cast off / anchor up opens a passage, or goes to the one detection closed less than the tolerance before; other entries go to the last passage within 1 nm of its arrival, else are refused (§4.3)                                                                    |
+| Passage closure                                    | At once when the vessel stops; a departure within `stopClosureMinutes` (30 min) reopens it, the stop kept as a stopover. A crew close is final (§4.2)                                                                                                                 |
+| Tablet offline                                     | Entries queued on the tablet with their time and an idempotency key, replayed in order (§4.9)                                                                                                                                                                         |
+| Tablet access                                      | Signal K device access request, token kept on the tablet; a user login works too (§4.9)                                                                                                                                                                               |
+| Webapp languages                                   | English and French, chosen from the browser (`?lang=` overrides)                                                                                                                                                                                                      |
+| Map tiles                                          | OpenStreetMap with the OpenSeaMap seamark overlay, online; offline the track is still drawn on a blank map. Offline charts are V2                                                                                                                                     |
+| Instrument snapshots                               | At departure, hourly on the clock (configurable), at arrival and with each live manoeuvre, note or sketch (§4.5.1)                                                                                                                                                    |
+| Tide forecast                                      | Open-Meteo Marine, free and keyless, fetched once at departure for the next 24 h; extremes found from the stored curve, not asked for separately; heights relative to mean sea level, disclosed as such rather than presented as a charted datum (§4.5.2)             |
+| Marine weather forecast                            | Open-Meteo Forecast + Marine, free and keyless, fetched once at departure for the next 24 h, stored hourly; shown every 3 h, titled with the departure place, on the passage page and in a full-width PDF block above the day's table; the sea part optional (§4.5.3) |
+| Speed fallback                                     | SOG averaged over 3 min; under way above a configurable speed (1 kn), stopped below half of it. Transitions dated from raw speed in both modes (§4.2)                                                                                                                 |
+| GPS track sampling                                 | Configurable fixed interval (15 s) + extra point on a 15° course or 1 kn speed change (§4.1)                                                                                                                                                                          |
+| PDF export                                         | Traditional logbook facsimile, A4 landscape, a page per day in ship's time, English or French; home-made PDF writer with the standard fonts, no dependency (§4.5)                                                                                                     |
+| USB copy                                           | One JSON, CSV and GPX file per passage, written when new or changed; every 15 min and at each arrival by default (§4.5)                                                                                                                                               |
+| Automatic SK events (beyond engine/sail/manoeuvre) | Critical notifications, autopilot, configurable weather thresholds                                                                                                                                                                                                    |
+| Multi-vessel                                       | One vessel per Signal K instance, no multi-profiles                                                                                                                                                                                                                   |
+| Remote server target                               | Undefined for V1; designed as a generic extension point (configurable webhook/API)                                                                                                                                                                                    |
+| Automatic place names                              | Online geocoding (e.g. Nominatim/OSM) with fallback to already-known local places                                                                                                                                                                                     |
+| Geocoding service                                  | Any Nominatim-compatible endpoint, public OpenStreetMap instance by default, can be disabled; looked up in the background, retried when offline (§4.8)                                                                                                                |
+| Place matching radius                              | A single global configurable radius (no per-place setting in V1)                                                                                                                                                                                                      |
+| Place not found (offline, first visit)             | Name generated from coordinates, manually correctable                                                                                                                                                                                                                 |
 
 ### Remaining minor points (non-blocking for starting)
 

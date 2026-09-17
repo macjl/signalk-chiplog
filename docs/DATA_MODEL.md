@@ -30,10 +30,10 @@ One row per passage (start → underway → stop), per SPEC §3.1.
 
 `start_tanks` and `start_batteries` (migration 11) hold the boat's state noted as the passage opened (SPEC §4.5.1) — once, on the passage, since it is what a skipper checks before casting off, not a reading to follow along the way like those in `observations`. Both are JSON arrays in SI units, `NULL` when the boat publishes none or the passage was opened after the fact:
 
-| Column | Signal K paths | Current for |
-|---|---|---|
-| `start_tanks` | every `tanks.<type>.<id>` with a `currentLevel` or `currentVolume`: `[{"type": "fuel", "id": "0", "name": "…", "level": 0.8, "volume": 0.096, "capacity": 0.12}]` — ratio and m³ (`.name`, `.capacity`), a field absent when not published; fuel first, then fresh water, grey and black water, the others after | counter |
-| `start_batteries` | every `electrical.batteries.<id>` with a current reading: `[{"id": "house", "name": "…", "voltage": 12.8, "current": -3.2, "stateOfCharge": 0.86, "temperature": 295.1}]` — V, A (negative discharging), ratio (`capacity.stateOfCharge`), K | 15 min |
+| Column            | Signal K paths                                                                                                                                                                                                                                                                                                   | Current for |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| `start_tanks`     | every `tanks.<type>.<id>` with a `currentLevel` or `currentVolume`: `[{"type": "fuel", "id": "0", "name": "…", "level": 0.8, "volume": 0.096, "capacity": 0.12}]` — ratio and m³ (`.name`, `.capacity`), a field absent when not published; fuel first, then fresh water, grey and black water, the others after | counter     |
+| `start_batteries` | every `electrical.batteries.<id>` with a current reading: `[{"id": "house", "name": "…", "voltage": 12.8, "current": -3.2, "stateOfCharge": 0.86, "temperature": 295.1}]` — V, A (negative discharging), ratio (`capacity.stateOfCharge`), K                                                                     | 15 min      |
 
 They are written by detection as it opens the entry, or, for an entry the crew opens by hand, as the departure manoeuvre is logged live. Merging keeps the earlier entry's, its departure being the merged passage's.
 
@@ -54,22 +54,22 @@ The two overlap on wind and heading since migration 6, and on speed through wate
 
 **Where observation columns come from** (`lib/observation-recorder.js`). A reading is recorded only while current — its Signal K timestamp changed within the stated age — and is `null` otherwise. Counters are the exception: their last value stays a true reading while they do not move, so they are recorded whatever their age.
 
-| Column | Signal K path | Current for |
-|---|---|---|
-| `lat`, `lon` | `navigation.position` | 2 min |
-| `sog` | `navigation.speedOverGround` | 2 min |
-| `cog` | `navigation.courseOverGroundTrue` | 2 min |
-| `heading` | `navigation.headingTrue`, else `navigation.headingMagnetic` + `navigation.magneticVariation` | 2 min (variation 15 min) |
-| `stw` | `navigation.speedThroughWater` | 2 min |
-| `twd`, `tws` | `environment.wind.directionTrue`, `environment.wind.speedTrue` | 2 min |
-| `awa`, `aws` | `environment.wind.angleApparent`, `environment.wind.speedApparent` | 2 min |
-| `depth` | `environment.depth.belowSurface`, else `environment.depth.belowTransducer` | 2 min |
-| `pressure` | `environment.outside.pressure` | 15 min |
-| `air_temp` | `environment.outside.temperature` | 15 min |
-| `water_temp` | `environment.water.temperature` | 15 min |
-| `trip_log` | `navigation.log` | counter |
-| `engine_runtimes` | `propulsion.<id>.runTime` of every engine that has one, as JSON `{"port": 2924700, "starboard": 2873220}` in seconds, `main` first then by id (migration 5) | counter |
-| `engine_runtime` | the first of `engine_runtimes`: `propulsion.main.runTime`, else the first engine that has one — kept for readers of the single value | counter |
+| Column            | Signal K path                                                                                                                                               | Current for              |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| `lat`, `lon`      | `navigation.position`                                                                                                                                       | 2 min                    |
+| `sog`             | `navigation.speedOverGround`                                                                                                                                | 2 min                    |
+| `cog`             | `navigation.courseOverGroundTrue`                                                                                                                           | 2 min                    |
+| `heading`         | `navigation.headingTrue`, else `navigation.headingMagnetic` + `navigation.magneticVariation`                                                                | 2 min (variation 15 min) |
+| `stw`             | `navigation.speedThroughWater`                                                                                                                              | 2 min                    |
+| `twd`, `tws`      | `environment.wind.directionTrue`, `environment.wind.speedTrue`                                                                                              | 2 min                    |
+| `awa`, `aws`      | `environment.wind.angleApparent`, `environment.wind.speedApparent`                                                                                          | 2 min                    |
+| `depth`           | `environment.depth.belowSurface`, else `environment.depth.belowTransducer`                                                                                  | 2 min                    |
+| `pressure`        | `environment.outside.pressure`                                                                                                                              | 15 min                   |
+| `air_temp`        | `environment.outside.temperature`                                                                                                                           | 15 min                   |
+| `water_temp`      | `environment.water.temperature`                                                                                                                             | 15 min                   |
+| `trip_log`        | `navigation.log`                                                                                                                                            | counter                  |
+| `engine_runtimes` | `propulsion.<id>.runTime` of every engine that has one, as JSON `{"port": 2924700, "starboard": 2873220}` in seconds, `main` first then by id (migration 5) | counter                  |
+| `engine_runtime`  | the first of `engine_runtimes`: `propulsion.main.runTime`, else the first engine that has one — kept for readers of the single value                        | counter                  |
 
 True wind is taken as published, not computed from apparent wind; a boat without a true-wind source can add one with the `signalk-derived-data` plugin. A snapshot in which every column would be `null` is not recorded.
 
@@ -85,15 +85,15 @@ The timestamped timeline within an entry (SPEC §3.3): manoeuvres, annotations, 
 
 Events the plugin produces (SPEC §4.6), all with `source: 'auto'`:
 
-| `type` | `subtype` | `payload` |
-|---|---|---|
-| `sk_alarm` | the notification path, e.g. `notifications.mob` | `{ state, message }` — `state` is `alarm`, `emergency`, or `normal` when it cleared |
-| `autopilot` | `engaged`, `disengaged` or `mode_changed` | `{ mode, state, target }` — `target` in radians, a number or `{ headingTrue, headingMagnetic, windAngleApparent, windAngleTrue }`; `null` once disengaged |
-| `weather_threshold` | `wind_above` or `wind_below` | `{ threshold, windSpeed }` in m/s |
-| `weather_threshold` | `pressure_drop` | `{ drop, over, pressure }` — Pa, seconds, Pa |
-| `manual_correction` | `propulsion` | `{ segmentId, before, after }` |
-| `propulsion_change` (migration 7) | *(none)* | `{ segmentId, before, after }` — same shape as `manual_correction`, for an automatic switch rather than a crew override |
-| `stopover` (migration 10) | *(none)* | `{ placeName, placePending }` — the place and position an entry ended at, before a merge (SPEC §3.1) or a quick departure (SPEC §4.2) folded it into the middle of the passage |
+| `type`                            | `subtype`                                       | `payload`                                                                                                                                                                      |
+| --------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `sk_alarm`                        | the notification path, e.g. `notifications.mob` | `{ state, message }` — `state` is `alarm`, `emergency`, or `normal` when it cleared                                                                                            |
+| `autopilot`                       | `engaged`, `disengaged` or `mode_changed`       | `{ mode, state, target }` — `target` in radians, a number or `{ headingTrue, headingMagnetic, windAngleApparent, windAngleTrue }`; `null` once disengaged                      |
+| `weather_threshold`               | `wind_above` or `wind_below`                    | `{ threshold, windSpeed }` in m/s                                                                                                                                              |
+| `weather_threshold`               | `pressure_drop`                                 | `{ drop, over, pressure }` — Pa, seconds, Pa                                                                                                                                   |
+| `manual_correction`               | `propulsion`                                    | `{ segmentId, before, after }`                                                                                                                                                 |
+| `propulsion_change` (migration 7) | _(none)_                                        | `{ segmentId, before, after }` — same shape as `manual_correction`, for an automatic switch rather than a crew override                                                        |
+| `stopover` (migration 10)         | _(none)_                                        | `{ placeName, placePending }` — the place and position an entry ended at, before a merge (SPEC §3.1) or a quick departure (SPEC §4.2) folded it into the middle of the passage |
 
 `client_ref` (migration 4) is an optional idempotency key chosen by the client, unique when present. The tablet sets it on every entry, so one replayed from its offline queue after a lost response returns the event already logged instead of a duplicate.
 
@@ -143,22 +143,22 @@ High and low tide are not stored: they are the local peaks and troughs of `point
 
 Same shape and lifecycle as `tide_forecasts` (SPEC §4.5.3): one row per entry, `lat`/`lon` the position asked about, `points` the hourly JSON for the 24 h from departure, `[]` once fetched if neither service had anything for the position. `getWeatherForecast` (`lib/weather-forecaster.js`) treats `[]` as no forecast. Each point is:
 
-| Field | Unit | Open-Meteo variable |
-| --- | --- | --- |
-| `time` | ISO 8601 UTC, on the hour | |
-| `windSpeed`, `windGust` | m/s | `wind_speed_10m`, `wind_gusts_10m` |
-| `windDirection` | rad, where it comes from | `wind_direction_10m` |
-| `pressure` | Pa, at sea level | `pressure_msl` |
-| `weatherCode` | WMO code | `weather_code` |
-| `visibility` | m | `visibility` |
-| `precipitation` | m of water over the hour | `precipitation` |
-| `cloudCover` | ratio | `cloud_cover` |
-| `airTemperature`, `seaTemperature` | K | `temperature_2m`, `sea_surface_temperature` |
-| `waveHeight`, `swellHeight` | m | `wave_height`, `swell_wave_height` |
-| `wavePeriod`, `swellPeriod` | s | `wave_period`, `swell_wave_period` |
-| `waveDirection`, `swellDirection` | rad, where they come from | `wave_direction`, `swell_wave_direction` |
-| `currentSpeed` | m/s | `ocean_current_velocity` |
-| `currentDirection` | rad, where it flows to | `ocean_current_direction` |
+| Field                              | Unit                      | Open-Meteo variable                         |
+| ---------------------------------- | ------------------------- | ------------------------------------------- |
+| `time`                             | ISO 8601 UTC, on the hour |                                             |
+| `windSpeed`, `windGust`            | m/s                       | `wind_speed_10m`, `wind_gusts_10m`          |
+| `windDirection`                    | rad, where it comes from  | `wind_direction_10m`                        |
+| `pressure`                         | Pa, at sea level          | `pressure_msl`                              |
+| `weatherCode`                      | WMO code                  | `weather_code`                              |
+| `visibility`                       | m                         | `visibility`                                |
+| `precipitation`                    | m of water over the hour  | `precipitation`                             |
+| `cloudCover`                       | ratio                     | `cloud_cover`                               |
+| `airTemperature`, `seaTemperature` | K                         | `temperature_2m`, `sea_surface_temperature` |
+| `waveHeight`, `swellHeight`        | m                         | `wave_height`, `swell_wave_height`          |
+| `wavePeriod`, `swellPeriod`        | s                         | `wave_period`, `swell_wave_period`          |
+| `waveDirection`, `swellDirection`  | rad, where they come from | `wave_direction`, `swell_wave_direction`    |
+| `currentSpeed`                     | m/s                       | `ocean_current_velocity`                    |
+| `currentDirection`                 | rad, where it flows to    | `ocean_current_direction`                   |
 
 Every field is `null` when the service did not give it — all the sea fields, inland. An hour with nothing at all is left out. The 3-hour steps the webapp and the PDF show are derived when read (`public/js/weather.mjs`'s `forecastSteps`), not stored.
 
@@ -175,4 +175,4 @@ Each migration runs in a transaction and rolls back as a unit on failure.
 Not in the schema yet, to be added by a later migration when the feature lands:
 
 - **Remote publication state** (SPEC §4.5) — per-entry sync status once a target is defined.
-- **Author per event** (SPEC §3.4) — attributing an individual annotation or manoeuvre to whoever logged it, if V2 confirms the need. A per-passage crew *roster* is delivered in V1 instead — see `crew_members`/`log_entry_crew` above.
+- **Author per event** (SPEC §3.4) — attributing an individual annotation or manoeuvre to whoever logged it, if V2 confirms the need. A per-passage crew _roster_ is delivered in V1 instead — see `crew_members`/`log_entry_crew` above.

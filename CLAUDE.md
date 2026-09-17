@@ -26,8 +26,6 @@ Tests use Node's built-in `node:test` — no framework dependency, matching the 
 
 A husky `pre-commit` hook runs `lint-staged`, which applies `eslint --fix` and `prettier --write` to staged files. Commits therefore reformat staged code automatically.
 
-`docs/` is excluded from **both** ESLint and Prettier — never reformat the specification.
-
 ## Project state
 
 The plugin's data side is in place: it opens and closes logbook entries from live Signal K data and records their track, distance, engine/sail segments, instrument snapshots and automatic events (alarms, autopilot, weather thresholds), names departures and arrivals (known places, then online geocoding), and serves it all through the REST API. The consultation webapp and the tablet entry PWA exist (below). The PDF logbook is in place too. The documents to read before implementing anything:
@@ -103,3 +101,9 @@ Decisions already settled that shape implementation work:
 ## Code style
 
 Prettier: single quotes, semicolons, `printWidth` 100, no trailing commas. ESLint uses flat config (`eslint.config.js`) with `js.configs.recommended`, CommonJS source type, Node globals, and `eslint-config-prettier` last so formatting rules never conflict. `no-unused-vars` is a warning and ignores function arguments — unused `options`/`app` parameters in Signal K callbacks are expected.
+
+## Markdown & Documentation Guidelines
+
+- Always use standard Markdown formatting with explicit syntax highlighting for code blocks.
+- Keep README files highly scannable: use clean tables, bullet points starting with bold text, and visual anchors (emojis).
+- Ensure a blank line exists before and after every header, list, and code block to avoid rendering bugs on GitHub.

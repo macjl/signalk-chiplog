@@ -2,7 +2,7 @@
 
 The plugin registers its routes through `registerWithRouter`, so everything below is mounted at:
 
-```
+```text
 /plugins/signalk-chiplog/api
 ```
 
@@ -14,11 +14,11 @@ Implemented in [`lib/api.js`](../lib/api.js); the behaviour described here is co
 
 **Access levels.** Signal K gives routes registered directly on the router **admin** authentication; `router.access('readonly')` and `router.access('readwrite')` open them further. The policy here:
 
-| Level | What it covers |
-|---|---|
-| `readonly` | Reading the logbook and exporting it |
-| `readwrite` | What the crew does underway: annotations, manoeuvres, closing an entry, correcting a name or a propulsion segment |
-| admin | Destructive or configuration-shaped operations: deleting entries and places, managing shortcuts, triggering a USB write |
+| Level       | What it covers                                                                                                          |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `readonly`  | Reading the logbook and exporting it                                                                                    |
+| `readwrite` | What the crew does underway: annotations, manoeuvres, closing an entry, correcting a name or a propulsion segment       |
+| admin       | Destructive or configuration-shaped operations: deleting entries and places, managing shortcuts, triggering a USB write |
 
 Corrections are `readwrite` rather than admin on purpose — a crew member at the helm has to be able to fix a wrong place name or a mis-detected engine segment without an admin login.
 
@@ -38,13 +38,13 @@ On a server too old to provide `router.access()`, every route falls back to admi
 { "error": { "code": "entry_already_closed", "message": "Entry 42 is already closed" } }
 ```
 
-| Status | When | Codes |
-|---|---|---|
-| `400` | Malformed request | `invalid_request`, `unknown_manoeuvre_type` |
-| `404` | Unknown resource | `entry_not_found`, `event_not_found`, `place_not_found`, `propulsion_segment_not_found`, `manoeuvre_type_not_found`, `crew_member_not_found`, `tide_not_found`, `weather_not_found` |
-| `409` | The request conflicts with current state | `no_passage`, `entry_active`, `entry_already_closed`, `entries_not_consecutive`, `manoeuvre_type_exists`, `builtin_manoeuvre_type`, `usb_export_not_configured`, `usb_export_unavailable`, `constraint_violation` |
-| `500` | Unexpected failure — detail goes to the server log, not the client | `internal_error` |
-| `503` | The plugin is disabled or stopped | `plugin_not_started` |
+| Status | When                                                               | Codes                                                                                                                                                                                                             |
+| ------ | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `400`  | Malformed request                                                  | `invalid_request`, `unknown_manoeuvre_type`                                                                                                                                                                       |
+| `404`  | Unknown resource                                                   | `entry_not_found`, `event_not_found`, `place_not_found`, `propulsion_segment_not_found`, `manoeuvre_type_not_found`, `crew_member_not_found`, `tide_not_found`, `weather_not_found`                               |
+| `409`  | The request conflicts with current state                           | `no_passage`, `entry_active`, `entry_already_closed`, `entries_not_consecutive`, `manoeuvre_type_exists`, `builtin_manoeuvre_type`, `usb_export_not_configured`, `usb_export_unavailable`, `constraint_violation` |
+| `500`  | Unexpected failure — detail goes to the server log, not the client | `internal_error`                                                                                                                                                                                                  |
+| `503`  | The plugin is disabled or stopped                                  | `plugin_not_started`                                                                                                                                                                                              |
 
 The server registers plugin routes once and never removes them, so they keep answering while the plugin is disabled — with `503` until it is started again.
 
@@ -291,10 +291,10 @@ A client-created event posted without `time` also takes an instrument snapshot (
 
 Clients may create three types; the others are produced by the plugin itself:
 
-| `type` | Requires |
-|---|---|
-| `manoeuvre` | `subtype`, the key of an existing manoeuvre type — `400 unknown_manoeuvre_type` otherwise |
-| `text_annotation` | `comment` |
+| `type`                   | Requires                                                                                                               |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| `manoeuvre`              | `subtype`, the key of an existing manoeuvre type — `400 unknown_manoeuvre_type` otherwise                              |
+| `text_annotation`        | `comment`                                                                                                              |
 | `handwritten_annotation` | `payload.strokes`: `[{ "points": [{ "x", "y", "t", "pressure"? }], "color"?, "tool"?, "width"? }]`, non-empty, numeric |
 
 A stroke's `color` (`"#rrggbb"`), `tool` (`"pen"` or `"highlighter"`) and `width` (canvas pixels, before pressure scaling) are optional — a note drawn before the tablet's toolbar existed has none, and is shown in the current text colour at a default width. `tool: "highlighter"` is the only one drawn translucent, wherever the note is later shown.
@@ -338,7 +338,13 @@ Ordered by `sortOrder`. Disabled types are included, so a settings screen can sh
 ### `POST /manoeuvre-types` — admin
 
 ```json
-{ "key": "spinnaker_up", "label": "Hoist spinnaker", "icon": null, "sortOrder": 110, "enabled": true }
+{
+  "key": "spinnaker_up",
+  "label": "Hoist spinnaker",
+  "icon": null,
+  "sortOrder": 110,
+  "enabled": true
+}
 ```
 
 `key` is 1–40 lowercase letters, digits or underscores; `label` is required. `sortOrder` defaults to after the last type. `409 manoeuvre_type_exists` for a taken key. Answers `201`.
@@ -410,7 +416,14 @@ What the USB copy is set to do and how it last went, for the export screen.
   "onArrival": true,
   "running": false,
   "nextAt": "2026-09-13T16:00:12.000Z",
-  "lastSuccess": { "at": "2026-09-13T15:45:12.310Z", "reason": "scheduled", "entries": 12, "written": 1, "unchanged": 11, "removed": 0 },
+  "lastSuccess": {
+    "at": "2026-09-13T15:45:12.310Z",
+    "reason": "scheduled",
+    "entries": 12,
+    "written": 1,
+    "unchanged": 11,
+    "removed": 0
+  },
   "lastError": null
 }
 ```
@@ -434,7 +447,11 @@ Copies the logbook to a `chiplog/` subdirectory of the directory set in the plug
   "entries": 12,
   "written": 1,
   "unchanged": 11,
-  "files": ["/media/usb/chiplog/2026-09-13_0612Z_La-Rochelle_Les-Sables-d-Olonne.json", "…csv", "…gpx"],
+  "files": [
+    "/media/usb/chiplog/2026-09-13_0612Z_La-Rochelle_Les-Sables-d-Olonne.json",
+    "…csv",
+    "…gpx"
+  ],
   "removed": []
 }
 ```

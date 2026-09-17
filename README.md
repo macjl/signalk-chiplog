@@ -15,22 +15,22 @@ English and French, chosen from the browser's language.
 
 ## Contents
 
-- [Requirements](#requirements)
-- [Installation](#installation)
-- [How the logbook is written](#how-the-logbook-is-written)
-- [The logbook webapp](#the-logbook-webapp)
-- [The tablet entry app](#the-tablet-entry-app)
-- [Configuration](#configuration)
-- [Signal K data used](#signal-k-data-used)
-- [Backups and abandon ship](#backups-and-abandon-ship)
-- [Retrospective analysis](#retrospective-analysis)
-- [Privacy and online services](#privacy-and-online-services)
-- [Troubleshooting](#troubleshooting)
-- [Limitations](#limitations)
-- [Development](#development)
-- [License](#license)
+- [Requirements](#requirements-)
+- [Installation](#installation-)
+- [How the logbook is written](#how-the-logbook-is-written-)
+- [The logbook webapp](#the-logbook-webapp-)
+- [The tablet entry app](#the-tablet-entry-app-)
+- [Configuration](#configuration-)
+- [Signal K data used](#signal-k-data-used-)
+- [Backups and abandon ship](#backups-and-abandon-ship-)
+- [Retrospective analysis](#retrospective-analysis-)
+- [Privacy and online services](#privacy-and-online-services-)
+- [Troubleshooting](#troubleshooting-)
+- [Limitations](#limitations-)
+- [Development](#development-)
+- [License](#license-)
 
-## Requirements
+## Requirements ✅
 
 - **Signal K server 2.x** running on **Node.js 22.13 or later**. Chiplog uses Node's built-in SQLite module, so there is nothing to compile — it installs the same way on a Raspberry Pi.
 - **A position and speed over ground** on the Signal K bus (GPS). Everything else is optional and used when present.
@@ -39,7 +39,7 @@ English and French, chosen from the browser's language.
 - **Optional:** a USB drive left plugged into the server, for the abandon-ship copy.
 - **Optional:** an internet connection, for map tiles and place names. The logbook itself never needs one.
 
-## Installation
+## Installation 📦
 
 Install **Chiplog** from the Signal K App Store (**Apps & Plugins → Store**), or from the command line:
 
@@ -50,14 +50,14 @@ npm install signalk-chiplog
 
 Then restart the Signal K server, and in the Signal K admin:
 
-1. Go to **Apps & Plugins → Configuration**, open **Chiplog**, tick **Enabled** and save. The defaults suit most boats; see [Configuration](#configuration).
+1. Go to **Apps & Plugins → Configuration**, open **Chiplog**, tick **Enabled** and save. The defaults suit most boats; see [Configuration](#configuration-).
 2. Open **Webapps**: **Chiplog** is listed there. Its two pages are also reachable directly:
    - the logbook: `http://<your-server>:3000/signalk-chiplog/`
    - the tablet entry app: `http://<your-server>:3000/signalk-chiplog/entry/`
 
 The logbook is stored in a single SQLite file, `~/.signalk/plugin-config-data/signalk-chiplog/chiplog.sqlite`.
 
-## How the logbook is written
+## How the logbook is written 📖
 
 ### Passages
 
@@ -122,7 +122,7 @@ Departures and arrivals are named automatically:
 2. **Otherwise online**, from OpenStreetMap's Nominatim service. Until it answers — at sea, out of reach of a network — the place shows its coordinates (e.g. `46.1466N 1.1686W`) as a provisional name, and the lookup is retried later.
 3. **Corrections are remembered.** Renaming a departure or arrival in the webapp also renames that place for every later passage starting or ending nearby. Past passages keep the name they recorded.
 
-## The logbook webapp
+## The logbook webapp 💻
 
 Open **Chiplog** from the Signal K webapps, or `/signalk-chiplog/`. Reading needs no more than read-only access.
 
@@ -136,11 +136,11 @@ Open **Chiplog** from the Signal K webapps, or `/signalk-chiplog/`. Reading need
   - merge with the previous or next passage;
   - delete a passage (admin).
 - **Export** — download the whole logbook or a date range as a PDF logbook to print, JSON, CSV or GPX, and write the abandon-ship copy to the USB drive now (admin). The PDF is written in the webapp's language and the device's time zone.
-- **Retrospective** (admin) — reconstruct past passages for a date range from an InfluxDB history (see [Retrospective analysis](#retrospective-analysis)).
+- **Retrospective** (admin) — reconstruct past passages for a date range from an InfluxDB history (see [Retrospective analysis](#retrospective-analysis-)).
 
 **Helm entry** in the top bar opens the tablet entry app.
 
-## The tablet entry app
+## The tablet entry app 📱
 
 Open `/signalk-chiplog/entry/` on the tablet, or follow **Helm entry** from the logbook. For an app-like, full-screen launcher, use the browser's **Add to Home Screen** (Safari: Share → Add to Home Screen; Chrome: menu → Add to Home screen / Install app).
 
@@ -196,7 +196,7 @@ Logging needs read/write access. The first time, the app shows **This tablet nee
 
 To revoke it, delete the device under **Security → Devices**: the tablet asks for access again. **Sign in instead** uses a regular Signal K user account.
 
-## Configuration
+## Configuration 🔧
 
 In the Signal K admin, **Apps & Plugins → Configuration → Chiplog**.
 
@@ -228,7 +228,7 @@ In the Signal K admin, **Apps & Plugins → Configuration → Chiplog**.
 | InfluxDB protocol                                                | http                                          | `http` or `https`.                                                                                                                                      |
 | InfluxDB vessel context                                          | this server's own                             | Only needed running the replay from a different Signal K server than the one that wrote the history, e.g. development pointed at a production database. |
 
-## Signal K data used
+## Signal K data used 🔌
 
 None of these is required except position and speed over ground; each feature uses what the boat has.
 
@@ -240,7 +240,7 @@ None of these is required except position and speed over ground; each feature us
 | Boat status               | `tanks.*.*.currentLevel`, `.currentVolume`, `.capacity`, `.name`, `electrical.batteries.*.voltage`, `.current`, `.capacity.stateOfCharge`, `.temperature`, `.name`                                                                                                                                                                 |
 | Events                    | `notifications.*`, `steering.autopilot.state`, `.mode`, `.engaged`, `.target`, `environment.wind.speedTrue`, `environment.outside.pressure`                                                                                                                                                                                        |
 
-## Backups and abandon ship
+## Backups and abandon ship 🛟
 
 - **Download** — Export page → PDF (a paper-style logbook: a page per day with time, position, course, speed, wind, barometer, depth, engine or sail and remarks, handwritten notes and the crew aboard each passage included), JSON (the complete record, including tracks and handwriting), CSV (logbook lines in nautical units, for a spreadsheet) or GPX (tracks).
 - **USB drive** — leave a USB drive plugged into the server and set the USB export directory. Chiplog then keeps a copy on it by itself: every 15 minutes and as soon as a passage ends (both configurable). **Write to the USB drive now** on the Export page makes a copy immediately. The copy fills a `chiplog/` folder on the drive with one PDF, JSON, CSV and GPX file per passage, named so that sorting by name sorts by date — e.g. `2026-09-13_0612Z_La-Rochelle_Les-Sables-d-Olonne.csv` (times in UTC; a passage in progress ends in `underway`).
@@ -249,7 +249,7 @@ None of these is required except position and speed over ground; each feature us
   - The Export page shows the schedule, the last copy, the next one, and the last failure if any.
 - **The database** — `chiplog.sqlite` in the plugin's data folder can be copied while the plugin is stopped.
 
-## Retrospective analysis
+## Retrospective analysis 🕓
 
 Already have a history of the boat's Signal K data before Chiplog was installed, or from a period the plugin was stopped? The **Retrospective** page (admin access) reconstructs those passages from it, using the exact same detection Chiplog runs live — the same thresholds, so a reconstructed passage is one Chiplog would have logged had it been running at the time.
 
@@ -259,7 +259,7 @@ Already have a history of the boat's Signal K data before Chiplog was installed,
 - **Refuses a range that overlaps a passage already logged**, to avoid a duplicate or a conflicting one. Reconstruction only ever adds passages; it does not edit or merge into an existing one.
 - **What is not reconstructed**: Signal K alarms and emergencies (`sk_alarm` events), since a typical InfluxDB history does not archive notifications the way it does a numeric reading; strong-wind and falling-barometer events while the boat lay still between passages; and the extra track points recorded live on turns and speed changes — a reconstructed track has one point per **Track point interval**. Everything else read from a continuously published path — position, speed, wind, engine, autopilot, depth, barometer — is reconstructed the same as live.
 
-## Privacy and online services
+## Privacy and online services 🔒
 
 - **Place names.** With geocoding on, the position of each departure and arrival that matches no known place is sent to the geocoding service — OpenStreetMap's public Nominatim by default. Nothing else is sent, and nothing at all when it is off.
 - **Tide forecast.** With it on, the departure position of each passage is sent to the tide service — the public Open-Meteo by default — once, at departure. Nothing at all when it is off.
@@ -270,7 +270,7 @@ Already have a history of the boat's Signal K data before Chiplog was installed,
 
 Map data and place names © OpenStreetMap contributors (ODbL); seamarks © OpenSeaMap; tide and weather data © [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0).
 
-## Troubleshooting
+## Troubleshooting 🐛
 
 ### "Chiplog is not running"
 
@@ -333,13 +333,13 @@ The replay first reads one mean speed per minute, a week at a time, then fetches
 
 A replay wakes the geocoding lookup as soon as it finishes, but the lookup itself still needs internet access to succeed — the passage page shows the raw coordinates until it does. If the boat (or the Signal K server running the replay) has no internet access at the time, naming is retried on the same backoff as any other departure or arrival, up to an hour between attempts; nothing is lost, it just takes longer to resolve.
 
-## Limitations
+## Limitations 🚧
 
 - **Not yet:** a places page, and editing manoeuvre shortcuts from the webapps.
 - **Offline charts** are not provided.
 - **One vessel per Signal K server**, and no per-crew-member authorship.
 
-## Development
+## Development 🧑‍💻
 
 ```bash
 npm install          # also copies the browser libraries into public/vendor/
@@ -352,6 +352,6 @@ The functional specification is in [docs/SPEC.md](docs/SPEC.md), the data model 
 
 `docs/screenshots/` holds the images the Signal K App Store shows for this plugin (`signalk.screenshots` in `package.json`), taken against a demo logbook (`npm run demo:seed`) with a real browser, e.g. `google-chrome --headless --window-size=1280,800 --screenshot=docs/screenshots/01-logbook.png http://localhost:3000/signalk-chiplog/?lang=en`. Retake them after a visible UI change.
 
-## License
+## License 📄
 
 MIT — see [LICENSE](LICENSE). Changes are listed in [CHANGELOG.md](CHANGELOG.md).

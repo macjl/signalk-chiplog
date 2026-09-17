@@ -46,6 +46,6 @@ module.exports = [
   },
   prettierConfig,
   {
-    ignores: ['node_modules/', 'docs/', 'public/vendor/']
+    ignores: ['node_modules/', 'public/vendor/']
   }
 ];
