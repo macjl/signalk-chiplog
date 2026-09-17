@@ -6,13 +6,17 @@ The plugin registers its routes through `registerWithRouter`, so everything belo
 /plugins/signalk-chiplog/api
 ```
 
-The `/api` prefix keeps the plugin's routes clear of `GET /plugins/signalk-chiplog` and `GET`/`POST /plugins/signalk-chiplog/config`, which the Signal K server reserves. The tablet PWA is a static webapp at `/signalk-chiplog/entry/` and uses this API.
+The `/api` prefix keeps the plugin's routes clear of `GET /plugins/signalk-chiplog` and
+`GET`/`POST /plugins/signalk-chiplog/config`, which the Signal K server reserves. The tablet PWA is a static webapp at
+`/signalk-chiplog/entry/` and uses this API.
 
-Implemented in [`lib/api.js`](../lib/api.js); the behaviour described here is covered by the tests in [`test/`](../test).
+Implemented in [`lib/api.js`](../lib/api.js); the behaviour described here is covered by the tests in
+[`test/`](../test).
 
 ## Conventions
 
-**Access levels.** Signal K gives routes registered directly on the router **admin** authentication; `router.access('readonly')` and `router.access('readwrite')` open them further. The policy here:
+**Access levels.** Signal K gives routes registered directly on the router **admin** authentication;
+`router.access('readonly')` and `router.access('readwrite')` open them further. The policy here:
 
 | Level       | What it covers                                                                                                          |
 | ----------- | ----------------------------------------------------------------------------------------------------------------------- |
@@ -20,15 +24,21 @@ Implemented in [`lib/api.js`](../lib/api.js); the behaviour described here is co
 | `readwrite` | What the crew does underway: annotations, manoeuvres, closing an entry, correcting a name or a propulsion segment       |
 | admin       | Destructive or configuration-shaped operations: deleting entries and places, managing shortcuts, triggering a USB write |
 
-Corrections are `readwrite` rather than admin on purpose — a crew member at the helm has to be able to fix a wrong place name or a mis-detected engine segment without an admin login.
+Corrections are `readwrite` rather than admin on purpose — a crew member at the helm has to be able to fix a wrong place
+name or a mis-detected engine segment without an admin login.
 
-On a server too old to provide `router.access()`, every route falls back to admin-only: the plugin stays usable, at the cost of requiring an admin login for reads.
+On a server too old to provide `router.access()`, every route falls back to admin-only: the plugin stays usable, at the
+cost of requiring an admin login for reads.
 
-**JSON is `camelCase`**, mapped from the `snake_case` columns of the [data model](DATA_MODEL.md). Positions are `{ "lat": …, "lon": … }` in decimal degrees, or `null`.
+**JSON is `camelCase`**, mapped from the `snake_case` columns of the [data model](DATA_MODEL.md). Positions are
+`{ "lat": …, "lon": … }` in decimal degrees, or `null`.
 
-**Units are Signal K SI units** — radians, m/s, metres, seconds. Conversion to degrees, knots and nautical miles belongs to the client; the CSV export is the one exception (see [Export](#export)). Timestamps are ISO 8601 UTC; any parseable timestamp is accepted in requests and normalised to millisecond precision.
+**Units are Signal K SI units** — radians, m/s, metres, seconds. Conversion to degrees, knots and nautical miles belongs
+to the client; the CSV export is the one exception (see [Export](#export)). Timestamps are ISO 8601 UTC; any parseable
+timestamp is accepted in requests and normalised to millisecond precision.
 
-**Collections** all share one envelope, `{ total, limit, offset, items }`, with `limit` from 1 to 500 (default 50) and `offset` ≥ 0.
+**Collections** all share one envelope, `{ total, limit, offset, items }`, with `limit` from 1 to 500 (default 50) and
+`offset` ≥ 0.
 
 **Unknown fields** in a request body are rejected with `400` rather than ignored, so a client typo fails loudly.
 
@@ -46,7 +56,8 @@ On a server too old to provide `router.access()`, every route falls back to admi
 | `500`  | Unexpected failure — detail goes to the server log, not the client | `internal_error`                                                                                                                                                                                                  |
 | `503`  | The plugin is disabled or stopped                                  | `plugin_not_started`                                                                                                                                                                                              |
 
-The server registers plugin routes once and never removes them, so they keep answering while the plugin is disabled — with `503` until it is started again.
+The server registers plugin routes once and never removes them, so they keep answering while the plugin is disabled —
+with `503` until it is started again.
 
 ## Plugin state
 
@@ -67,11 +78,18 @@ What the UI needs to render its header, in one call.
 
 As of the last detection cycle, at most 15 seconds old:
 
-- `detection` is `autostate` while a current, recognised `navigation.state` is driving detection — which is what `signalk-autostate` provides — and `fallback` when the speed fallback is (SPEC §4.2). The UI must show the degraded-mode indicator in the latter case (SPEC §2).
+- `detection` is `autostate` while a current, recognised `navigation.state` is driving detection — which is what
+  `signalk-autostate` provides — and `fallback` when the speed fallback is (SPEC §4.2). The UI must show the
+  degraded-mode indicator in the latter case (SPEC §2).
 - `motion` is `underway`, `stopped`, or `unknown` when there is no current data to decide.
-- `propulsion` is `engine` or `sail` while under way — from engine data, `navigation.state` or the configured default (SPEC §4.2) — and `null` otherwise.
+- `propulsion` is `engine` or `sail` while under way — from engine data, `navigation.state` or the configured default
+  (SPEC §4.2) — and `null` otherwise.
 - `activeEntryId` is `null` when no passage is open.
-- `stateIssue` says why `navigation.state` is not followed, and is `null` in `autostate` mode: `{ "reason": "absent" }` when nothing publishes it; otherwise `{ reason, source, value, updatedAt }` with `reason` `pending` (a `null` value, as signalk-autostate publishes while starting), `stale` (not updated for 20 minutes) or `unrecognised` (a value such as `default`). `source` is the Signal K source reference, `null` when the server gives none. When signalk-autostate is among several sources of `navigation.state`, its value is the one used.
+- `stateIssue` says why `navigation.state` is not followed, and is `null` in `autostate` mode: `{ "reason": "absent" }`
+  when nothing publishes it; otherwise `{ reason, source, value, updatedAt }` with `reason` `pending` (a `null` value,
+  as signalk-autostate publishes while starting), `stale` (not updated for 20 minutes) or `unrecognised` (a value such
+  as `default`). `source` is the Signal K source reference, `null` when the server gives none. When signalk-autostate is
+  among several sources of `navigation.state`, its value is the one used.
 
 ## Entries
 
@@ -89,7 +107,9 @@ Query: `from`/`to`, filtering the same way as `GET /entries`.
 { "count": 42, "distance": 1234567, "duration": 456789 }
 ```
 
-Totals across every entry the range matches, not just a loaded page: the number of passages, the summed `distance` (metres), and the summed elapsed time (seconds) — each entry's `endTime` minus `startTime`, `now` for one still open. For a summary line above the day-grouped list.
+Totals across every entry the range matches, not just a loaded page: the number of passages, the summed `distance`
+(metres), and the summed elapsed time (seconds) — each entry's `endTime` minus `startTime`, `now` for one still open.
+For a summary line above the day-grouped list.
 
 ### `GET /entries/:id` — `readonly`
 
@@ -128,30 +148,55 @@ One entry, with the counts the detail view needs:
 
 On an active entry, `endPosition` is the last position detection saw — not yet an arrival.
 
-`maxSpeed` is the highest speed over ground seen in the track, `null` with none. `maxWindSpeed` is the highest true wind speed seen, from the track and the instrument snapshots (SPEC §4.5.1) combined, falling back to apparent wind — flagged by `maxWindApparent` — only for a passage with no true-wind reading at all; `null` with neither.
+`maxSpeed` is the highest speed over ground seen in the track, `null` with none. `maxWindSpeed` is the highest true wind
+speed seen, from the track and the instrument snapshots (SPEC §4.5.1) combined, falling back to apparent wind — flagged
+by `maxWindApparent` — only for a passage with no true-wind reading at all; `null` with neither.
 
-`startTanks` — `[{ type, id, name?, level?, volume?, capacity? }]` — and `startBatteries` — `[{ id, name?, voltage?, current?, stateOfCharge?, temperature? }]` — are the boat's state noted as the passage opened (SPEC §4.5.1): ratios, m³, V, A (negative discharging), K, a field absent when not published. `null` when the boat published none, for a passage opened after the fact (a queued tablet entry, a retrospective replay), or one opened before migration 11.
+`startTanks` — `[{ type, id, name?, level?, volume?, capacity? }]` — and `startBatteries` —
+`[{ id, name?, voltage?, current?, stateOfCharge?, temperature? }]` — are the boat's state noted as the passage opened
+(SPEC §4.5.1): ratios, m³, V, A (negative discharging), K, a field absent when not published. `null` when the boat
+published none, for a passage opened after the fact (a queued tablet entry, a retrospective replay), or one opened
+before migration 11.
 
-`startPlacePending`/`endPlacePending` mean the name was generated from coordinates (`"46.1234N 1.5678W"`) and online geocoding has not answered yet (SPEC §4.8); the name may still change on its own. A UI can show it as provisional. Geocoded names from the public instance are OpenStreetMap data and need its attribution.
+`startPlacePending`/`endPlacePending` mean the name was generated from coordinates (`"46.1234N 1.5678W"`) and online
+geocoding has not answered yet (SPEC §4.8); the name may still change on its own. A UI can show it as provisional.
+Geocoded names from the public instance are OpenStreetMap data and need its attribution.
 
-`crew` is who was recorded aboard, in the order they were added — see [Crew](#crew) for how it is set. `name`/`role` are denormalised at assignment time like `startPlaceName`, so correcting or deleting a roster member never rewrites a past passage's recorded crew.
+`crew` is who was recorded aboard, in the order they were added — see [Crew](#crew) for how it is set. `name`/`role` are
+denormalised at assignment time like `startPlaceName`, so correcting or deleting a roster member never rewrites a past
+passage's recorded crew.
 
 ### `PATCH /entries/:id` — `readwrite`
 
 Accepts `startTime`, `endTime`, `startPosition`, `endPosition`, `startPlaceName`, `endPlaceName`, `distance`.
 
-- `endTime` can only be set on a closed entry — `409 entry_active` otherwise; use [close](#post-entriesidclose--readwrite). An end before the start is `400`.
-- `endPosition` and `endPlaceName` are likewise refused with `409 entry_active` on an entry still in progress: there is no arrival yet, only the last position detection saw, which keeps moving.
-- **Renaming a place here is remembered.** Per SPEC §4.8, setting `startPlaceName`/`endPlaceName` also updates the nearest known place within the configured matching radius, or creates one, marking it `source: "manual"`; the entry's `startPlaceId`/`endPlaceId` then points to it. The next passage starting or ending within the radius reuses the name without calling the geocoder. Any other entry that already reused that place, timestamped later than the corrected side, is renamed too; one timestamped earlier keeps the name it recorded.
+- `endTime` can only be set on a closed entry — `409 entry_active` otherwise; use
+  [close](#post-entriesidclose--readwrite). An end before the start is `400`.
+- `endPosition` and `endPlaceName` are likewise refused with `409 entry_active` on an entry still in progress: there is
+  no arrival yet, only the last position detection saw, which keeps moving.
+- **Renaming a place here is remembered.** Per SPEC §4.8, setting `startPlaceName`/`endPlaceName` also updates the
+  nearest known place within the configured matching radius, or creates one, marking it `source: "manual"`; the entry's
+  `startPlaceId`/`endPlaceId` then points to it. The next passage starting or ending within the radius reuses the name
+  without calling the geocoder. Any other entry that already reused that place, timestamped later than the corrected
+  side, is renamed too; one timestamped earlier keeps the name it recorded.
 - If the entry has no position on that side, the name is stored on the entry alone and no place is created.
 - `null` clears a name or a position.
-- Setting a name, or clearing it, ends any pending geocoding for that side: a lookup still on its way will not override it. Correcting the position of a side whose name is still pending regenerates that name from the new coordinates and looks it up again.
+- Setting a name, or clearing it, ends any pending geocoding for that side: a lookup still on its way will not override
+  it. Correcting the position of a side whose name is still pending regenerates that name from the new coordinates and
+  looks it up again.
 
 ### `POST /entries/:id/close` — `readwrite`
 
-Closes an open entry, with no request body — confirming an arrival, or ending a passage detection has not ended. If detection has already seen the vessel stop (`stoppedSince`), that is the end time; otherwise it is now. The end position is the one detection recorded, or failing that the vessel's current position. Unless the arrival already has a name, it is named as detection would name it: after a known place, or from its coordinates pending geocoding. `409 entry_already_closed` if it is already closed.
+Closes an open entry, with no request body — confirming an arrival, or ending a passage detection has not ended. If
+detection has already seen the vessel stop (`stoppedSince`), that is the end time; otherwise it is now. The end position
+is the one detection recorded, or failing that the vessel's current position. Unless the arrival already has a name, it
+is named as detection would name it: after a known place, or from its coordinates pending geocoding.
+`409 entry_already_closed` if it is already closed.
 
-A closed entry is final: detection does not reopen it, whether the boat is still moving or leaves again soon after — the next passage starts at the next real departure. An entry detection closed, by contrast, is reopened by a departure within `stopClosureMinutes` of its end (SPEC §4.2), which also means `stoppedSince` is only ever set on an entry opened by casting off that has not moved yet.
+A closed entry is final: detection does not reopen it, whether the boat is still moving or leaves again soon after — the
+next passage starts at the next real departure. An entry detection closed, by contrast, is reopened by a departure
+within `stopClosureMinutes` of its end (SPEC §4.2), which also means `stoppedSince` is only ever set on an entry opened
+by casting off that has not moved yet.
 
 ### `POST /entries/:id/merge` — `readwrite`
 
@@ -159,13 +204,20 @@ A closed entry is final: detection does not reopen it, whether the boat is still
 { "withEntryId": 43 }
 ```
 
-Manual concatenation of two passages (SPEC §3.1), for when a stop outlasted the tolerance but was really the same outing.
+Manual concatenation of two passages (SPEC §3.1), for when a stop outlasted the tolerance but was really the same
+outing.
 
-- **The earlier entry survives**, whichever of the two the request is addressed to, so the passage keeps its id and departure. It takes the later entry's end time, end position, end place and state.
-- Track points, observations, propulsion segments and events move to it; distances are summed and engine/sail durations recomputed from the segments.
-- **Crew is unioned onto the surviving entry**, skipping anyone already aboard it — carrying a passage's crew over to the next one (see [Crew](#crew)) means the two lists usually overlap.
-- **The place the earlier entry had stopped at is kept as a `stopover` event** on the surviving entry, at that stop's position, since it would otherwise be overwritten with no trace by the later entry's own end. Not added when that stop had no position (and so no place) to begin with.
-- The two entries must be consecutive — `409 entries_not_consecutive` — and the earlier one must be closed — `409 entry_active`.
+- **The earlier entry survives**, whichever of the two the request is addressed to, so the passage keeps its id and
+  departure. It takes the later entry's end time, end position, end place and state.
+- Track points, observations, propulsion segments and events move to it; distances are summed and engine/sail durations
+  recomputed from the segments.
+- **Crew is unioned onto the surviving entry**, skipping anyone already aboard it — carrying a passage's crew over to
+  the next one (see [Crew](#crew)) means the two lists usually overlap.
+- **The place the earlier entry had stopped at is kept as a `stopover` event** on the surviving entry, at that stop's
+  position, since it would otherwise be overwritten with no trace by the later entry's own end. Not added when that stop
+  had no position (and so no place) to begin with.
+- The two entries must be consecutive — `409 entries_not_consecutive` — and the earlier one must be closed —
+  `409 entry_active`.
 
 Returns the surviving entry.
 
@@ -179,15 +231,24 @@ Removes the entry and everything attached to it. `204`.
 
 Query `format`: `geojson` (default) or `gpx`.
 
-GeoJSON is a single `Feature`: a `LineString`, a `Point` for a one-point track, or a `null` geometry for an empty one. `properties` carries the entry's times and place names plus `coordTimes`, the timestamp of each coordinate, and `readings`, one `{ sog, cog, stw, tws, twd, awa, heading }` per coordinate in the same order (SI units, `null` where not current when sampled) — the webapp's position scrubber reads these rather than fetching each point on its own; a point recorded before migration 9 has `stw: null`. GPX 1.1 is served as `application/gpx+xml`.
+GeoJSON is a single `Feature`: a `LineString`, a `Point` for a one-point track, or a `null` geometry for an empty one.
+`properties` carries the entry's times and place names plus `coordTimes`, the timestamp of each coordinate, and
+`readings`, one `{ sog, cog, stw, tws, twd, awa, heading }` per coordinate in the same order (SI units, `null` where not
+current when sampled) — the webapp's position scrubber reads these rather than fetching each point on its own; a point
+recorded before migration 9 has `stw: null`. GPX 1.1 is served as `application/gpx+xml`.
 
 ### `GET /entries/:id/observations` — `readonly`
 
-The instrument snapshots behind the facsimile PDF, oldest first. Paginated. `reason` is `entry_start`, `periodic`, `entry_end` or `event` (SPEC §4.5.1); readings that were not current when the snapshot was taken are `null`. `engineRuntimes` holds every engine's hour counter in seconds, keyed by Signal K engine id (`{ "port": 2924700, "starboard": 2873220 }`), or `null` with no counter; `engineRuntime` is the main (or first) engine's, as before. Snapshots recorded before migration 5 only have `engineRuntime`.
+The instrument snapshots behind the facsimile PDF, oldest first. Paginated. `reason` is `entry_start`, `periodic`,
+`entry_end` or `event` (SPEC §4.5.1); readings that were not current when the snapshot was taken are `null`.
+`engineRuntimes` holds every engine's hour counter in seconds, keyed by Signal K engine id
+(`{ "port": 2924700, "starboard": 2873220 }`), or `null` with no counter; `engineRuntime` is the main (or first)
+engine's, as before. Snapshots recorded before migration 5 only have `engineRuntime`.
 
 ### `GET /entries/:id/propulsion` — `readonly`
 
-The engine/sail segments, oldest first. Paginated. They cover only time under way, so a stop leaves a gap; the ongoing segment has `endTime: null`.
+The engine/sail segments, oldest first. Paginated. They cover only time under way, so a stop leaves a gap; the ongoing
+segment has `endTime: null`.
 
 ### `PATCH /propulsion/:id` — `readwrite`
 
@@ -195,11 +256,16 @@ The engine/sail segments, oldest first. Paginated. They cover only time under wa
 { "type": "sail" }
 ```
 
-Corrects a mis-detected segment (SPEC §4.2). The segment is flagged `source: "manual"`, the entry's durations are recomputed, and a `manual_correction` event is added to the timeline at the segment's start time, with the before and after in its payload. Setting the type a segment already has changes nothing.
+Corrects a mis-detected segment (SPEC §4.2). The segment is flagged `source: "manual"`, the entry's durations are
+recomputed, and a `manual_correction` event is added to the timeline at the segment's start time, with the before and
+after in its payload. Setting the type a segment already has changes nothing.
 
-Detection logs its own automatic switches the same way: a `propulsion_change` event, same payload shape, at the segment's start time, with an instrument snapshot taken for it like a manoeuvre's. Not for the ongoing segment's first switch when a passage opens — only an actual change partway through.
+Detection logs its own automatic switches the same way: a `propulsion_change` event, same payload shape, at the
+segment's start time, with an instrument snapshot taken for it like a manoeuvre's. Not for the ongoing segment's first
+switch when a passage opens — only an actual change partway through.
 
-Correcting the **ongoing** segment holds until the engine data changes: detection does not revert it on its next cycle just because the sensors — or the configured default — still say otherwise.
+Correcting the **ongoing** segment holds until the engine data changes: detection does not revert it on its next cycle
+just because the sensors — or the configured default — still say otherwise.
 
 ### `GET /entries/:id/tide` — `readonly`
 
@@ -215,9 +281,14 @@ Correcting the **ongoing** segment holds until the engine data changes: detectio
 }
 ```
 
-The tide forecast fetched near this entry's departure (SPEC §4.5.2): hourly water height in metres, at the position asked about, for the 24 h starting at departure. `404 tide_not_found` while none has been fetched yet, or none is available for the position — the two are not distinguished, since there is nothing to show either way. High and low tide are not a separate field: they are the local peaks and troughs of `points`, derived by the client.
+The tide forecast fetched near this entry's departure (SPEC §4.5.2): hourly water height in metres, at the position
+asked about, for the 24 h starting at departure. `404 tide_not_found` while none has been fetched yet, or none is
+available for the position — the two are not distinguished, since there is nothing to show either way. High and low tide
+are not a separate field: they are the local peaks and troughs of `points`, derived by the client.
 
-`datum` is always `"msl"` today: heights are relative to mean sea level, the only reference Open-Meteo's `sea_level_height_msl` offers — not the lowest-astronomical-tide chart datum nautical tide tables use. A client showing `points` or the derived extremes should say so, as the webapp does, rather than imply a charted "hauteur d'eau".
+`datum` is always `"msl"` today: heights are relative to mean sea level, the only reference Open-Meteo's
+`sea_level_height_msl` offers — not the lowest-astronomical-tide chart datum nautical tide tables use. A client showing
+`points` or the derived extremes should say so, as the webapp does, rather than imply a charted "hauteur d'eau".
 
 ### `GET /entries/:id/weather` — `readonly`
 
@@ -251,7 +322,11 @@ The tide forecast fetched near this entry's departure (SPEC §4.5.2): hourly wat
 }
 ```
 
-The marine weather forecast fetched near this entry's departure (SPEC §4.5.3): hourly, in SI units, for the 24 h starting at departure. Fields are described in the [data model](DATA_MODEL.md#weather_forecasts-migration-12); any of them is `null` when the service did not give it — all the sea fields, far from the sea. Wind, wave and swell directions are where they come from; the current's is where it flows to. `404 weather_not_found` while none has been fetched yet, or none is available for the position.
+The marine weather forecast fetched near this entry's departure (SPEC §4.5.3): hourly, in SI units, for the 24 h
+starting at departure. Fields are described in the [data model](DATA_MODEL.md#weather_forecasts-migration-12); any of
+them is `null` when the service did not give it — all the sea fields, far from the sea. Wind, wave and swell directions
+are where they come from; the current's is where it flows to. `404 weather_not_found` while none has been fetched yet,
+or none is available for the position.
 
 ## Events
 
@@ -259,15 +334,25 @@ The marine weather forecast fetched near this entry's departure (SPEC §4.5.3): 
 
 Optional `type` filter. Oldest first. Paginated.
 
-Besides what clients post, the timeline holds events the plugin logs itself — `sk_alarm`, `autopilot`, `weather_threshold`, `manual_correction`, `propulsion_change` and `stopover`, with `source: "auto"`; their subtypes and payloads are listed in the [data model](DATA_MODEL.md#events). An alarm raised at anchor between passages belongs to the passage that ended there, so its time can be later than that entry's `endTime`.
+Besides what clients post, the timeline holds events the plugin logs itself — `sk_alarm`, `autopilot`,
+`weather_threshold`, `manual_correction`, `propulsion_change` and `stopover`, with `source: "auto"`; their subtypes and
+payloads are listed in the [data model](DATA_MODEL.md#events). An alarm raised at anchor between passages belongs to the
+passage that ended there, so its time can be later than that entry's `endTime`.
 
 ### `POST /events` — `readwrite`
 
-The endpoint the tablet's manoeuvre shortcuts and annotations hit. The client does not need to know which passage is open: the server attaches the entry to
+The endpoint the tablet's manoeuvre shortcuts and annotations hit. The client does not need to know which passage is
+open: the server attaches the entry to
 
 1. the passage in progress;
-2. failing that, for a **departure manoeuvre** — `cast_off` or `anchor_up` — the passage detection closed less than `stopClosureMinutes` before the event, which detection reopens once the vessel moves within that time of the event (`openedEntry` is `false`); otherwise a new passage it opens at the event's time (SPEC §4.3). The new passage starts stopped, at the event's position, named as detection would name it; detection carries it on as soon as the vessel moves, or closes it at the event if the vessel has not left within `stopClosureMinutes`. The start is never earlier than the previous passage's end;
-3. failing that, the last passage while the vessel is within 1 nm of its arrival — a note in the marina belongs to the passage that ended there;
+2. failing that, for a **departure manoeuvre** — `cast_off` or `anchor_up` — the passage detection closed less than
+   `stopClosureMinutes` before the event, which detection reopens once the vessel moves within that time of the event
+   (`openedEntry` is `false`); otherwise a new passage it opens at the event's time (SPEC §4.3). The new passage starts
+   stopped, at the event's position, named as detection would name it; detection carries it on as soon as the vessel
+   moves, or closes it at the event if the vessel has not left within `stopClosureMinutes`. The start is never earlier
+   than the previous passage's end;
+3. failing that, the last passage while the vessel is within 1 nm of its arrival — a note in the marina belongs to the
+   passage that ended there;
 4. otherwise the request is refused with `409 no_passage`.
 
 ```json
@@ -282,12 +367,19 @@ The endpoint the tablet's manoeuvre shortcuts and annotations hit. The client do
 
 Accepts `type`, `subtype`, `comment`, `payload`, `time`, `position`, `clientRef`:
 
-- `time` defaults to now and `position` to the vessel's position at that time, so a shortcut button is a single call with no client-side clock or GPS; pass `"position": null` to record none. For a past `time` — an entry replayed from an offline queue — the position is the nearest track point within 2 minutes, else the current position if `time` is within 5 minutes of now, else none.
-- `clientRef` (1–100 characters) is an idempotency key: posting a `clientRef` already logged answers `200` with that event and changes nothing, so a retry after a lost response neither duplicates the entry nor opens a second passage.
+- `time` defaults to now and `position` to the vessel's position at that time, so a shortcut button is a single call
+  with no client-side clock or GPS; pass `"position": null` to record none. For a past `time` — an entry replayed from
+  an offline queue — the position is the nearest track point within 2 minutes, else the current position if `time` is
+  within 5 minutes of now, else none.
+- `clientRef` (1–100 characters) is an idempotency key: posting a `clientRef` already logged answers `200` with that
+  event and changes nothing, so a retry after a lost response neither duplicates the entry nor opens a second passage.
 
 Answers `201` with the event — `entryId` says where it went — plus `"openedEntry": true` when it opened the passage.
 
-A client-created event posted without `time` also takes an instrument snapshot (`reason: "event"`) at the event's time, so the log shows the conditions it was made in — a manoeuvre, a keyboard note, or a handwritten one. Posted with a `time` (an entry replayed from an offline queue), no snapshot is taken: current readings say nothing about a moment already past.
+A client-created event posted without `time` also takes an instrument snapshot (`reason: "event"`) at the event's time,
+so the log shows the conditions it was made in — a manoeuvre, a keyboard note, or a handwritten one. Posted with a
+`time` (an entry replayed from an offline queue), no snapshot is taken: current readings say nothing about a moment
+already past.
 
 Clients may create three types; the others are produced by the plugin itself:
 
@@ -297,25 +389,32 @@ Clients may create three types; the others are produced by the plugin itself:
 | `text_annotation`        | `comment`                                                                                                              |
 | `handwritten_annotation` | `payload.strokes`: `[{ "points": [{ "x", "y", "t", "pressure"? }], "color"?, "tool"?, "width"? }]`, non-empty, numeric |
 
-A stroke's `color` (`"#rrggbb"`), `tool` (`"pen"` or `"highlighter"`) and `width` (canvas pixels, before pressure scaling) are optional — a note drawn before the tablet's toolbar existed has none, and is shown in the current text colour at a default width. `tool: "highlighter"` is the only one drawn translucent, wherever the note is later shown.
+A stroke's `color` (`"#rrggbb"`), `tool` (`"pen"` or `"highlighter"`) and `width` (canvas pixels, before pressure
+scaling) are optional — a note drawn before the tablet's toolbar existed has none, and is shown in the current text
+colour at a default width. `tool: "highlighter"` is the only one drawn translucent, wherever the note is later shown.
 
 ### `POST /entries/:id/events` — `readwrite`
 
-The same as [`POST /events`](#post-events--readwrite), for a given entry — open or closed — with no attachment rule. `clientRef` and the snapshot behave the same; the response has no `openedEntry`.
+The same as [`POST /events`](#post-events--readwrite), for a given entry — open or closed — with no attachment rule.
+`clientRef` and the snapshot behave the same; the response has no `openedEntry`.
 
 ### `PATCH /events/:id` — `readwrite`
 
-Accepts `time`, `comment`, `subtype`, `payload`, and validates the result by the same rules as creation. On an event the plugin produced (`sk_alarm`, `autopilot`, `weather_threshold`, `manual_correction`, `propulsion_change`, `stopover`), only `comment` may change — annotating an alarm is fine, rewriting it is not.
+Accepts `time`, `comment`, `subtype`, `payload`, and validates the result by the same rules as creation. On an event the
+plugin produced (`sk_alarm`, `autopilot`, `weather_threshold`, `manual_correction`, `propulsion_change`, `stopover`),
+only `comment` may change — annotating an alarm is fine, rewriting it is not.
 
 ### `DELETE /events/:id` — `readwrite`
 
-`204`. Deleting the departure manoeuvre that opened a passage, while the vessel has not moved yet and nothing else was logged in it, deletes that passage too: this is how a mistaken "Cast off" is undone.
+`204`. Deleting the departure manoeuvre that opened a passage, while the vessel has not moved yet and nothing else was
+logged in it, deletes that passage too: this is how a mistaken "Cast off" is undone.
 
 ## Places
 
 ### `GET /places` — `readonly`
 
-The gazetteer, for a management screen, sorted by name — accent- and case-insensitively, so "Île de Ré" sorts among the I's. Paginated.
+The gazetteer, for a management screen, sorted by name — accent- and case-insensitively, so "Île de Ré" sorts among the
+I's. Paginated.
 
 ### `PATCH /places/:id` — `readwrite`
 
@@ -323,7 +422,8 @@ The gazetteer, for a management screen, sorted by name — accent- and case-inse
 { "name": "Port des Minimes" }
 ```
 
-Marks the place `source: "manual"`, which makes the name authoritative for later passages within the radius. Past entries are untouched.
+Marks the place `source: "manual"`, which makes the name authoritative for later passages within the radius. Past
+entries are untouched.
 
 ### `DELETE /places/:id` — admin
 
@@ -347,7 +447,8 @@ Ordered by `sortOrder`. Disabled types are included, so a settings screen can sh
 }
 ```
 
-`key` is 1–40 lowercase letters, digits or underscores; `label` is required. `sortOrder` defaults to after the last type. `409 manoeuvre_type_exists` for a taken key. Answers `201`.
+`key` is 1–40 lowercase letters, digits or underscores; `label` is required. `sortOrder` defaults to after the last
+type. `409 manoeuvre_type_exists` for a taken key. Answers `201`.
 
 ### `PATCH /manoeuvre-types/:key` — admin
 
@@ -355,7 +456,8 @@ Accepts `label`, `icon`, `sortOrder`, `enabled` — on built-in types too. The k
 
 ### `DELETE /manoeuvre-types/:key` — admin
 
-`409 builtin_manoeuvre_type` for a built-in; disable it instead. Events that used a deleted type keep their `subtype`. `204`.
+`409 builtin_manoeuvre_type` for a built-in; disable it instead. Events that used a deleted type keep their `subtype`.
+`204`.
 
 ## Crew
 
@@ -371,15 +473,20 @@ The roster, sorted by name — accent- and case-insensitively, like [places](#pl
 { "name": "Alex Martin", "role": "skipper" }
 ```
 
-`name` is required; `role` is free text, optional. Anyone aboard can add a name here, not just an admin — the same reasoning as a place-name correction (§4.8): a crew member at the helm has to be able to extend the roster without an admin login. Answers `201`.
+`name` is required; `role` is free text, optional. Anyone aboard can add a name here, not just an admin — the same
+reasoning as a place-name correction (§4.8): a crew member at the helm has to be able to extend the roster without an
+admin login. Answers `201`.
 
 ### `PATCH /crew/:id` — `readwrite`
 
-Accepts `name`, `role`. A passage that already recorded this person keeps the name and role as they stood at the time (see `PUT /entries/:id/crew` below).
+Accepts `name`, `role`. A passage that already recorded this person keeps the name and role as they stood at the time
+(see `PUT /entries/:id/crew` below).
 
 ### `DELETE /crew/:id` — `readwrite`
 
-Removing someone from the roster is `readwrite` too, not `admin` — unlike `places`/`manoeuvre-types` — so the crew can correct the roster from the tablet without an admin login. Passages that already recorded this person keep their name and role. `204`.
+Removing someone from the roster is `readwrite` too, not `admin` — unlike `places`/`manoeuvre-types` — so the crew can
+correct the roster from the tablet without an admin login. Passages that already recorded this person keep their name
+and role. `204`.
 
 ### `PUT /entries/:id/crew` — `readwrite`
 
@@ -387,9 +494,13 @@ Removing someone from the roster is `readwrite` too, not `admin` — unlike `pla
 { "members": [{ "crewMemberId": 3 }, { "name": "Jo", "role": "crew" }] }
 ```
 
-Replaces the entry's crew list. Each item either picks an existing roster member by id (`404 crew_member_not_found` if unknown), or gives a `name` (and optional `role`) that extends the roster — reusing an existing member of the same name (case- and accent-insensitively) rather than creating a duplicate, the same way an unrecognised place name becomes a new place.
+Replaces the entry's crew list. Each item either picks an existing roster member by id (`404 crew_member_not_found` if
+unknown), or gives a `name` (and optional `role`) that extends the roster — reusing an existing member of the same name
+(case- and accent-insensitively) rather than creating a duplicate, the same way an unrecognised place name becomes a new
+place.
 
-**Carried over from the previous passage.** When a new passage opens — automatically or by casting off (§4.3) — it starts with the same crew as the one immediately before it, still adjustable here.
+**Carried over from the previous passage.** When a new passage opens — automatically or by casting off (§4.3) — it
+starts with the same crew as the one immediately before it, still adjustable here.
 
 Not a separate read endpoint: an entry's crew is included in [`GET /entries/:id`](#get-entriesid--readonly) as `crew`.
 
@@ -397,12 +508,23 @@ Not a separate read endpoint: an entry's crew is included in [`GET /entries/:id`
 
 ### `GET /export` — `readonly`
 
-Query: `format` — `json` (default), `csv`, `gpx` or `pdf`; `from`, `to` as for [`GET /entries`](#get-entries--readonly); for `pdf`, `lang` (`en` or `fr`) and `tz` (an IANA time zone such as `Europe/Paris`), which default to the plugin's logbook language and time zone — `400` for an unknown value. Served as an attachment named `chiplog.<format>`.
+Query: `format` — `json` (default), `csv`, `gpx` or `pdf`; `from`, `to` as for [`GET /entries`](#get-entries--readonly);
+for `pdf`, `lang` (`en` or `fr`) and `tz` (an IANA time zone such as `Europe/Paris`), which default to the plugin's
+logbook language and time zone — `400` for an unknown value. Served as an attachment named `chiplog.<format>`.
 
-- **`json`** — the complete record, in SI units: `{ exportedAt, schemaVersion, units, entries }`, where each entry carries its `trackPoints`, `observations`, `propulsion`, `events`, `weather` (the body of [`GET /entries/:id/weather`](#get-entriesidweather--readonly), or `null`) and `crew` (see [Crew](#crew)). This is the machine-readable abandon-ship payload (SPEC §4.5).
-- **`csv`** — one chronological line per departure, observation, event and arrival: a paper logbook readable in any spreadsheet. Unlike everything else, it is **converted to nautical units** — knots, degrees, hPa, °C, nautical miles, engine hours — with units in the column names. After the fixed columns, one `engine_runtime_<engine>_h` column per engine found in the export (e.g. `engine_runtime_port_h`) keeps each engine's hour counter; `engine_runtime_h` is the main or first engine's. Free text that a spreadsheet would execute as a formula is prefixed with `'`.
+- **`json`** — the complete record, in SI units: `{ exportedAt, schemaVersion, units, entries }`, where each entry
+  carries its `trackPoints`, `observations`, `propulsion`, `events`, `weather` (the body of
+  [`GET /entries/:id/weather`](#get-entriesidweather--readonly), or `null`) and `crew` (see [Crew](#crew)). This is the
+  machine-readable abandon-ship payload (SPEC §4.5).
+- **`csv`** — one chronological line per departure, observation, event and arrival: a paper logbook readable in any
+  spreadsheet. Unlike everything else, it is **converted to nautical units** — knots, degrees, hPa, °C, nautical miles,
+  engine hours — with units in the column names. After the fixed columns, one `engine_runtime_<engine>_h` column per
+  engine found in the export (e.g. `engine_runtime_port_h`) keeps each engine's hour counter; `engine_runtime_h` is the
+  main or first engine's. Free text that a spreadsheet would execute as a formula is prefixed with `'`.
 - **`gpx`** — one track per entry.
-- **`pdf`** — the facsimile logbook (SPEC §4.5): A4 landscape, a page per day in the given time zone, with time, position, course, speed over ground, wind, barometer, depth, engine or sail and remarks; departures and arrivals with their totals, day totals, handwritten notes drawn. The wording is the webapp's, in `lang`.
+- **`pdf`** — the facsimile logbook (SPEC §4.5): A4 landscape, a page per day in the given time zone, with time,
+  position, course, speed over ground, wind, barometer, depth, engine or sail and remarks; departures and arrivals with
+  their totals, day totals, handwritten notes drawn. The wording is the webapp's, in `lang`.
 
 ### `GET /export/usb` — `readonly`
 
@@ -428,17 +550,33 @@ What the USB copy is set to do and how it last went, for the export screen.
 }
 ```
 
-- The copy runs by itself every `intervalMinutes` (the first one a minute after the plugin starts, leaving the drive time to mount) and, with `onArrival`, when a passage closes — by detection or by hand. `nextAt` is `null` without a periodic copy or a directory.
-- `reason` is `scheduled`, `arrival` or `manual`. `lastError` — `{ at, reason, code, message }` — is the failure of the latest copy, cleared by the next one that succeeds; a failed copy leaves `lastSuccess` as it was. Both are kept in memory and start empty when the plugin starts.
-- Copies never overlap: a copy requested while one is running waits for it, and requests made meanwhile share a single copy after it.
+- The copy runs by itself every `intervalMinutes` (the first one a minute after the plugin starts, leaving the drive
+  time to mount) and, with `onArrival`, when a passage closes — by detection or by hand. `nextAt` is `null` without a
+  periodic copy or a directory.
+- `reason` is `scheduled`, `arrival` or `manual`. `lastError` — `{ at, reason, code, message }` — is the failure of the
+  latest copy, cleared by the next one that succeeds; a failed copy leaves `lastSuccess` as it was. Both are kept in
+  memory and start empty when the plugin starts.
+- Copies never overlap: a copy requested while one is running waits for it, and requests made meanwhile share a single
+  copy after it.
 
 ### `POST /export/usb` — admin
 
-Copies the logbook to a `chiplog/` subdirectory of the directory set in the plugin configuration, as one JSON, CSV, GPX and PDF file per passage, in the same formats as [`GET /export`](#get-export--readonly) restricted to that passage; the PDF uses the plugin's logbook language and time zone.
+Copies the logbook to a `chiplog/` subdirectory of the directory set in the plugin configuration, as one JSON, CSV, GPX
+and PDF file per passage, in the same formats as [`GET /export`](#get-export--readonly) restricted to that passage; the
+PDF uses the plugin's logbook language and time zone.
 
-- **Names sort by departure**: `<start date>_<start time>Z_<departure>_<arrival>.<format>`, in UTC, with place names reduced to ASCII letters, digits and hyphens — e.g. `2026-09-13_0612Z_La-Rochelle_Les-Sables-d-Olonne.json`. A passage in progress ends in `underway`; one with no name has `unnamed`; two passages starting in the same minute get `_2` on the later one.
-- **Incremental.** Only passages that are new or changed since the last export are written. What was exported is recorded in `chiplog/.chiplog-export.json`, with a fingerprint of each passage's content, so a correction made later — a renamed place, a switched engine period, an edited comment, an alarm added at anchor, a weather forecast arriving after departure — rewrites that passage, and so does a change of the logbook language, time zone or vessel name. A new plugin version does not. Files already on the drive with no record are kept as they are; a missing file is written again.
-- **Obsolete files are removed**: those of passages deleted, merged or renamed. Only files named like passage files are touched in `chiplog/`.
+- **Names sort by departure**: `<start date>_<start time>Z_<departure>_<arrival>.<format>`, in UTC, with place names
+  reduced to ASCII letters, digits and hyphens — e.g. `2026-09-13_0612Z_La-Rochelle_Les-Sables-d-Olonne.json`. A passage
+  in progress ends in `underway`; one with no name has `unnamed`; two passages starting in the same minute get `_2` on
+  the later one.
+- **Incremental.** Only passages that are new or changed since the last export are written. What was exported is
+  recorded in `chiplog/.chiplog-export.json`, with a fingerprint of each passage's content, so a correction made later —
+  a renamed place, a switched engine period, an edited comment, an alarm added at anchor, a weather forecast arriving
+  after departure — rewrites that passage, and so does a change of the logbook language, time zone or vessel name. A new
+  plugin version does not. Files already on the drive with no record are kept as they are; a missing file is written
+  again.
+- **Obsolete files are removed**: those of passages deleted, merged or renamed. Only files named like passage files are
+  touched in `chiplog/`.
 - Each file is flushed to the device and renamed into place, so pulling the drive never leaves a half-written export.
 
 ```json
@@ -447,22 +585,22 @@ Copies the logbook to a `chiplog/` subdirectory of the directory set in the plug
   "entries": 12,
   "written": 1,
   "unchanged": 11,
-  "files": [
-    "/media/usb/chiplog/2026-09-13_0612Z_La-Rochelle_Les-Sables-d-Olonne.json",
-    "…csv",
-    "…gpx"
-  ],
+  "files": ["/media/usb/chiplog/2026-09-13_0612Z_La-Rochelle_Les-Sables-d-Olonne.json", "…csv", "…gpx"],
   "removed": []
 }
 ```
 
-`entries` counts all passages, `written` those whose files were written, `unchanged` those left as they were; `files` and `removed` list full paths.
+`entries` counts all passages, `written` those whose files were written, `unchanged` those left as they were; `files`
+and `removed` list full paths.
 
-`409 usb_export_not_configured` without a configured directory; `409 usb_export_unavailable` if it does not exist — typically, the drive is not mounted. The copy made here is the same as the automatic one, and waits for one already running.
+`409 usb_export_not_configured` without a configured directory; `409 usb_export_unavailable` if it does not exist —
+typically, the drive is not mounted. The copy made here is the same as the automatic one, and waits for one already
+running.
 
 ## Retrospective analysis
 
-Reconstructs passages for a past date range from a signalk-to-influxdb history (InfluxDB 1.x), through the same detection pipeline used live (SPEC §4.10). One reconstruction runs at a time, in the background.
+Reconstructs passages for a past date range from a signalk-to-influxdb history (InfluxDB 1.x), through the same
+detection pipeline used live (SPEC §4.10). One reconstruction runs at a time, in the background.
 
 ### `GET /replay` — `readonly`
 
@@ -481,21 +619,40 @@ Reconstructs passages for a past date range from a signalk-to-influxdb history (
 }
 ```
 
-- `configured` says whether an InfluxDB connection is set in the plugin configuration. `progress` is `null` while nothing runs.
-- `progress.phase` is `"scanning"` while a light pass over the whole range looks for when the vessel moved, then `"replaying"` while each window of motion is fetched and run through the detection pipeline (SPEC §4.10); `progress.now` tracks whichever phase is in flight — during `"scanning"` it is how far through the range the scan has got, during `"replaying"` it is the detector's simulated clock, which jumps over the stretches the vessel lay still.
-- The scan reads a week at a time and a window's history six hours at a time, with a short pause between requests, so one query cannot overwhelm a resource-constrained host running both Signal K and InfluxDB (SPEC §4.10).
-- `lastResult` — `{ at, from, to, cancelled?, summary }` — and `lastError` — `{ at, from, to, message }` — describe the latest attempt. `summary` — `{ passages, distance, engineDuration, sailDuration, trackPoints, events }`, metres and seconds — totals what the run added, including up to a cancellation; a passage live detection opened meanwhile is not counted. Both are kept in memory and start empty when the plugin starts. `lastError.message` names the InfluxDB vessel contexts actually found when none match the one configured (SPEC §4.10) — the usual cause of a replay that runs to completion but reconstructs nothing. An InfluxDB query that does not answer within 30 s fails with that instead of hanging.
+- `configured` says whether an InfluxDB connection is set in the plugin configuration. `progress` is `null` while
+  nothing runs.
+- `progress.phase` is `"scanning"` while a light pass over the whole range looks for when the vessel moved, then
+  `"replaying"` while each window of motion is fetched and run through the detection pipeline (SPEC §4.10);
+  `progress.now` tracks whichever phase is in flight — during `"scanning"` it is how far through the range the scan has
+  got, during `"replaying"` it is the detector's simulated clock, which jumps over the stretches the vessel lay still.
+- The scan reads a week at a time and a window's history six hours at a time, with a short pause between requests, so
+  one query cannot overwhelm a resource-constrained host running both Signal K and InfluxDB (SPEC §4.10).
+- `lastResult` — `{ at, from, to, cancelled?, summary }` — and `lastError` — `{ at, from, to, message }` — describe the
+  latest attempt. `summary` — `{ passages, distance, engineDuration, sailDuration, trackPoints, events }`, metres and
+  seconds — totals what the run added, including up to a cancellation; a passage live detection opened meanwhile is not
+  counted. Both are kept in memory and start empty when the plugin starts. `lastError.message` names the InfluxDB vessel
+  contexts actually found when none match the one configured (SPEC §4.10) — the usual cause of a replay that runs to
+  completion but reconstructs nothing. An InfluxDB query that does not answer within 30 s fails with that instead of
+  hanging.
 
 ### `POST /replay` — admin
 
-Body: `{ from, to }`, ISO 8601 timestamps, `to` after `from`. Answers `{ from, to }` as soon as the reconstruction has started, without waiting for it to finish — poll [`GET /replay`](#get-replay--readonly) for its progress.
+Body: `{ from, to }`, ISO 8601 timestamps, `to` after `from`. Answers `{ from, to }` as soon as the reconstruction has
+started, without waiting for it to finish — poll [`GET /replay`](#get-replay--readonly) for its progress.
 
-`409 replay_not_configured` without an InfluxDB connection configured; `409 replay_running` if one is already running; `409 replay_navigation_active` if a passage is currently under way, whatever the requested range — the replay drives the same detector against the same database as live detection, and the two running at once would corrupt that passage; `409 replay_overlaps` if the range overlaps a passage already on record — nothing is reconstructed in that case, on purpose (SPEC §4.10).
+`409 replay_not_configured` without an InfluxDB connection configured; `409 replay_running` if one is already running;
+`409 replay_navigation_active` if a passage is currently under way, whatever the requested range — the replay drives the
+same detector against the same database as live detection, and the two running at once would corrupt that passage;
+`409 replay_overlaps` if the range overlaps a passage already on record — nothing is reconstructed in that case, on
+purpose (SPEC §4.10).
 
 ### `POST /replay/cancel` — admin
 
-Stops the reconstruction in progress, whether it is still scanning history or already replaying; `204`. The range already reconstructed up to that point stays on record — cancelling does not roll it back. `409 replay_not_running` with nothing to cancel.
+Stops the reconstruction in progress, whether it is still scanning history or already replaying; `204`. The range
+already reconstructed up to that point stays on record — cancelling does not roll it back. `409 replay_not_running` with
+nothing to cancel.
 
 ## Not yet provided
 
-- **`getOpenApi()`**, the machine-readable version of this document, which the Signal K server can surface. Worth adding once the API has settled, so the two do not have to be kept in step while it still moves.
+- **`getOpenApi()`**, the machine-readable version of this document, which the Signal K server can surface. Worth adding
+  once the API has settled, so the two do not have to be kept in step while it still moves.
