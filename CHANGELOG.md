@@ -14,6 +14,7 @@ All notable changes to Chiplog are documented here. The format follows [Keep a C
 
 ### Fixed
 
+- A new passage's tide and weather forecasts are fetched as soon as it opens, instead of up to a minute later — or up to an hour later when an earlier passage's fetch had kept failing while offline, since the retry delay carried over from one passage to the next.
 - On a phone, the webapp no longer scrolls sideways: the top navigation wraps onto a second line when it does not fit, and the cards shown side by side on a wide screen (tide, engine and sail, boat status) now shrink to the screen width instead of staying 420 px wide.
 
 ## [2.0.0] - 2026-09-16

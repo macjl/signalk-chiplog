@@ -2,6 +2,7 @@ const { registerRoutes } = require('./lib/api');
 const { openDatabase } = require('./lib/database');
 const { createPassageDetector, DETECTION_DEFAULTS, TICK_INTERVAL_MS } = require('./lib/detection');
 const { ApiError } = require('./lib/errors');
+const { createForecastSchedule } = require('./lib/forecast-schedule');
 const { createEventWatcher, CHECK_INTERVAL_MS, EVENT_DEFAULTS } = require('./lib/event-watcher');
 const { INFLUX_DEFAULTS } = require('./lib/influx-history');
 const { OBSERVATION_DEFAULTS } = require('./lib/observation-recorder');
@@ -25,7 +26,6 @@ const DEFAULT_PLACE_MATCH_RADIUS = 200;
 const FIRST_NAMING_DELAY_MS = 5 * 1000;
 const NAMING_ERROR_RETRY_MS = 5 * 60 * 1000;
 const FIRST_FORECAST_DELAY_MS = 5 * 1000;
-const FORECAST_ERROR_RETRY_MS = 5 * 60 * 1000;
 
 const MOTION_LABELS = { underway: 'Under way', stopped: 'Stopped', unknown: 'Waiting for data' };
 const MODE_LABELS = { autostate: 'navigation.state', fallback: 'speed fallback' };
@@ -56,7 +56,9 @@ module.exports = function (app) {
   let settings = null;
   let detector = null;
   let namer = null;
-  let forecasters = [];
+  let forecasts = [];
+  // The open passage detection last reported, to notice a new one.
+  let lastActiveEntryId = null;
   let usbExport = null;
   let replayJob = null;
   let namingTimer = null;
@@ -250,6 +252,12 @@ module.exports = function (app) {
     try {
       const outcome = detector.tick();
       usbExport.afterDetection(outcome);
+      // A passage just opened: fetch its forecasts now, not at the next idle
+      // poll or at the end of a retry delay left from an earlier failure.
+      if (outcome.activeEntryId !== null && outcome.activeEntryId !== lastActiveEntryId) {
+        forecasts.forEach((schedule) => schedule.nudge());
+      }
+      lastActiveEntryId = outcome.activeEntryId;
       const usbError = usbExport.status().lastError;
       const status = `${describeDetection(outcome)}${usbError ? ` — USB copy failing: ${usbError.message}` : ''}`;
       if (status !== lastStatus) {
@@ -296,34 +304,6 @@ module.exports = function (app) {
       );
     }
     namingTimer = setTimeout(runNaming, result.retryInMs);
-  }
-
-  // Same idea as geocoding: network calls fetching the tide and weather
-  // forecasts near a recent departure, each on its own chain rather than
-  // inside detection.
-  function startForecastChain(label, forecaster) {
-    const chain = { forecaster, timer: null };
-    async function run() {
-      let result;
-      try {
-        result = await forecaster.resolveNext();
-      } catch (err) {
-        app.error(`${label} forecast failed: ${err.stack ?? err}`);
-        result = { retryInMs: FORECAST_ERROR_RETRY_MS };
-      }
-      if (!forecasters.includes(chain) || result.outcome === 'stopped') {
-        return;
-      }
-      if (result.outcome === 'failed') {
-        // Expected whenever the boat is out of reach of a network.
-        app.debug(
-          `${label} forecast unavailable, retrying in ${Math.round(result.retryInMs / 60000)} min: ${result.error.message}`
-        );
-      }
-      chain.timer = setTimeout(run, result.retryInMs);
-    }
-    chain.timer = setTimeout(run, FIRST_FORECAST_DELAY_MS);
-    return chain;
   }
 
   // For work that runs every second: log a failure once, not on every run.
@@ -430,10 +410,25 @@ module.exports = function (app) {
       onDone: nudgeNaming
     });
     namingTimer = setTimeout(runNaming, FIRST_NAMING_DELAY_MS);
+    // Same idea as geocoding: network calls fetching the tide and weather
+    // forecasts near a recent departure, each on its own chain rather than
+    // inside detection.
     const forecastOptions = { db: database, settings, userAgent: `signalk-chiplog/${version}` };
-    forecasters = [
-      startForecastChain('Tide', createTideForecaster(forecastOptions)),
-      startForecastChain('Weather', createWeatherForecaster(forecastOptions))
+    const log = (level, message) => (level === 'error' ? app.error(message) : app.debug(message));
+    lastActiveEntryId = null;
+    forecasts = [
+      createForecastSchedule({
+        label: 'Tide',
+        forecaster: createTideForecaster(forecastOptions),
+        log,
+        firstDelayMs: FIRST_FORECAST_DELAY_MS
+      }),
+      createForecastSchedule({
+        label: 'Weather',
+        forecaster: createWeatherForecaster(forecastOptions),
+        log,
+        firstDelayMs: FIRST_FORECAST_DELAY_MS
+      })
     ];
     lastStatus = null;
     runDetection();
@@ -460,11 +455,8 @@ module.exports = function (app) {
     clearTimeout(namingTimer);
     namer?.stop();
     namer = null;
-    for (const chain of forecasters) {
-      clearTimeout(chain.timer);
-      chain.forecaster.stop();
-    }
-    forecasters = [];
+    forecasts.forEach((schedule) => schedule.stop());
+    forecasts = [];
     usbExport?.stop();
     usbExport = null;
     replayJob?.cancel();

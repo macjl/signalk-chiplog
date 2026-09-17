@@ -56,6 +56,44 @@ describe('plugin', () => {
     });
   });
 
+  it('fetches the forecasts as soon as a passage opens', async (t) => {
+    const asked = [];
+    const realFetch = globalThis.fetch;
+    t.mock.method(globalThis, 'fetch', async (url, options) => {
+      const { hostname, pathname } = new URL(url);
+      if (hostname !== 'forecast.invalid') {
+        return realFetch(url, options);
+      }
+      asked.push(pathname);
+      return { ok: false, status: 400, json: async () => ({}) };
+    });
+    ctx = await startServer({
+      config: {
+        tidesEnabled: true,
+        weatherEnabled: true,
+        tideUrl: 'http://forecast.invalid/v1/marine',
+        weatherUrl: 'http://forecast.invalid/v1/forecast'
+      },
+      self: {
+        navigation: {
+          state: { value: 'sailing', timestamp: new Date().toISOString() },
+          position: {
+            value: { latitude: 46.1466, longitude: -1.1686 },
+            timestamp: new Date().toISOString()
+          }
+        }
+      }
+    });
+
+    // Well before the chains' own first run, 5 s after start.
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
+    assert.deepEqual(asked.sort(), ['/v1/forecast', '/v1/marine', '/v1/marine']);
+    const { body } = await ctx.request('GET', '/state');
+    const tide = await ctx.request('GET', `/entries/${body.activeEntryId}/tide`);
+    assert.equal(tide.body.error.code, 'tide_not_found');
+  });
+
   it('answers 503 while the plugin is stopped', async () => {
     ctx = await startServer();
     ctx.plugin.stop();

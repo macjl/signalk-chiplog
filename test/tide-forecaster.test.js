@@ -192,6 +192,27 @@ describe('tide forecast', () => {
     assert.equal(recovered.retryInMs, 0, 'back to normal pace');
   });
 
+  it('starts retrying afresh for a new passage, and once nothing is pending', async () => {
+    const earlier = departedEntry(new Date(Date.now() - HOUR).toISOString());
+    answer = () => Promise.reject(new TypeError('fetch failed'));
+    const service = forecaster();
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      await service.resolveNext();
+    }
+    assert.equal((await service.resolveNext()).retryInMs, 60 * MINUTE);
+
+    // A passage opening meanwhile is tried first, from the shortest delay.
+    const later = departedEntry(new Date().toISOString());
+    assert.equal((await service.resolveNext()).retryInMs, 5 * MINUTE);
+    assert.equal((await service.resolveNext()).retryInMs, 10 * MINUTE);
+
+    // Once nothing is left to fetch, the next passage starts afresh too.
+    db.prepare('DELETE FROM log_entries WHERE id IN (?, ?)').run(earlier, later);
+    assert.equal((await service.resolveNext()).outcome, 'idle');
+    departedEntry(new Date().toISOString());
+    assert.equal((await service.resolveNext()).retryInMs, 5 * MINUTE);
+  });
+
   it('treats rate limiting as worth retrying, but another client error as no data', async () => {
     departedEntry(new Date().toISOString());
     answer = () => jsonResponse({}, 429);

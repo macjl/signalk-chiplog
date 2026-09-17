@@ -150,7 +150,8 @@ As implemented (`lib/tide-forecaster.js`):
 - **One fetch per passage, at departure**, not a continuous subscription: the position and the 24 h window are fixed at that moment. Requested and stored in one call — no separate lookup for extremes; a high or low is a local peak or trough in the stored hourly curve, found when displayed rather than by asking the service twice.
 - **Offline is normal, as for geocoding**: a failed request is retried after 5 minutes, doubling up to an hour, for as long as the departure is still recent enough for a fetch to mean anything (3 hours); past that, or once the service answers with nothing usable for the position (an inland lake, a river far from tidal water), no forecast is recorded and none is asked for again for that passage.
 - **Hourly resolution**, so a high or low tide time is accurate to within about half an hour — adequate for a logbook reference, not for a lock or a bar crossing planned to the minute.
-- **Shared fetch engine** with the weather forecast (§4.5.3): `lib/departure-forecast.js` holds the pending-entry selection, retry schedule, give-up age and 24 h window for both.
+- **Shared fetch engine** with the weather forecast (§4.5.3): `lib/departure-forecast.js` holds the pending-entry selection, retry schedule, give-up age and 24 h window for both, and `lib/forecast-schedule.js` runs each as its own chain of timeouts.
+- **Fetched as the passage opens**: detection wakes both chains as soon as it sees a new open passage, whatever they were waiting for — the minute between idle checks, or a retry delay. The retry delay starts again from 5 minutes for each passage, and once nothing is left to fetch, rather than carrying over from an earlier one given up on.
 
 ### 4.5.3 Marine weather forecast
 
