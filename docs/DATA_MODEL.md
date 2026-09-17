@@ -121,6 +121,16 @@ Segments cover only time **under way**: a stop ends one and moving again starts 
 
 The shortcut list (SPEC §4.3). Built-in entries are seeded by the migration with `builtin = 1`; users may disable or reorder them (`enabled`, `sort_order`) and add their own. Seeding uses `ON CONFLICT DO NOTHING`, so a user's edits to a built-in row survive restarts.
 
+### `crew_members` (migration 14)
+
+The roster behind SPEC §4.11 — who might be aboard, ever. Unlike `manoeuvre_types` there is no `builtin`/`sort_order`: the list is short enough to sort alphabetically at read time, the same way `places` does (`listCrewMembers`, `Intl.Collator` — SQLite's `NOCASE` only folds ASCII). `role` is free text and optional (e.g. "skipper", "crew").
+
+### `log_entry_crew` (migration 14)
+
+Who was aboard a given passage — the schema's first many-to-many relationship. `name` and `role` are **denormalised on purpose**, exactly like `log_entries.start_place_name`: a logbook is a historical record, so correcting or deleting a `crew_members` row (`ON DELETE SET NULL`) must not rewrite who a past passage says was aboard. A partial unique index on `(entry_id, crew_member_id)` (`WHERE crew_member_id IS NOT NULL`) stops the same roster member being assigned to one entry twice; an ad hoc crew member with no roster row (`crew_member_id IS NULL`) has nothing to deduplicate against, hence the partial index rather than a plain one.
+
+A new passage starts with the same crew as the one immediately before it (`copyCrewFromPreviousEntry`, SPEC §4.11); merging two entries (`mergeEntries`) unions the two crew lists onto the survivor rather than reassigning rows outright, since carry-over means they usually already overlap and a plain reassignment would collide with the unique index.
+
 ### `tide_forecasts` (migration 8)
 
 At most one row per entry (`entry_id` is the primary key), fetched once near departure (SPEC §4.5.2): `lat`/`lon` are the position asked about, `points` the JSON `[{ time, height }]` hourly curve for the 24 h from departure, height in metres. No row means no attempt has resolved yet — still pending, or the departure is now too old for one to be worth making. `points: []` means a fetch answered but had nothing usable for the position (an inland lake); `getTideForecast` (`lib/tide-forecaster.js`) treats that the same as no row, since the webapp has nothing to show either way — the distinction only matters to the fetcher itself, so it does not keep re-asking.
@@ -165,4 +175,4 @@ Each migration runs in a transaction and rolls back as a unit on failure.
 Not in the schema yet, to be added by a later migration when the feature lands:
 
 - **Remote publication state** (SPEC §4.5) — per-entry sync status once a target is defined.
-- **Crew/author** (SPEC §3.4) — an author reference on entries and events, if V2 confirms the need.
+- **Author per event** (SPEC §3.4) — attributing an individual annotation or manoeuvre to whoever logged it, if V2 confirms the need. A per-passage crew *roster* is delivered in V1 instead — see `crew_members`/`log_entry_crew` above.

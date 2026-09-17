@@ -686,6 +686,20 @@ main {
   margin-bottom: 0;
 }
 
+.crew-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.crew-role {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 .tide-attribution {
   font-size: 0.8rem;
   margin-top: 0.3rem;

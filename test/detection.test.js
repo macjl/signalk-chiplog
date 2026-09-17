@@ -91,6 +91,34 @@ describe('passage detection', () => {
       assert.equal(boat.events().filter((event) => event.type === 'stopover').length, 0);
     });
 
+    it('carries the crew over from the previous passage when a new one opens', () => {
+      boat = createBoat().start().sail(20, { sog: 5 }).sail(40, { sog: 0 });
+      const [first] = boat.entries();
+      const memberId = boat.db
+        .prepare(
+          `INSERT INTO crew_members (name, role, created_at, updated_at)
+           VALUES ('Alex', 'skipper', ?, ?)`
+        )
+        .run(iso(boat.now), iso(boat.now)).lastInsertRowid;
+      boat.db
+        .prepare(
+          `INSERT INTO log_entry_crew (entry_id, crew_member_id, name, role, created_at)
+           VALUES (?, ?, 'Alex', 'skipper', ?)`
+        )
+        .run(first.id, memberId, iso(boat.now));
+
+      boat.sail(10, { sog: 5 });
+
+      const [, second] = boat.entries();
+      const crew = boat.db
+        .prepare('SELECT * FROM log_entry_crew WHERE entry_id = ?')
+        .all(second.id);
+      assert.equal(crew.length, 1);
+      assert.equal(crew[0].crew_member_id, Number(memberId));
+      assert.equal(crew[0].name, 'Alex');
+      assert.equal(crew[0].role, 'skipper');
+    });
+
     it('honours a configured tolerance and under-way speed', () => {
       boat = createBoat({ settings: { stopClosureMinutes: 5, fallbackUnderwaySpeed: 3 } }).start();
 

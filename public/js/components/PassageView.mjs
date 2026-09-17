@@ -4,6 +4,7 @@ import { useLocale, usePolling } from '../context.mjs';
 import { dayKey } from '../days.mjs';
 import { batteryName, engineHours, engineName, tankName } from '../log-lines.mjs';
 import { elapsedSeconds, ErrorNotice, Loading, PlaceName, passageTitle } from './common.mjs';
+import { CrewCard } from './CrewCard.mjs';
 import { PropulsionStrip } from './PropulsionStrip.mjs';
 import { TideCard } from './TideCard.mjs';
 import { Timeline } from './Timeline.mjs';
@@ -455,6 +456,8 @@ export function PassageView({ id }) {
       </section>
 
       <${BoatState} entry=${entry} observations=${data.observations} active=${active} />
+
+      <${CrewCard} crew=${entry.crew} />
     </div>
 
     <section class="card">

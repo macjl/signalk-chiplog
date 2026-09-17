@@ -198,6 +198,67 @@ describe('facsimile PDF logbook', () => {
     assert.ok(pages.at(-1).texts.includes('Note 80'));
   });
 
+  it('names the crew on the departure line, once, not on a stopover departure', async () => {
+    const start = Date.parse('2026-06-01T06:00:00.000Z');
+    const minutes = (n) => new Date(start + n * 60 * 1000).toISOString();
+    const bundle = {
+      entry: {
+        id: 1,
+        startTime: minutes(0),
+        endTime: minutes(60),
+        startPlaceName: 'A',
+        endPlaceName: 'B',
+        startPosition: { lat: 46, lon: -1 },
+        endPosition: { lat: 46.1, lon: -1 },
+        distance: 1000,
+        engineDuration: 0,
+        sailDuration: 3600
+      },
+      trackPoints: [],
+      propulsion: [{ type: 'sail', startTime: minutes(0), endTime: minutes(60) }],
+      observations: [],
+      events: [],
+      crew: [
+        { id: 1, crewMemberId: 1, name: 'Alex', role: 'skipper' },
+        { id: 2, crewMemberId: null, name: 'Jo', role: null }
+      ]
+    };
+    const { text } = readPdf(
+      await renderLogbookPdf([bundle], { language: 'en', timeZone: 'UTC', now: minutes(120) })
+    );
+
+    assert.match(text, /Departure from A\nCrew: Alex \(skipper\), Jo\n/);
+  });
+
+  it('omits the crew remark when none is recorded', async () => {
+    const start = Date.parse('2026-06-01T06:00:00.000Z');
+    const minutes = (n) => new Date(start + n * 60 * 1000).toISOString();
+    const bundle = {
+      entry: {
+        id: 1,
+        startTime: minutes(0),
+        endTime: minutes(60),
+        startPlaceName: 'A',
+        endPlaceName: 'B',
+        startPosition: { lat: 46, lon: -1 },
+        endPosition: { lat: 46.1, lon: -1 },
+        distance: 1000,
+        engineDuration: 0,
+        sailDuration: 3600
+      },
+      trackPoints: [],
+      propulsion: [{ type: 'sail', startTime: minutes(0), endTime: minutes(60) }],
+      observations: [],
+      events: [],
+      crew: []
+    };
+    const { text } = readPdf(
+      await renderLogbookPdf([bundle], { language: 'en', timeZone: 'UTC', now: minutes(120) })
+    );
+
+    assert.ok(!text.includes('Crew:'));
+  });
+
   it('splits time by calendar day, daylight saving change included', async () => {
     const { createFormatter } = await import('../public/js/format.mjs');
     const format = createFormatter({ locale: 'en', units: {}, timeZone: 'Europe/Paris' });

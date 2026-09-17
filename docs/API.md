@@ -41,7 +41,7 @@ On a server too old to provide `router.access()`, every route falls back to admi
 | Status | When | Codes |
 |---|---|---|
 | `400` | Malformed request | `invalid_request`, `unknown_manoeuvre_type` |
-| `404` | Unknown resource | `entry_not_found`, `event_not_found`, `place_not_found`, `propulsion_segment_not_found`, `manoeuvre_type_not_found`, `tide_not_found`, `weather_not_found` |
+| `404` | Unknown resource | `entry_not_found`, `event_not_found`, `place_not_found`, `propulsion_segment_not_found`, `manoeuvre_type_not_found`, `crew_member_not_found`, `tide_not_found`, `weather_not_found` |
 | `409` | The request conflicts with current state | `no_passage`, `entry_active`, `entry_already_closed`, `entries_not_consecutive`, `manoeuvre_type_exists`, `builtin_manoeuvre_type`, `usb_export_not_configured`, `usb_export_unavailable`, `constraint_violation` |
 | `500` | Unexpected failure — detail goes to the server log, not the client | `internal_error` |
 | `503` | The plugin is disabled or stopped | `plugin_not_started` |
@@ -121,7 +121,8 @@ One entry, with the counts the detail view needs:
   "counts": { "trackPoints": 1187, "observations": 11, "events": 9 },
   "maxSpeed": 6.7,
   "maxWindSpeed": 12.9,
-  "maxWindApparent": false
+  "maxWindApparent": false,
+  "crew": [{ "id": 5, "crewMemberId": 3, "name": "Alex Martin", "role": "skipper" }]
 }
 ```
 
@@ -132,6 +133,8 @@ On an active entry, `endPosition` is the last position detection saw — not yet
 `startTanks` — `[{ type, id, name?, level?, volume?, capacity? }]` — and `startBatteries` — `[{ id, name?, voltage?, current?, stateOfCharge?, temperature? }]` — are the boat's state noted as the passage opened (SPEC §4.5.1): ratios, m³, V, A (negative discharging), K, a field absent when not published. `null` when the boat published none, for a passage opened after the fact (a queued tablet entry, a retrospective replay), or one opened before migration 11.
 
 `startPlacePending`/`endPlacePending` mean the name was generated from coordinates (`"46.1234N 1.5678W"`) and online geocoding has not answered yet (SPEC §4.8); the name may still change on its own. A UI can show it as provisional. Geocoded names from the public instance are OpenStreetMap data and need its attribution.
+
+`crew` is who was recorded aboard, in the order they were added — see [Crew](#crew) for how it is set. `name`/`role` are denormalised at assignment time like `startPlaceName`, so correcting or deleting a roster member never rewrites a past passage's recorded crew.
 
 ### `PATCH /entries/:id` — `readwrite`
 
@@ -160,6 +163,7 @@ Manual concatenation of two passages (SPEC §3.1), for when a stop outlasted the
 
 - **The earlier entry survives**, whichever of the two the request is addressed to, so the passage keeps its id and departure. It takes the later entry's end time, end position, end place and state.
 - Track points, observations, propulsion segments and events move to it; distances are summed and engine/sail durations recomputed from the segments.
+- **Crew is unioned onto the surviving entry**, skipping anyone already aboard it — carrying a passage's crew over to the next one (see [Crew](#crew)) means the two lists usually overlap.
 - **The place the earlier entry had stopped at is kept as a `stopover` event** on the surviving entry, at that stop's position, since it would otherwise be overwritten with no trace by the later entry's own end. Not added when that stop had no position (and so no place) to begin with.
 - The two entries must be consecutive — `409 entries_not_consecutive` — and the earlier one must be closed — `409 entry_active`.
 
@@ -347,13 +351,49 @@ Accepts `label`, `icon`, `sortOrder`, `enabled` — on built-in types too. The k
 
 `409 builtin_manoeuvre_type` for a built-in; disable it instead. Events that used a deleted type keep their `subtype`. `204`.
 
+## Crew
+
+The crew list (SPEC §4.11): a global, editable roster, and the entry-scoped list of who was aboard a given passage.
+
+### `GET /crew` — `readonly`
+
+The roster, sorted by name — accent- and case-insensitively, like [places](#places). Paginated.
+
+### `POST /crew` — `readwrite`
+
+```json
+{ "name": "Alex Martin", "role": "skipper" }
+```
+
+`name` is required; `role` is free text, optional. Anyone aboard can add a name here, not just an admin — the same reasoning as a place-name correction (§4.8): a crew member at the helm has to be able to extend the roster without an admin login. Answers `201`.
+
+### `PATCH /crew/:id` — `readwrite`
+
+Accepts `name`, `role`. A passage that already recorded this person keeps the name and role as they stood at the time (see `PUT /entries/:id/crew` below).
+
+### `DELETE /crew/:id` — `readwrite`
+
+Removing someone from the roster is `readwrite` too, not `admin` — unlike `places`/`manoeuvre-types` — so the crew can correct the roster from the tablet without an admin login. Passages that already recorded this person keep their name and role. `204`.
+
+### `PUT /entries/:id/crew` — `readwrite`
+
+```json
+{ "members": [{ "crewMemberId": 3 }, { "name": "Jo", "role": "crew" }] }
+```
+
+Replaces the entry's crew list. Each item either picks an existing roster member by id (`404 crew_member_not_found` if unknown), or gives a `name` (and optional `role`) that extends the roster — reusing an existing member of the same name (case- and accent-insensitively) rather than creating a duplicate, the same way an unrecognised place name becomes a new place.
+
+**Carried over from the previous passage.** When a new passage opens — automatically or by casting off (§4.3) — it starts with the same crew as the one immediately before it, still adjustable here.
+
+Not a separate read endpoint: an entry's crew is included in [`GET /entries/:id`](#get-entriesid--readonly) as `crew`.
+
 ## Export
 
 ### `GET /export` — `readonly`
 
 Query: `format` — `json` (default), `csv`, `gpx` or `pdf`; `from`, `to` as for [`GET /entries`](#get-entries--readonly); for `pdf`, `lang` (`en` or `fr`) and `tz` (an IANA time zone such as `Europe/Paris`), which default to the plugin's logbook language and time zone — `400` for an unknown value. Served as an attachment named `chiplog.<format>`.
 
-- **`json`** — the complete record, in SI units: `{ exportedAt, schemaVersion, units, entries }`, where each entry carries its `trackPoints`, `observations`, `propulsion`, `events` and `weather` (the body of [`GET /entries/:id/weather`](#get-entriesidweather--readonly), or `null`). This is the machine-readable abandon-ship payload (SPEC §4.5).
+- **`json`** — the complete record, in SI units: `{ exportedAt, schemaVersion, units, entries }`, where each entry carries its `trackPoints`, `observations`, `propulsion`, `events`, `weather` (the body of [`GET /entries/:id/weather`](#get-entriesidweather--readonly), or `null`) and `crew` (see [Crew](#crew)). This is the machine-readable abandon-ship payload (SPEC §4.5).
 - **`csv`** — one chronological line per departure, observation, event and arrival: a paper logbook readable in any spreadsheet. Unlike everything else, it is **converted to nautical units** — knots, degrees, hPa, °C, nautical miles, engine hours — with units in the column names. After the fixed columns, one `engine_runtime_<engine>_h` column per engine found in the export (e.g. `engine_runtime_port_h`) keeps each engine's hour counter; `engine_runtime_h` is the main or first engine's. Free text that a spreadsheet would execute as a formula is prefixed with `'`.
 - **`gpx`** — one track per entry.
 - **`pdf`** — the facsimile logbook (SPEC §4.5): A4 landscape, a page per day in the given time zone, with time, position, course, speed over ground, wind, barometer, depth, engine or sail and remarks; departures and arrivals with their totals, day totals, handwritten notes drawn. The wording is the webapp's, in `lang`.

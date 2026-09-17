@@ -50,9 +50,9 @@ Within an entry in progress, a timestamped timeline of events is recorded:
 - free-form annotations (text or handwritten);
 - automatic Signal K events (see §4.6).
 
-### 3.4 Author / multi-crew
+### 3.4 Author / crew list
 
-No notion of author per event/annotation in V1: the logbook is a single shared document for the vessel. Crew profile management (author per entry, skipper/crew permissions) is deferred to a V2 if the need is confirmed in practice.
+No notion of author per event/annotation in V1: the logbook is a single shared document for the vessel, and who logged a given manoeuvre or note is not recorded. A **per-passage crew list** is, however, a V1 feature (§4.11) — the tablet's main screen shows who is currently aboard, adjustable from a dialog that picks from, and extends, a global roster. Per-event authorship and skipper/crew permissions remain deferred to a V2 if the need is confirmed in practice.
 
 ## 4. Detailed features
 
@@ -237,14 +237,22 @@ Reconstructs passages Chiplog never saw live — installed after the fact, or st
   - True wind angle is derived from true wind direction and heading rather than read as its own path, since it needs no sensor of its own — the same as live.
   - A boat with more than one active source for a path Chiplog does not explicitly tag-disambiguate falls back to whichever the history holds, same as detection's own fallback when a source is unrecognised (§4.2).
 
+### 4.11 Crew list
+
+- **A global, editable roster** of crew members (name + optional role/function, both free text, e.g. "skipper", "crew"), extended and corrected without an admin login — the same reasoning as place-name corrections (§4.8): a crew member at the helm has to be able to fix or add a name.
+- **Each passage records who is aboard**, picked from the roster from a dialog reachable from the tablet's main screen; the main screen itself shows a compact, non-editable list to save space.
+- **Carried over.** A new passage — opened automatically or by casting off — starts with the same crew as the passage immediately before it, still adjustable from the dialog.
+- **Visible read-only** on the consultation webapp's passage page and in the PDF logbook's departure line, alongside the place name.
+- **Recorded as it stood at the time.** Correcting or deleting a roster member does not change what a past passage already recorded — the same denormalisation principle as a place name (§4.8, [DATA_MODEL.md](DATA_MODEL.md)).
+
 ## 5. Data model and API
 
-The data model has been refined into a precise schema: the authoritative DDL lives in [`lib/database.js`](../lib/database.js), with the conventions and rationale documented in [DATA_MODEL.md](DATA_MODEL.md). Entities: `log_entries`, `track_points`, `observations`, `propulsion_segments`, `events`, `places`, `manoeuvre_types`, `tide_forecasts`, `weather_forecasts`.
+The data model has been refined into a precise schema: the authoritative DDL lives in [`lib/database.js`](../lib/database.js), with the conventions and rationale documented in [DATA_MODEL.md](DATA_MODEL.md). Entities: `log_entries`, `track_points`, `observations`, `propulsion_segments`, `events`, `places`, `manoeuvre_types`, `crew_members`, `log_entry_crew`, `tide_forecasts`, `weather_forecasts`.
 
 Two points worth carrying back into this document:
 
 - Dense track geometry (`track_points`) and sparse instrument snapshots (`observations`) are separate tables: the first feeds the map and GPX export (§4.1), the second provides the hourly condition lines the facsimile PDF renders (§4.5).
-- No author field in V1 (cf. §3.4). The exported GPX file is derived from track points, not stored as such.
+- No per-event author field in V1 (cf. §3.4) — a per-passage crew *list* is recorded instead (§4.11). The exported GPX file is derived from track points, not stored as such.
 
 The plugin's REST API is specified in [API.md](API.md).
 
@@ -262,7 +270,7 @@ The plugin's REST API is specified in [API.md](API.md).
 
 Brought forward from V2: handwritten annotations, in the tablet PWA (§4.4).
 
-Deferred to V2: full shortcut customization, publication to a remote server, dedicated mobile companion app, crew profiles/permissions, advanced map (offline tiles, etc.).
+Deferred to V2: full shortcut customization, publication to a remote server, dedicated mobile companion app, crew profiles/permissions (per-event authorship and skipper/crew access rights — the crew *list* itself, §4.11, shipped in V1), advanced map (offline tiles, etc.).
 
 *(This MVP breakdown is a proposal — to be validated with you before committing to it.)*
 
@@ -273,7 +281,7 @@ Deferred to V2: full shortcut customization, publication to a remote server, ded
 | Storage | SQLite (single database: entries, events, track, annotations) |
 | SQLite driver | Node's built-in `node:sqlite` — no native compilation, which matters on Raspberry Pi. Raises the floor to Node >= 22.13 |
 | Handwritten annotation format | Vector (timestamped strokes/points + pressure, canvas size); implemented in V1 in the tablet PWA |
-| Author / multi-crew | No author concept in V1 (V2 if the need is confirmed) |
+| Author / crew list | No per-event author in V1; a per-passage crew list is, picked from an editable global roster, carried over from the preceding passage (§4.11). Per-event authorship deferred to V2 if confirmed |
 | signalk-autostate dependency | Optional, with internal fallback (SOG threshold) if absent |
 | Engine/sail sources | `propulsion.*.revolutions`, then `propulsion.*.state`, then `navigation.state`, then a configurable default (`sail`); segments only cover time under way (§4.2) |
 | Critical notifications | Any notification in `alarm` or `emergency`, whatever its path (§4.6) |

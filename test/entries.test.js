@@ -432,6 +432,44 @@ describe('entries', () => {
       assert.equal((await ctx.request('GET', `/entries/${later}`)).status, 404);
     });
 
+    it('unions crew onto the surviving entry without duplicates', async () => {
+      const shared = insert(ctx.db, 'crew_members', {
+        name: 'Alex',
+        role: 'skipper',
+        created_at: T0,
+        updated_at: T0
+      });
+      const earlier = insertEntry(ctx.db, { start_time: at(0), end_time: at(2) });
+      const later = insertEntry(ctx.db, { start_time: at(3), end_time: at(5) });
+      // Carry-over means the same roster member is aboard both.
+      insert(ctx.db, 'log_entry_crew', {
+        entry_id: earlier,
+        crew_member_id: shared,
+        name: 'Alex',
+        role: 'skipper',
+        created_at: T0
+      });
+      insert(ctx.db, 'log_entry_crew', {
+        entry_id: later,
+        crew_member_id: shared,
+        name: 'Alex',
+        role: 'skipper',
+        created_at: T0
+      });
+      insert(ctx.db, 'log_entry_crew', {
+        entry_id: later,
+        crew_member_id: null,
+        name: 'Jo',
+        role: null,
+        created_at: T0
+      });
+
+      await ctx.request('POST', `/entries/${earlier}/merge`, { withEntryId: later });
+
+      const { body } = await ctx.request('GET', `/entries/${earlier}`);
+      assert.deepEqual(body.crew.map((member) => member.name).sort(), ['Alex', 'Jo']);
+    });
+
     it('dates the stop no earlier than the entry_end reading, so it follows it on the timeline', async () => {
       // Detection dates the entry's own end from the last movement it saw,
       // but only takes the entry_end snapshot once the stop has held past

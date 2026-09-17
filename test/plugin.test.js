@@ -21,7 +21,7 @@ describe('plugin', () => {
       assert.equal(body.detection, 'autostate');
       assert.equal(body.motion, 'underway');
       assert.equal(body.propulsion, 'sail');
-      assert.equal(body.schemaVersion, 13);
+      assert.equal(body.schemaVersion, 14);
       const entry = await ctx.request('GET', `/entries/${body.activeEntryId}`);
       assert.equal(entry.body.state, 'active');
     });
@@ -44,7 +44,7 @@ describe('plugin', () => {
           value: 'sailing',
           updatedAt: '2026-01-01T00:00:00.000Z'
         },
-        schemaVersion: 13
+        schemaVersion: 14
       });
     });
 
@@ -120,6 +120,13 @@ describe('plugin', () => {
     assert.equal(level('DELETE', '/api/places/:id'), 'admin');
     assert.equal(level('POST', '/api/manoeuvre-types'), 'admin');
     assert.equal(level('POST', '/api/export/usb'), 'admin');
+    assert.equal(level('GET', '/api/crew'), 'readonly');
+    assert.equal(level('POST', '/api/crew'), 'readwrite');
+    assert.equal(level('PATCH', '/api/crew/:id'), 'readwrite');
+    // Unlike places/manoeuvre-types, removing a roster member is readwrite
+    // too -- the crew must be able to correct it without an admin login.
+    assert.equal(level('DELETE', '/api/crew/:id'), 'readwrite');
+    assert.equal(level('PUT', '/api/entries/:id/crew'), 'readwrite');
   });
 
   it('logs unexpected failures and hides their detail from the client', async () => {

@@ -7,6 +7,8 @@ import { createServerClock } from './clock.mjs';
 import { createJournal } from './journal.mjs';
 import { AccessGate } from './components/AccessGate.mjs';
 import { CommentDialog, Toast } from './components/Dialogs.mjs';
+import { CrewDialog } from './components/CrewDialog.mjs';
+import { PencilIcon } from './components/Icons.mjs';
 import { ManoeuvrePad } from './components/ManoeuvrePad.mjs';
 import { NotePanel } from './components/NotePanel.mjs';
 import { RecentList } from './components/RecentList.mjs';
@@ -18,6 +20,7 @@ const FLUSH_INTERVAL_MS = 10 * 1000;
 const TOAST_MS = 10 * 1000;
 const NIGHT_KEY = 'chiplog.night';
 const TYPES_KEY = 'chiplog.manoeuvreTypes';
+const CREW_KEY = 'chiplog.crew';
 
 // The shortcuts shipped with the plugin, until the server's list has been seen
 // once: an app started with no connection still has its buttons.
@@ -40,6 +43,15 @@ function knownTypes() {
     return Array.isArray(stored) && stored.length > 0 ? stored : BUILTIN_TYPES;
   } catch {
     return BUILTIN_TYPES;
+  }
+}
+
+function knownCrew() {
+  try {
+    const stored = JSON.parse(readSetting(CREW_KEY) ?? 'null');
+    return Array.isArray(stored) ? stored : [];
+  } catch {
+    return [];
   }
 }
 
@@ -80,11 +92,13 @@ function App({ journal }) {
   const [entry, setEntry] = useState(null);
   const [lastEntryId, setLastEntryId] = useState(null);
   const [types, setTypes] = useState(knownTypes);
+  const [roster, setRoster] = useState(knownCrew);
   const [online, setOnline] = useState(true);
   const [forbidden, setForbidden] = useState(false);
   const [queue, setQueue] = useState(journal.outbox.snapshot());
   const [toast, setToast] = useState(null);
   const [commenting, setCommenting] = useState(null);
+  const [managingCrew, setManagingCrew] = useState(false);
   const [tab, setTab] = useState('note');
   const [night, setNight] = useState(readSetting(NIGHT_KEY) === 'on');
   const [version, setVersion] = useState(0);
@@ -145,6 +159,21 @@ function App({ journal }) {
           writeSetting(TYPES_KEY, JSON.stringify(items));
           if (isCurrent()) {
             setTypes(items);
+          }
+        })
+        .catch(noteFailure);
+    },
+    0,
+    [forbidden, online]
+  );
+
+  usePolling(
+    (isCurrent) => {
+      fetchAll('/crew')
+        .then((items) => {
+          writeSetting(CREW_KEY, JSON.stringify(items));
+          if (isCurrent()) {
+            setRoster(items);
           }
         })
         .catch(noteFailure);
@@ -256,6 +285,52 @@ function App({ journal }) {
     journal.outbox.remove(ref);
   };
 
+  const saveCrew = async (members) => {
+    try {
+      const updated = await request('PUT', `/entries/${entry.id}/crew`, { members });
+      setEntry((current) => ({ ...current, crew: updated }));
+      setManagingCrew(false);
+      refresh();
+    } catch (error) {
+      noteFailure(error);
+      setToast({ kind: 'error', message: t('entry.refused', { message: error.message }) });
+    }
+  };
+
+  const addCrewMember = async (name, role) => {
+    try {
+      const member = await request('POST', '/crew', { name, role });
+      setRoster((prev) => [...prev, member]);
+      return member;
+    } catch (error) {
+      noteFailure(error);
+      setToast({ kind: 'error', message: t('entry.refused', { message: error.message }) });
+      return null;
+    }
+  };
+
+  const editCrewMember = async (id, patch) => {
+    try {
+      const updated = await request('PATCH', `/crew/${id}`, patch);
+      setRoster((prev) => prev.map((member) => (member.id === id ? updated : member)));
+    } catch (error) {
+      noteFailure(error);
+      setToast({ kind: 'error', message: t('entry.refused', { message: error.message }) });
+    }
+  };
+
+  const deleteCrewMember = async (id) => {
+    try {
+      await request('DELETE', `/crew/${id}`);
+      setRoster((prev) => prev.filter((member) => member.id !== id));
+      return true;
+    } catch (error) {
+      noteFailure(error);
+      setToast({ kind: 'error', message: t('entry.refused', { message: error.message }) });
+      return false;
+    }
+  };
+
   const commentTitle = commenting?.what ?? t('entry.comment');
 
   return html`
@@ -278,6 +353,33 @@ function App({ journal }) {
           }}
         />`
       }
+      <section class="panel crew-panel" aria-labelledby="crew-panel-title">
+        <div class="panel-header">
+          <h2 id="crew-panel-title" class="panel-title">${t('entry.crew')}</h2>
+          <button
+            type="button"
+            class="tool-button icon-button"
+            aria-label=${t('entry.editCrew')}
+            title=${t('entry.editCrew')}
+            disabled=${!entry}
+            onClick=${() => setManagingCrew(true)}
+          >
+            <${PencilIcon} />
+          </button>
+        </div>
+        ${
+          entry?.crew?.length > 0
+            ? html`<ul class="crew-list">
+                ${entry.crew.map(
+                  (member) =>
+                    html`<li key=${member.id}>
+                      ${member.name}${member.role ? html` <span class="crew-role">${member.role}</span>` : ''}
+                    </li>`
+                )}
+              </ul>`
+            : html`<p class="hint">${t('entry.noCrew')}</p>`
+        }
+      </section>
       <div class="entry-columns">
         <${ManoeuvrePad}
           types=${types}
@@ -329,6 +431,18 @@ function App({ journal }) {
         initial=${commenting.event?.comment ?? null}
         onCancel=${() => setCommenting(null)}
         onSave=${saveComment}
+      />`
+    }
+    ${
+      managingCrew &&
+      html`<${CrewDialog}
+        roster=${roster}
+        current=${entry?.crew ?? []}
+        onCancel=${() => setManagingCrew(false)}
+        onSave=${saveCrew}
+        onAddMember=${addCrewMember}
+        onEditMember=${editCrewMember}
+        onDeleteMember=${deleteCrewMember}
       />`
     }
   `;
