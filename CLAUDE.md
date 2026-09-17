@@ -110,8 +110,10 @@ single source of truth rather than drift behind the code.
 
 [CHANGELOG.md](CHANGELOG.md) follows Keep a Changelog: add user-visible changes under `[Unreleased]` as they are made,
 and move them under a version heading when releasing (with the `package.json` version and a `vX.Y.Z` tag). Pushing that
-tag runs [.github/workflows/publish.yml](.github/workflows/publish.yml), which tests and publishes the package to npm
-using the `NPM_TOKEN` repository secret — nothing to run by hand beyond the tag push.
+tag runs [.github/workflows/publish.yml](.github/workflows/publish.yml), which tests, publishes the package to npm (OIDC
+trusted publishing, no token to manage) and creates the matching GitHub release, titled with the `signalk.displayName`
+from `package.json` and its notes taken verbatim from that version's CHANGELOG section — nothing to run by hand beyond
+the tag push.
 
 [README.md](README.md) is the user documentation — installation, what the logbook records, both apps, settings,
 troubleshooting. Update it with any user-visible change: a new setting, a changed default, a new screen or behaviour.

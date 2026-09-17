@@ -10,9 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       id-token: write # OIDC trusted publishing
-      contents: read
+      contents: write # to create the GitHub release
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # need every tag to find the previous release for the compare link
 
       - uses: actions/setup-node@v6
         with:
@@ -36,3 +38,32 @@ jobs:
           else
             npm publish --provenance --access public
           fi
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${GITHUB_REF#refs/tags/}"
+          version="${tag#v}"
+          display_name=$(node -p "require('./package.json').signalk.displayName")
+
+          notes=$(awk -v ver="$version" '
+            /^## \[/ {
+              if (found) exit
+              if (index($0, "[" ver "]") > 0) { found=1 }
+              next
+            }
+            found { print }
+          ' CHANGELOG.md | sed -e '/./,$!d')
+
+          prev_tag=$(git tag --sort=-v:refname -l 'v*.*.*' | awk -v cur="$tag" 'found { print; exit } $0 == cur { found=1 }')
+          if [[ -n "$prev_tag" ]]; then
+            notes="${notes}"$'\n\n'"**Full Changelog**: https://github.com/${GITHUB_REPOSITORY}/compare/${prev_tag}...${tag}"
+          fi
+
+          prerelease_flag=()
+          if [[ "$tag" == *alpha* || "$tag" == *beta* || "$tag" == *rc* ]]; then
+            prerelease_flag=(--prerelease)
+          fi
+
+          gh release create "$tag" --title "${display_name} ${version}" --notes "$notes" "${prerelease_flag[@]}"
