@@ -12,6 +12,10 @@ All notable changes to Chiplog are documented here. The format follows [Keep a C
 
 - The "Tide service" setting is now titled "Marine service", since the weather forecast also reads the sea state and current from it. The setting itself (`tideUrl`) is unchanged.
 
+### Fixed
+
+- On a phone, the webapp no longer scrolls sideways: the top navigation wraps onto a second line when it does not fit, and the cards shown side by side on a wide screen (tide, engine and sail, boat status) now shrink to the screen width instead of staying 420 px wide.
+
 ## [2.0.0] - 2026-09-16
 
 ### Added

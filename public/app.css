@@ -111,6 +111,7 @@ main,
 
 .topbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
@@ -130,6 +131,7 @@ main,
 
 .topbar nav {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.25rem;
 }
 
@@ -215,10 +217,11 @@ main {
   gap: 0.5rem;
 }
 
-/* Side by side on a wide screen, each about half width; stacked below that. */
+/* Side by side on a wide screen, each about half width; stacked below that,
+   never wider than the screen. */
 .card-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr));
   gap: 1rem;
   margin: 1rem 0;
 }
@@ -804,6 +807,14 @@ main {
 }
 
 @media (max-width: 600px) {
+  .topbar {
+    gap: 0.25rem 1rem;
+  }
+
+  .topbar nav a {
+    padding: 0.35rem 0.5rem;
+  }
+
   .passage-header h1 {
     font-size: 1.25rem;
   }
