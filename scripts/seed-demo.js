@@ -555,9 +555,9 @@ function main() {
   try {
     const { count } = db.prepare('SELECT COUNT(*) AS count FROM log_entries').get();
     if (count > 0) {
-      // console.error(`${file} already holds ${count} passage(s); nothing was added.`);
-      // process.exitCode = 1;
-      // return;
+      console.error(`${file} already holds ${count} passage(s); nothing was added.`);
+      process.exitCode = 1;
+      return;
     }
     const ids = seedDemoLogbook(db);
     console.log(`Seeded ${ids.length} passages into ${file}`);
