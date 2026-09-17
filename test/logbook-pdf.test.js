@@ -89,6 +89,13 @@ describe('facsimile PDF logbook', () => {
       /\nEngine hours: port 813\.1 h \(\+0\.7 h\), starboard 798\.8 h \(\+0\.7 h\)\n/,
       'at arrival, on a line of their own, with the hours run'
     );
+    // A passage that set off again after a stopover departs from it once more.
+    assert.ok(text.includes("Stopped at Château-d'Olonne (Cayola)"));
+    assert.ok(text.includes("Departure from Château-d'Olonne (Cayola)"));
+    assert.ok(
+      pages.some((page) => page.texts.includes('Arrival')),
+      'the stopover reading'
+    );
     // The departure's own reading is on the departure line, not a line of its own.
     assert.ok(!pages.some((page) => page.texts.includes('Departure')));
     // Handwriting is drawn as strokes, each in its own colour...

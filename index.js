@@ -74,9 +74,9 @@ module.exports = function (app) {
     properties: {
       stopClosureMinutes: {
         type: 'number',
-        title: 'Stop duration that ends a passage (minutes)',
+        title: 'Stop duration within which a new departure continues the passage (minutes)',
         description:
-          'Shorter stops, such as waiting for a lock or a lunch anchorage, stay within the same logbook entry',
+          'A passage closes as soon as the boat stops; leaving again sooner than this, after waiting for a lock or a lunch anchorage, reopens it and keeps the stop as a stopover',
         default: DETECTION_DEFAULTS.stopClosureMinutes,
         minimum: 1
       },

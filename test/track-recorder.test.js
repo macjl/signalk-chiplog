@@ -374,4 +374,22 @@ describe('track recording', () => {
     );
     assert.ok(entry.distance > 0);
   });
+
+  it('adds the points of a quick departure to the passage it reopens', () => {
+    vessel = createVessel().start({ detection: true });
+
+    vessel
+      .run(5 * 60, { knots: 0 })
+      .run(10 * 60, { knots: 6 })
+      .run(10 * 60, { knots: 0 })
+      .run(10 * 60, { knots: 6 });
+
+    const entries = vessel.db.prepare('SELECT * FROM log_entries').all();
+    assert.equal(entries.length, 1);
+    assert.equal(entries[0].state, 'active');
+    const points = vessel.points();
+    assert.ok(points.every((point) => point.entry_id === entries[0].id));
+    assert.ok(points.at(-1).time > iso(vessel.now - MINUTE), 'the track goes on');
+    assert.ok(Math.abs(entries[0].distance - pathLength(points)) < 0.001);
+  });
 });

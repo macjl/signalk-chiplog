@@ -29,6 +29,10 @@ const PLACES = {
   bourgenay: { name: 'Port Bourgenay', lat: 46.4383, lon: -1.6769, source: 'manual' }
 };
 
+// A stopover along the way, not a known place: only its name is recorded.
+const CAYOLA = { lat: 46.4668, lon: -1.7275 };
+const CAYOLA_NAME = "Château-d'Olonne (Cayola)";
+
 const iso = (ms) => new Date(ms).toISOString();
 const radians = (degrees) => (degrees * Math.PI) / 180;
 
@@ -206,6 +210,7 @@ function seedDemoLogbook(db, { now = Date.now() } = {}) {
       const { minimes, saintMartin } = PLACES;
       const id = insert('log_entries', {
         state: 'closed',
+        closed_by: 'detection',
         start_time: iso(start),
         end_time: iso(end),
         start_lat: minimes.lat,
@@ -340,6 +345,7 @@ function seedDemoLogbook(db, { now = Date.now() } = {}) {
       const arrival = { lat: 46.4988, lon: -1.7921 };
       const id = insert('log_entries', {
         state: 'closed',
+        closed_by: 'detection',
         start_time: iso(start),
         end_time: iso(end),
         start_lat: PLACES.saintMartin.lat,
@@ -403,12 +409,14 @@ function seedDemoLogbook(db, { now = Date.now() } = {}) {
       return id;
     })();
 
-    // Yesterday: a short hop south to Bourgenay, with a corrected engine/sail segment.
+    // Yesterday: a short hop south to Bourgenay, with a corrected engine/sail
+    // segment and a swim stop off Cayola, after which the passage set off again.
     const hop = (() => {
       const start = at(1, 14);
       const end = at(1, 16, 10);
       const id = insert('log_entries', {
         state: 'closed',
+        closed_by: 'detection',
         start_time: iso(start),
         end_time: iso(end),
         start_lat: PLACES.sables.lat,
@@ -425,12 +433,14 @@ function seedDemoLogbook(db, { now = Date.now() } = {}) {
       const points = recordTrack(id, [
         { ...PLACES.sables, time: start },
         { lat: 46.485, lon: -1.805, time: at(1, 14, 20) },
-        { lat: 46.46, lon: -1.76, time: at(1, 15) },
+        { ...CAYOLA, time: at(1, 14, 40) },
+        { ...CAYOLA, time: at(1, 15) },
         { lat: 46.433, lon: -1.7, time: at(1, 15, 40) },
         { ...PLACES.bourgenay, time: end }
       ]);
-      const corrected = segment(id, 'sail', start, at(1, 15, 40));
+      const corrected = segment(id, 'sail', start, at(1, 14, 40));
       db.prepare("UPDATE propulsion_segments SET source = 'manual' WHERE id = ?").run(corrected);
+      segment(id, 'sail', at(1, 15), at(1, 15, 40));
       segment(id, 'engine', at(1, 15, 40), end, 1700);
       log(id, start, 'manual_correction', {
         subtype: 'propulsion',
@@ -438,7 +448,14 @@ function seedDemoLogbook(db, { now = Date.now() } = {}) {
         source: 'auto'
       });
       observe(id, 'entry_start', start + MINUTE, points);
-      observe(id, 'periodic', at(1, 15), points);
+      observe(id, 'entry_end', at(1, 14, 40), points, { sog: 0 });
+      log(id, at(1, 14, 40), 'stopover', {
+        comment: CAYOLA_NAME,
+        payload: { placeName: CAYOLA_NAME, placePending: false },
+        source: 'auto',
+        points
+      });
+      observe(id, 'entry_start', at(1, 15), points);
       observe(id, 'entry_end', end, points, { sog: 0 });
       return id;
     })();

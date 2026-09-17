@@ -67,6 +67,7 @@ describe('demo logbook', () => {
       'manual_correction',
       'propulsion_change',
       'sk_alarm',
+      'stopover',
       'text_annotation',
       'weather_threshold'
     ]);

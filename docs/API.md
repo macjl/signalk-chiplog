@@ -148,7 +148,7 @@ Accepts `startTime`, `endTime`, `startPosition`, `endPosition`, `startPlaceName`
 
 Closes an open entry, with no request body — confirming an arrival, or ending a passage detection has not ended. If detection has already seen the vessel stop (`stoppedSince`), that is the end time; otherwise it is now. The end position is the one detection recorded, or failing that the vessel's current position. Unless the arrival already has a name, it is named as detection would name it: after a known place, or from its coordinates pending geocoding. `409 entry_already_closed` if it is already closed.
 
-Detection does not reopen an entry closed while the boat is still moving: the next passage starts at the next real departure.
+A closed entry is final: detection does not reopen it, whether the boat is still moving or leaves again soon after — the next passage starts at the next real departure. An entry detection closed, by contrast, is reopened by a departure within `stopClosureMinutes` of its end (SPEC §4.2), which also means `stoppedSince` is only ever set on an entry opened by casting off that has not moved yet.
 
 ### `POST /entries/:id/merge` — `readwrite`
 
@@ -262,7 +262,7 @@ Besides what clients post, the timeline holds events the plugin logs itself — 
 The endpoint the tablet's manoeuvre shortcuts and annotations hit. The client does not need to know which passage is open: the server attaches the entry to
 
 1. the passage in progress;
-2. failing that, for a **departure manoeuvre** — `cast_off` or `anchor_up` — a new passage it opens at the event's time (SPEC §4.3). The passage starts stopped, at the event's position, named as detection would name it; detection carries it on as soon as the vessel moves, or closes it like any long stop if it never leaves. The start is never earlier than the previous passage's end;
+2. failing that, for a **departure manoeuvre** — `cast_off` or `anchor_up` — the passage detection closed less than `stopClosureMinutes` before the event, which detection reopens once the vessel moves within that time of the event (`openedEntry` is `false`); otherwise a new passage it opens at the event's time (SPEC §4.3). The new passage starts stopped, at the event's position, named as detection would name it; detection carries it on as soon as the vessel moves, or closes it at the event if the vessel has not left within `stopClosureMinutes`. The start is never earlier than the previous passage's end;
 3. failing that, the last passage while the vessel is within 1 nm of its arrival — a note in the marina belongs to the passage that ended there;
 4. otherwise the request is refused with `409 no_passage`.
 

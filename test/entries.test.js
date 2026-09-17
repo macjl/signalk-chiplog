@@ -362,6 +362,10 @@ describe('entries', () => {
       assert.equal(body.endTime, at(1));
       assert.equal(body.stoppedSince, null);
       assert.deepEqual(body.endPosition, { lat: 46.5, lon: -1.79 });
+      const { closed_by: closedBy } = ctx.db
+        .prepare('SELECT closed_by FROM log_entries WHERE id = ?')
+        .get(id);
+      assert.equal(closedBy, 'crew', 'a confirmed arrival, never reopened');
     });
 
     it('closes now when no stop has been detected', async () => {

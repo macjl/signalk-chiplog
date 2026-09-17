@@ -32,30 +32,63 @@ describe('passage detection', () => {
       assert.equal(boat.entries().length, 0);
     });
 
-    it('keeps a stop shorter than the tolerance within the passage', () => {
-      boat = createBoat().start().sail(20, { sog: 5 }).sail(10, { sog: 0 });
-      assert.ok(boat.entries()[0].stopped_since, 'the stop is noticed');
+    it('ends the passage as soon as it sees the stop, dated and placed where it stopped', () => {
+      boat = createBoat().start().sail(20, { sog: 5 });
+      const stoppedAt = boat.nextTick();
+      const stopLat = boat.position.lat;
 
+      boat.sail(5, { sog: 0 });
+
+      const entries = boat.entries();
+      assert.equal(entries.length, 1);
+      assert.equal(entries[0].state, 'closed');
+      assert.equal(entries[0].closed_by, 'detection');
+      assert.equal(entries[0].end_time, iso(stoppedAt));
+      assert.ok(Math.abs(entries[0].end_lat - stopLat) < 0.0001, 'ends where it stopped');
+    });
+
+    it('reopens the passage when the vessel leaves again within the tolerance', () => {
+      boat = createBoat().start().sail(20, { sog: 5 });
+      const stoppedAt = boat.nextTick();
+      const stopLat = boat.position.lat;
+      boat.sail(20, { sog: 0 });
+      assert.equal(boat.entries()[0].state, 'closed');
+
+      const resumedAt = boat.nextTick();
       boat.sail(10, { sog: 5 });
 
       const entries = boat.entries();
       assert.equal(entries.length, 1);
       assert.equal(entries[0].state, 'active');
-      assert.equal(entries[0].stopped_since, null);
+      assert.equal(entries[0].end_time, null);
+      assert.deepEqual(
+        boat
+          .observations()
+          .filter((o) => o.reason === 'entry_start')
+          .map((o) => o.time),
+        [boat.observations()[0].time, iso(resumedAt)],
+        'a departure reading at the start and another where it set off again'
+      );
+      assert.equal(entries[0].closed_by, null);
+      assert.equal(entries[0].end_place_name, null);
+      const [stopover] = boat.events().filter((event) => event.type === 'stopover');
+      assert.equal(stopover.entry_id, entries[0].id);
+      assert.equal(stopover.time, iso(stoppedAt));
+      assert.ok(Math.abs(stopover.lat - stopLat) < 0.0001, 'where it stopped');
+      assert.ok(stopover.comment, 'named after the stop');
+
+      boat.sail(5, { sog: 0 });
+      assert.equal(boat.entries()[0].state, 'closed', 'and closes it again at the next stop');
+      assert.equal(boat.entries().length, 1);
     });
 
-    it('ends the passage at the moment the vessel stopped once the tolerance has passed', () => {
-      boat = createBoat().start().sail(20, { sog: 5 });
-      const stoppedAt = boat.nextTick();
-      const stopLat = boat.position.lat;
+    it('opens a new passage when the vessel leaves after the tolerance', () => {
+      boat = createBoat().start().sail(20, { sog: 5 }).sail(40, { sog: 0 }).sail(10, { sog: 5 });
 
-      boat.sail(40, { sog: 0 });
-
-      const entries = boat.entries();
-      assert.equal(entries.length, 1);
-      assert.equal(entries[0].state, 'closed');
-      assert.equal(entries[0].end_time, iso(stoppedAt));
-      assert.ok(Math.abs(entries[0].end_lat - stopLat) < 0.0001, 'ends where it stopped');
+      const [first, second] = boat.entries();
+      assert.equal(first.state, 'closed');
+      assert.equal(second.state, 'active');
+      assert.equal(boat.events().filter((event) => event.type === 'stopover').length, 0);
     });
 
     it('honours a configured tolerance and under-way speed', () => {
@@ -64,8 +97,8 @@ describe('passage detection', () => {
       boat.sail(10, { sog: 2 });
       assert.equal(boat.entries().length, 0, '2 kn is below the configured 3 kn');
 
-      boat.sail(10, { sog: 4 }).sail(8, { sog: 0 });
-      assert.equal(boat.entries()[0].state, 'closed');
+      boat.sail(10, { sog: 4 }).sail(8, { sog: 0 }).sail(10, { sog: 4 });
+      assert.equal(boat.entries().length, 2, 'left again after the 5 min tolerance');
     });
   });
 
@@ -86,7 +119,8 @@ describe('passage detection', () => {
       const stoppedAt = boat.nextTick();
       boat.sail(10, { sog: 0, state: 'sailing' }).sail(1, { sog: 0, state: 'moored' });
       [entry] = boat.entries();
-      assert.equal(entry.stopped_since, iso(stoppedAt));
+      assert.equal(entry.state, 'closed');
+      assert.equal(entry.end_time, iso(stoppedAt));
     });
 
     it('treats an unrecognised state as absent', () => {
@@ -230,6 +264,7 @@ describe('passage detection', () => {
 
     boat.sail(5, { sog: 0 }).sail(5, { sog: 5 });
     assert.equal(boat.entries().length, 2, 'a real departure opens the next passage');
+    assert.equal(boat.entries()[0].closed_by, 'crew', 'rather than reopening this one');
   });
 
   it('neither opens nor ends a passage while data is missing', () => {

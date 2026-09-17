@@ -138,12 +138,14 @@ describe('engine/sail detection', () => {
     boat = createBoat().start().sail(5, { sog: 0 }).sail(20, { sog: 5 });
     const stoppedAt = boat.nextTick();
     boat.sail(10, { sog: 0 });
+    assert.equal(boat.segments()[0].end_time, iso(stoppedAt), 'ended as the passage closes');
     const resumedAt = boat.nextTick();
     boat.sail(10, { sog: 5 });
 
     const [entry] = boat.entries();
     const [first, second] = boat.segments();
-    assert.equal(entry.state, 'active');
+    assert.equal(entry.state, 'active', 'reopened');
+    assert.equal(second.entry_id, entry.id);
     assert.equal(first.end_time, iso(stoppedAt));
     assert.equal(second.start_time, iso(resumedAt), 'dated from speed, not the averaged decision');
     assert.equal(second.end_time, null);

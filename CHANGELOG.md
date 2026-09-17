@@ -10,6 +10,7 @@ All notable changes to Chiplog are documented here. The format follows [Keep a C
 
 ### Changed
 
+- A passage now closes as soon as the boat stops, instead of 30 minutes later: its arrival is named, its arrival reading taken and the USB copy written straight away. Leaving again within that tolerance reopens the same passage, the stop being kept on its timeline as a stopover line naming the place, as a merge does, followed by a departure line at the time the boat set off again — with its instrument reading, and in the PDF as "Departure from" the stopover's place. A passage closed from the webapp is never reopened. Casting off from the tablet within the tolerance of an arrival goes to the passage that just ended, which carries on once the boat moves. The "Stop duration that ends a passage" setting (`stopClosureMinutes`, unchanged) is now titled "Stop duration within which a new departure continues the passage".
 - The "Tide service" setting is now titled "Marine service", since the weather forecast also reads the sea state and current from it. The setting itself (`tideUrl`) is unchanged.
 
 ### Fixed

@@ -285,7 +285,12 @@ describe('a passage opened by casting off', () => {
     return logCrewEvent(
       boat.db,
       { type: 'manoeuvre', subtype: 'cast_off' },
-      { now: iso(time), vesselPosition: { ...BERTH }, placeMatchRadius: 200 }
+      {
+        now: iso(time),
+        vesselPosition: { ...BERTH },
+        placeMatchRadius: 200,
+        stopClosureMinutes: 30
+      }
     );
   }
 
@@ -319,5 +324,35 @@ describe('a passage opened by casting off', () => {
     const [entry] = boat.entries();
     assert.equal(entry.state, 'closed');
     assert.equal(entry.end_time, iso(castOffAt));
+  });
+
+  it('goes to the passage that just ended, which the departure then reopens', () => {
+    boat = createBoat().start().sail(20, { sog: 5 }).sail(20, { sog: 0 });
+    const [arrived] = boat.entries();
+    assert.equal(arrived.state, 'closed');
+
+    const { event, openedEntry } = castOff(boat.now);
+    assert.equal(openedEntry, false);
+    assert.equal(event.entryId, arrived.id);
+
+    // Leaves more than the tolerance after arriving, but not after casting off.
+    boat.sail(20, { sog: 0 }).sail(10, { sog: 5 });
+
+    const entries = boat.entries();
+    assert.equal(entries.length, 1);
+    assert.equal(entries[0].state, 'active');
+    assert.equal(boat.events().filter((e) => e.type === 'stopover').length, 1);
+  });
+
+  it('leaves the passage that just ended closed when the vessel never leaves', () => {
+    boat = createBoat().start().sail(20, { sog: 5 }).sail(20, { sog: 0 });
+    castOff(boat.now);
+
+    boat.sail(60, { sog: 0 });
+    assert.equal(boat.entries().length, 1);
+    assert.equal(boat.entries()[0].state, 'closed');
+
+    boat.sail(10, { sog: 5 });
+    assert.equal(boat.entries().length, 2, 'a departure long after opens a new passage');
   });
 });

@@ -46,17 +46,15 @@ describe('instrument snapshots', () => {
     const [entry] = boat.entries();
     const observations = boat.observations();
     assert.equal(entry.state, 'closed');
-    // entry_end sorts before the last periodic reading: it is dated from the
-    // actual end of the passage, not from the later tick that found out
-    // about it once the stop had held past the closure threshold.
+    // Closed as soon as the vessel stops: no periodic reading after arrival.
     assert.deepEqual(
       observations.map((o) => o.reason),
-      ['entry_start', 'periodic', 'periodic', 'entry_end', 'periodic']
+      ['entry_start', 'periodic', 'periodic', 'entry_end']
     );
     assert.deepEqual(
       observations.filter((o) => o.reason === 'periodic').map((o) => o.time),
-      [at('09', '00'), at('10', '00'), at('11', '00')],
-      'on the hour, including one taken during the stop, before the passage actually closed'
+      [at('09', '00'), at('10', '00')],
+      'on the hour'
     );
     assert.equal(
       observations.find((o) => o.reason === 'entry_end').time,
@@ -64,6 +62,19 @@ describe('instrument snapshots', () => {
       'dated from the passage ending, not from when detection found out'
     );
     assert.ok(observations.every((o) => o.entry_id === entry.id));
+  });
+
+  it('take no arrival reading for a passage that ended while the plugin was off', () => {
+    boat = createBoat()
+      .start()
+      .sail(5, { sog: 0, instruments: INSTRUMENTS })
+      .sail(30, { sog: 5, instruments: INSTRUMENTS });
+
+    boat.now += 2 * 24 * 60 * MINUTE;
+    boat.start().sail(1, { sog: 0, instruments: INSTRUMENTS });
+
+    assert.equal(boat.entries()[0].state, 'closed');
+    assert.ok(boat.observations().every((o) => o.reason !== 'entry_end'));
   });
 
   it('record every instrument in Signal K units', () => {

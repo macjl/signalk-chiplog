@@ -360,8 +360,9 @@ describe('windowed replay', () => {
     const scan = windowed.scanMotion;
     windowed.scanMotion = async (...args) => {
       const intervals = await scan(...args);
-      // Pretend the scan saw only the first ten minutes of motion.
-      return intervals.filter((i) => i.from < from + HOUR + 10 * MINUTE);
+      // Pretend the scan saw only the first minute of motion, so the window
+      // ends before the vessel stops.
+      return intervals.filter((i) => i.from < from + HOUR + MINUTE);
     };
     const preload = windowed.preload;
     windowed.preload = async (...args) => {
