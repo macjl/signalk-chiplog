@@ -436,7 +436,9 @@ only `comment` may change — annotating an alarm is fine, rewriting it is not.
 ### `DELETE /events/:id` — `readwrite`
 
 `204`. Deleting the departure manoeuvre that opened a passage, while the vessel has not moved yet and nothing else was
-logged in it, deletes that passage too: this is how a mistaken "Cast off" is undone.
+logged in it, deletes that passage too: this is how a mistaken "Cast off" is undone. An `sk_alarm` event is logged in
+pairs — the notification reaching `alarm`/`emergency`, and the one that later cleared it — so deleting either takes the
+other with it; an escalation from `alarm` to `emergency` is not a pair (both are critical) and is left alone.
 
 ## Places
 

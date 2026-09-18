@@ -64,10 +64,12 @@ export function EventRemark({ event, manoeuvreLabels }) {
   return html`${label}${strokes}${detail}${comment}`;
 }
 
-// A logged event's remarks, with edit-comment and delete controls — the only
-// corrections the API allows on a line (SPEC: "an edited comment"). Deleting
-// is offered only for what the crew themselves logged (`source: "manual"`);
-// automatic lines (alarms, autopilot, weather, corrections) can only be
+// A logged event's remarks, with edit-comment and delete controls. Editing is
+// limited to the comment on anything the plugin logged itself (SPEC: "an
+// edited comment"). Deleting is offered for what the crew themselves logged
+// (`source: "manual"`) and for an alarm (`sk_alarm`) — which takes its paired
+// line, the raise or the clearing, with it (lib/events.js `pairedAlarmEvent`);
+// other automatic lines (autopilot, weather, corrections) can only be
 // annotated.
 function EventLine({ event, manoeuvreLabels, busy, onEditComment, onDelete }) {
   const { t } = useLocale();
@@ -126,7 +128,7 @@ function EventLine({ event, manoeuvreLabels, busy, onEditComment, onDelete }) {
         ${t('common.edit')}
       </button>
       ${
-        event.source === 'manual' &&
+        (event.source === 'manual' || event.type === 'sk_alarm') &&
         html`<button
           type="button"
           class="link-button danger"

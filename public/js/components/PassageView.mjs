@@ -334,7 +334,9 @@ export function PassageView({ id }) {
       reload();
     });
   const deleteEvent = (event) =>
-    confirm(t('timeline.deleteConfirm')) &&
+    confirm(
+      t(event.type === 'sk_alarm' ? 'timeline.deleteAlarmConfirm' : 'timeline.deleteConfirm')
+    ) &&
     act(async () => {
       await request('DELETE', `/events/${event.id}`);
       reload();

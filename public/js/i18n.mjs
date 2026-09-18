@@ -218,6 +218,7 @@ export const MESSAGES = {
     'timeline.heading': 'hdg',
     'timeline.comment': 'Comment',
     'timeline.deleteConfirm': 'Delete this log line? This cannot be undone.',
+    'timeline.deleteAlarmConfirm': 'Delete this alarm and its resolution? This cannot be undone.',
 
     // Where the position is from the landmark, the way a logbook gives it.
     'landmark.bearing': '{distance} {cardinal} ({bearing}) — {name}',
@@ -665,6 +666,7 @@ export const MESSAGES = {
     'timeline.heading': 'cap',
     'timeline.comment': 'Commentaire',
     'timeline.deleteConfirm': 'Supprimer cette ligne du journal ? C’est irréversible.',
+    'timeline.deleteAlarmConfirm': 'Supprimer cette alarme et sa résolution ? C’est irréversible.',
 
     // Le relèvement inverse : où se trouve le bateau par rapport à l’amer.
     // Sans préposition, qui varierait avec l’aire de vent (au NE, à l’E).

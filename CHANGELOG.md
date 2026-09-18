@@ -28,6 +28,8 @@ All notable changes to Chiplog are documented here. The format follows
   just before that frame is drawn, so the film is the same whatever the connection was doing and no range is ever too
   long to export. Needs a browser with WebCodecs (Chrome, Edge, Safari 17, Firefox 130 and later); without one the
   animation still plays on screen.
+- **Delete an alarm** — a logged alarm can now be removed from a passage's log, like a crew-entered line already could.
+  Deleting either the alarm or the line that later cleared it removes both, so no orphaned half is left behind.
 
 ## [2.1.0] - 2026-09-17
 

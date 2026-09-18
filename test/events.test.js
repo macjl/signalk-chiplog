@@ -199,6 +199,58 @@ describe('events', () => {
       assert.equal((await ctx.request('DELETE', `/events/${created.body.id}`)).status, 204);
       assert.equal((await ctx.request('DELETE', `/events/${created.body.id}`)).status, 404);
     });
+
+    describe('alarm pairing', () => {
+      function alarm(entry, time, state) {
+        return insert(ctx.db, 'events', {
+          entry_id: entry,
+          time,
+          type: 'sk_alarm',
+          subtype: 'notifications.mob',
+          source: 'auto',
+          payload: JSON.stringify({ state, message: 'MOB' }),
+          created_at: T0
+        });
+      }
+
+      async function remainingIds() {
+        const page = await ctx.request('GET', `/entries/${entryId}/events`);
+        return page.body.items.map((event) => event.id);
+      }
+
+      it('deleting the raised alarm also deletes its resolution', async () => {
+        const raised = alarm(entryId, T0, 'alarm');
+        alarm(entryId, at(1), 'normal');
+
+        assert.equal((await ctx.request('DELETE', `/events/${raised}`)).status, 204);
+
+        assert.deepEqual(await remainingIds(), []);
+      });
+
+      it('deleting the resolution also deletes the alarm it resolved', async () => {
+        alarm(entryId, T0, 'alarm');
+        const resolved = alarm(entryId, at(1), 'normal');
+
+        assert.equal((await ctx.request('DELETE', `/events/${resolved}`)).status, 204);
+
+        assert.deepEqual(await remainingIds(), []);
+      });
+
+      it('deletes a still-open alarm on its own, with no resolution to pair', async () => {
+        const raised = alarm(entryId, T0, 'alarm');
+        assert.equal((await ctx.request('DELETE', `/events/${raised}`)).status, 204);
+        assert.deepEqual(await remainingIds(), []);
+      });
+
+      it('does not pair an escalation, both states being critical', async () => {
+        const raised = alarm(entryId, T0, 'alarm');
+        const escalated = alarm(entryId, at(1), 'emergency');
+
+        assert.equal((await ctx.request('DELETE', `/events/${raised}`)).status, 204);
+
+        assert.deepEqual(await remainingIds(), [escalated]);
+      });
+    });
   });
 });
 
