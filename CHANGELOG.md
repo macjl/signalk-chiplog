@@ -6,6 +6,13 @@ All notable changes to Chiplog are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Retrospective analysis now shows what has been reconstructed so far while it is still running**, not only once it
+  finishes: passages, distance, engine/sail time, track points and events update after every committed slice instead of
+  only the clock position. A run that fails partway — an InfluxDB query timing out on a slow host — keeps that same
+  summary next to the error, instead of leaving a bare error message with no way to tell what was saved.
+
 ### Fixed
 
 - **A retrospective replay running alongside live tracking** could have a live detection tick, track sample or event

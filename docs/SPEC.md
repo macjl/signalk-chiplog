@@ -480,6 +480,11 @@ boat already has in InfluxDB 1.x, written there by [signalk-to-influxdb](https:/
 - **Commits once per slice.** The replay runs ten simulated minutes per database transaction (`withTransaction` calls
   made inside it join it), rather than committing — and syncing an SD card — for every detection tick and track point. A
   slice is synchronous, so live code never runs inside one.
+- **Reports what has actually been committed, not just how far along the clock is.** `lib/replay-job.js` recomputes the
+  running total (`{ passages, distance, engineDuration, sailDuration, trackPoints, events }`) after every slice, in
+  `GET /replay`'s `progress.summary`, and attaches the same totals to `lastError` on a failure — an InfluxDB query
+  timing out partway through a long range leaves the passages already committed on record either way (only the slice in
+  flight is lost), so the webapp shows what was saved instead of a bare error with no way to tell.
 - **Reads InfluxDB directly, in bounded requests.** `lib/influx-history.js` knows signalk-to-influxdb's schema: one
   measurement per Signal K path, tagged with context (self) and source (for a path more than one source publishes,
   `navigation.state` chief among them — resolved the same way the server itself would). The motion scan asks for a week

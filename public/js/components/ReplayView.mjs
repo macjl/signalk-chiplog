@@ -26,19 +26,25 @@ function Progress({ progress }) {
           time: `${format.shortDate(progress.now)} ${format.time(progress.now)}`
         })}
       </p>
+      ${
+        progress.phase === 'replaying' &&
+        html`<${Summary} summary=${progress.summary} live=${true} />`
+      }
     </div>
   `;
 }
 
-// What the latest run added -- also after a cancellation, since what was
-// reconstructed up to that point stays on record.
-function Summary({ summary }) {
+// What a run added, live while it is still going (so a timeout partway
+// through still leaves something to show for it) and again for the final
+// outcome -- also after a cancellation, since what was reconstructed up to
+// that point stays on record either way.
+function Summary({ summary, live = false }) {
   const { t, format } = useLocale();
   if (!summary) {
     return null;
   }
   if (summary.passages === 0) {
-    return html`<p class="muted">${t('replay.summaryEmpty')}</p>`;
+    return live ? null : html`<p class="muted">${t('replay.summaryEmpty')}</p>`;
   }
   const facts = [
     ['replay.summaryPassages', format.count(summary.passages)],
@@ -66,12 +72,15 @@ function Outcome({ status }) {
   const { t, format } = useLocale();
   if (status.lastError) {
     const { lastError } = status;
-    return html`<p class="notice notice-error">
-      ${t('replay.failed', {
-        time: format.time(lastError.at),
-        message: lastError.message
-      })}
-    </p>`;
+    return html`
+      <p class="notice notice-error">
+        ${t('replay.failed', {
+          time: format.time(lastError.at),
+          message: lastError.message
+        })}
+      </p>
+      <${Summary} summary=${lastError.summary} />
+    `;
   }
   if (status.lastResult) {
     const { lastResult } = status;

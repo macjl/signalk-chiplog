@@ -645,7 +645,15 @@ detection pipeline used live (SPEC §4.10). One reconstruction runs at a time, i
     "from": "2026-01-01T00:00:00.000Z",
     "to": "2026-01-08T00:00:00.000Z",
     "now": "2026-01-03T11:20:00.000Z",
-    "phase": "replaying"
+    "phase": "replaying",
+    "summary": {
+      "passages": 2,
+      "distance": 41200,
+      "engineDuration": 3600,
+      "sailDuration": 9800,
+      "trackPoints": 1840,
+      "events": 3
+    }
   },
   "lastResult": null,
   "lastError": null
@@ -658,15 +666,19 @@ detection pipeline used live (SPEC §4.10). One reconstruction runs at a time, i
   `"replaying"` while each window of motion is fetched and run through the detection pipeline (SPEC §4.10);
   `progress.now` tracks whichever phase is in flight — during `"scanning"` it is how far through the range the scan has
   got, during `"replaying"` it is the detector's simulated clock, which jumps over the stretches the vessel lay still.
+- `progress.summary` is recomputed after every committed slice (SPEC §4.10) with the same shape as `lastResult.summary`
+  below, `null` while still scanning — so the webapp can show what has actually been saved so far rather than only the
+  clock position, and a run that then times out still leaves something on screen instead of a bare error.
 - The scan reads a week at a time and a window's history six hours at a time, with a short pause between requests, so
   one query cannot overwhelm a resource-constrained host running both Signal K and InfluxDB (SPEC §4.10).
-- `lastResult` — `{ at, from, to, cancelled?, summary }` — and `lastError` — `{ at, from, to, message }` — describe the
-  latest attempt. `summary` — `{ passages, distance, engineDuration, sailDuration, trackPoints, events }`, metres and
-  seconds — totals what the run added, including up to a cancellation; a passage live detection opened meanwhile is not
-  counted. Both are kept in memory and start empty when the plugin starts. `lastError.message` names the InfluxDB vessel
-  contexts actually found when none match the one configured (SPEC §4.10) — the usual cause of a replay that runs to
-  completion but reconstructs nothing. An InfluxDB query that does not answer within 30 s fails with that instead of
-  hanging.
+- `lastResult` — `{ at, from, to, cancelled?, summary }` — and `lastError` — `{ at, from, to, message, summary }` —
+  describe the latest attempt. `summary` — `{ passages, distance, engineDuration, sailDuration, trackPoints, events }`,
+  metres and seconds — totals what the run added, including up to a cancellation or a failure; a passage live detection
+  opened meanwhile is not counted. Both are kept in memory and start empty when the plugin starts. `lastError.message`
+  names the InfluxDB vessel contexts actually found when none match the one configured (SPEC §4.10) — the usual cause of
+  a replay that runs to completion but reconstructs nothing. An InfluxDB query that does not answer within the
+  configured timeout fails with that instead of hanging; passages already committed before the failing chunk stay on
+  record, so `lastError.summary` reports them and a follow-up run starting after them does not repeat the work.
 
 ### `POST /replay` — admin
 

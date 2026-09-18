@@ -249,6 +249,38 @@ describe('replay job', () => {
     assert.match(status.lastError.message, /500/);
   });
 
+  it('keeps a summary of what an earlier slice already committed when a later query fails', async () => {
+    ({ db, dataDir } = openDb());
+    let calls = 0;
+    const job = createReplayJob({
+      db,
+      settings: configuredSettings(),
+      app: { selfContext: 'vessels.self' },
+      fetch: async () => {
+        calls += 1;
+        if (calls === 1) {
+          // What an earlier committed slice of the same run would have left
+          // behind, before the query below fails.
+          insertEntry(db, {
+            start_time: iso(T0 + 5 * MINUTE),
+            end_time: iso(T0 + 40 * MINUTE),
+            distance: 7000
+          });
+          return { ok: true, status: 200, json: async () => ({ results: [{}] }) };
+        }
+        throw new Error('network down');
+      }
+    });
+
+    job.start(iso(T0), iso(T0 + 60 * MINUTE));
+    await waitUntilIdle(job);
+
+    const status = job.status();
+    assert.match(status.lastError.message, /network down/);
+    assert.equal(status.lastError.summary.passages, 1);
+    assert.equal(status.lastError.summary.distance, 7000);
+  });
+
   it('calls onDone once the attempt finishes, so newly-pending place names can be picked up', async () => {
     ({ db, dataDir } = openDb());
     let doneCalls = 0;
