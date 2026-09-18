@@ -55,13 +55,14 @@ async function loadForecast(id, kind) {
 }
 
 async function loadPassage(id) {
-  const [entry, track, segments, events, observations, manoeuvreTypes, tide, weather] =
+  const [entry, track, segments, events, observations, landmarks, manoeuvreTypes, tide, weather] =
     await Promise.all([
       get(`/entries/${id}`),
       get(`/entries/${id}/track`),
       fetchAll(`/entries/${id}/propulsion`),
       fetchAll(`/entries/${id}/events`),
       fetchAll(`/entries/${id}/observations`),
+      fetchAll(`/entries/${id}/landmarks`),
       fetchAll('/manoeuvre-types'),
       loadForecast(id, 'tide'),
       loadForecast(id, 'weather')
@@ -73,6 +74,7 @@ async function loadPassage(id) {
     segments,
     events,
     observations,
+    landmarks,
     manoeuvreLabels: Object.fromEntries(manoeuvreTypes.map((type) => [type.key, type.label])),
     tide,
     weather,
@@ -481,6 +483,7 @@ export function PassageView({ id }) {
       <${Timeline}
         events=${data.events}
         observations=${data.observations}
+        landmarks=${data.landmarks}
         manoeuvreLabels=${data.manoeuvreLabels}
         busy=${busy}
         onEditComment=${editComment}

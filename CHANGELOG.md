@@ -8,6 +8,14 @@ All notable changes to Chiplog are documented here. The format follows
 
 ### Added
 
+- **Landmark bearings (amers)** — every position in the log is now also given the way a paper logbook gives one: a
+  distance and a bearing from the nearest landmark, "2,3 M ENE (065°) — Phare de Chauveau", under the coordinates in a
+  lighter grey, on the passage page and in the PDF logbook. The coordinates themselves are unchanged. Landmarks —
+  lighthouses, capes, named towers, harbours — are fetched from OpenStreetMap area by area and kept, so past passages
+  fill in as soon as their area is known and the same waters are never asked for twice; the bearing is computed when the
+  page is drawn, never stored. The landmark quoted is the one closest relative to its own range, so a lighthouse three
+  miles off wins over a marina alongside, and offshore the coordinates stay alone. A new setting, **Read each journal
+  line against the nearest landmark**, turns it off.
 - **Animation** — a new page that replays passages on the map. Pick a start and an end date and every passage between
   them plays in sequence, the time spent in port skipped, so a week's cruise takes seconds. The map follows the boat at
   a scale chosen for each passage — a short hop stays readable instead of being magnified, a long crossing gets a wider

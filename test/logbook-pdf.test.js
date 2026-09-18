@@ -78,6 +78,12 @@ describe('facsimile PDF logbook', () => {
     assert.ok(text.includes('Alarm: Engine temperature high'));
     assert.ok(!text.includes('— Engine temperature high'), 'no repeated alarm message');
     assert.ok(text.includes('<b>not bold</b>'), 'crew text as typed');
+    // Each position is also read against the nearest amer (SPEC §4.13), on a
+    // line of its own under the coordinates.
+    assert.match(
+      text,
+      /\n46°\d\d\.\d\d'N 001°\d\d\.\d\d'W\n\d\.\d nm [NSEW]+ \(\d{3}°\) — Phare de Chauveau\n/
+    );
     assert.match(text, /Day: \d+\.\d nm sailed — engine/);
     assert.ok(text.includes('1,017 hPa'));
     assert.match(
@@ -132,7 +138,8 @@ describe('facsimile PDF logbook', () => {
     assert.ok(
       french.text.includes(
         'Heure\nPosition\nRoute\nVitesse\nVent\nBaro\nSonde\nMoteur/voile\nRemarques\n' +
-          "10:00\n46°08.80'N 001°10.12'W\n250°\n2,5 nd\n10,7 nd 281°\n1 017 hPa\n14,2 m\n" +
+          "10:00\n46°08.80'N 001°10.12'W\n0,7 M ENE (060°) — Tour Richelieu\n" +
+          '250°\n2,5 nd\n10,7 nd 281°\n1 017 hPa\n14,2 m\n' +
           'Moteur\nDépart de La Rochelle (Les Minimes)'
       )
     );

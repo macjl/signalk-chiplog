@@ -185,6 +185,30 @@ lookup redone.
 The index on `(lat, lon)` supports a bounding-box prefilter; the exact radius test runs in application code, since
 SQLite has no spatial functions here and the candidate set after the bounding box is tiny.
 
+### `landmarks` and `landmark_areas` (migration 15)
+
+The gazetteer of amers behind SPEC §4.13, and the record of which areas it covers. Deliberately apart from `places`: a
+place _names_ a departure or arrival and is part of what the logbook recorded, while a landmark is reference data the
+bearing under each position is computed from — nothing here is denormalised onto an entry, and deleting the tables would
+lose nothing but the trouble of fetching them again.
+
+| Column                | Meaning                                                                        |
+| --------------------- | ------------------------------------------------------------------------------ |
+| `osm_type` / `osm_id` | Where it came from; unique together, so a re-fetch updates rather than doubles |
+| `name`                | OpenStreetMap's `name`, else `seamark:name`; a feature with neither is skipped |
+| `kind`                | `lighthouse`, `light`, `cape`, `landmark`, `beacon` or `harbour`               |
+| `lat` / `lon`         | A node's own position, or the centre of a way or relation                      |
+| `light_range`         | The greatest range of its light in metres, when tagged; `null` otherwise       |
+
+`landmark_areas` holds one row per half-degree cell already fetched (`cell_lat`/`cell_lon` are the cell's floor
+indices). The fetch covers the cell plus a margin as wide as the furthest an amer is quoted from, so a cell recorded
+here means every position inside it has all its landmarks. `log_entries.landmarks_pending` is the cursor: set on
+creation and whenever an entry is edited or merged, cleared once every cell that entry has positions in is covered —
+except for an active entry, which keeps moving into new cells.
+
+The index on `(lat, lon)` supports the same bounding-box prefilter as `places`; distance and bearing are computed at
+read time, in `public/js/landmarks.mjs`, shared by the webapp and the PDF.
+
 ### `propulsion_segments`
 
 Engine vs sail periods within an entry (SPEC §4.2), with `average_rpm` and a `source` flag marking segments a user has

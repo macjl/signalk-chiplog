@@ -53,9 +53,9 @@ implementing anything:
 
 `lib/api.js` is the only HTTP-aware module: it parses and validates requests (`lib/validation.js`), calls the resource
 modules, and maps errors to responses. The resource modules (`entries`, `events`, `places`, `propulsion`,
-`manoeuvre-types`, `track`, `export`) take a `db` and plain values, run SQL, return `camelCase` objects, and throw
-`ApiError` (`lib/errors.js`) for not-found and conflict cases. Unit conversion to nautical units happens only in
-`lib/formats.js`, for human-facing exports.
+`manoeuvre-types`, `track`, `landmarks`, `export`) take a `db` and plain values, run SQL, return `camelCase` objects,
+and throw `ApiError` (`lib/errors.js`) for not-found and conflict cases. Unit conversion to nautical units happens only
+in `lib/formats.js`, for human-facing exports.
 
 `lib/detection.js` is the passage state machine; SPEC §4.2 describes its behaviour. `index.js` runs its `tick()` every
 15 seconds and reports the outcome as the plugin status. Within that tick and transaction, `lib/propulsion-detector.js`
@@ -81,20 +81,28 @@ calling `writeUsbExport` directly. Tests inject `write` and a clock.
 
 `lib/logbook-pdf.js` lays out the facsimile PDF and `lib/pdf/` writes it — a small writer with the standard Helvetica
 fonts (WinAnsi encoding, metrics in `helvetica.js`), no dependency. Its wording and units come from the webapp's pure
-modules (`public/js/i18n.mjs`, `format.mjs`, `log-lines.mjs`), loaded with `import()` from CommonJS: keep those modules
-free of browser APIs and vendor imports. Characters outside WinAnsi print as `?` unless `lib/pdf/winansi.js` maps them.
-`test/pdf-helpers.js` reads the text of a generated PDF back for assertions; to look at pages, render them to PNG
-(macOS: PDFKit via a short Swift script).
+modules (`public/js/i18n.mjs`, `format.mjs`, `log-lines.mjs`, `landmarks.mjs`), loaded with `import()` from CommonJS:
+keep those modules free of browser APIs and vendor imports. Characters outside WinAnsi print as `?` unless
+`lib/pdf/winansi.js` maps them. `test/pdf-helpers.js` reads the text of a generated PDF back for assertions; to look at
+pages, render them to PNG (macOS: PDFKit via a short Swift script).
 
-`lib/place-names.js`, `lib/tide-forecaster.js` and `lib/weather-forecaster.js` are the only network access. Detection
-names places synchronously (known place, or coordinates marked pending); `index.js` runs the online lookups as a chain
-of `setTimeout`s, each `resolveNext()` saying when the next is due. `lib/tide-forecaster.js` and
-`lib/weather-forecaster.js` follow the same shape — `resolveNext()` on the shared engine `lib/departure-forecast.js`,
-each run by its own `lib/forecast-schedule.js` chain, which `index.js` nudges when detection reports a newly opened
-passage — to fetch the tide and weather forecasts near a passage's departure (SPEC §4.5.2, §4.5.3), one entry at a time,
-giving up (recording an empty result rather than retrying forever) once the departure is too long past for the fetch
-window to still mean anything. Tests inject `fetch` and never reach the network — `test/helpers.js` also starts the
-plugin with `geocodingEnabled: false`, `tidesEnabled: false` and `weatherEnabled: false`; keep it that way.
+`lib/place-names.js`, `lib/tide-forecaster.js`, `lib/weather-forecaster.js` and `lib/landmark-finder.js` are the only
+network access. Detection names places synchronously (known place, or coordinates marked pending); `index.js` runs the
+online lookups as a chain of `setTimeout`s, each `resolveNext()` saying when the next is due. `lib/tide-forecaster.js`
+and `lib/weather-forecaster.js` follow the same shape — `resolveNext()` on the shared engine
+`lib/departure-forecast.js`, each run by its own `lib/background-schedule.js` chain, which `index.js` nudges when
+detection reports a newly opened passage — to fetch the tide and weather forecasts near a passage's departure (SPEC
+§4.5.2, §4.5.3), one entry at a time, giving up (recording an empty result rather than retrying forever) once the
+departure is too long past for the fetch window to still mean anything. Tests inject `fetch` and never reach the network
+— `test/helpers.js` also starts the plugin with `geocodingEnabled: false`, `landmarksEnabled: false`,
+`tidesEnabled: false` and `weatherEnabled: false`; keep it that way.
+
+`lib/landmark-finder.js` fills the gazetteer of amers (SPEC §4.13) from Overpass on the same `resolveNext()` shape, one
+half-degree cell per request, with `lib/landmarks.js` deciding which cell is wanted (`nextPendingArea`, driven by
+`log_entries.landmarks_pending`) and storing the answer. Overpass reports a busy server _in the body_ with HTTP 200 — an
+HTML page, or a `remark` beside empty elements — so both count as retryable failures; keep that. Nothing about a bearing
+is stored: `public/js/landmarks.mjs` works it out at read time for the webapp and the PDF alike, which is what makes
+past passages fill in once their area is fetched.
 
 `index.js` owns the plugin lifecycle and hands the API a `getContext()` that throws `503` when the database is closed.
 This matters because the server calls `registerWithRouter` once — before `start()`, even while the plugin is disabled —

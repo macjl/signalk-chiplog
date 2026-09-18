@@ -557,6 +557,15 @@ main {
   min-width: 14rem;
 }
 
+/* Where the position is in relation to the nearest landmark, under it: a
+   reading in its own right, not a heading, so it keeps the coordinates’
+   place and only its colour sets it back. */
+.timeline-landmark {
+  display: block;
+  color: var(--muted);
+  font-size: 0.85em;
+}
+
 .timeline-event .timeline-time {
   font-weight: 600;
 }

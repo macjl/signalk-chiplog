@@ -267,6 +267,35 @@ switch when a passage opens — only an actual change partway through.
 Correcting the **ongoing** segment holds until the engine data changes: detection does not revert it on its next cycle
 just because the sensors — or the configured default — still say otherwise.
 
+### `GET /entries/:id/landmarks` — `readonly`
+
+```json
+{
+  "total": 2,
+  "limit": 50,
+  "offset": 0,
+  "items": [
+    {
+      "id": 2,
+      "name": "Phare du Cap-Ferret",
+      "kind": "lighthouse",
+      "position": { "lat": 44.6459646, "lon": -1.2488154 },
+      "lightRange": 40744,
+      "osm": { "type": "way", "id": 715849418 },
+      "updatedAt": "2026-09-13T08:02:11.000Z"
+    }
+  ]
+}
+```
+
+The amers any line of this passage's journal could be read against (SPEC §4.13): those within the area it sailed
+through, widened by the furthest an amer is quoted from. Paginated. `kind` is `lighthouse`, `light`, `cape`, `landmark`,
+`beacon` or `harbour`; `lightRange` is the nominal range of its light in metres, or `null`.
+
+Which landmark a given position takes, and the bearing and distance from it, are computed by the client —
+`public/js/landmarks.mjs`, which the webapp and the PDF logbook share. The list is empty while the area's landmarks have
+not been fetched, or with `landmarksEnabled` off: a client then shows the coordinates alone.
+
 ### `GET /entries/:id/tide` — `readonly`
 
 ```json
@@ -513,7 +542,8 @@ for `pdf`, `lang` (`en` or `fr`) and `tz` (an IANA time zone such as `Europe/Par
 logbook language and time zone — `400` for an unknown value. Served as an attachment named `chiplog.<format>`.
 
 - **`json`** — the complete record, in SI units: `{ exportedAt, schemaVersion, units, entries }`, where each entry
-  carries its `trackPoints`, `observations`, `propulsion`, `events`, `weather` (the body of
+  carries its `trackPoints`, `observations`, `propulsion`, `events`, `landmarks` (as
+  [`GET /entries/:id/landmarks`](#get-entriesidlandmarks--readonly) lists them), `weather` (the body of
   [`GET /entries/:id/weather`](#get-entriesidweather--readonly), or `null`) and `crew` (see [Crew](#crew)). This is the
   machine-readable abandon-ship payload (SPEC §4.5).
 - **`csv`** — one chronological line per departure, observation, event and arrival: a paper logbook readable in any
@@ -523,8 +553,9 @@ logbook language and time zone — `400` for an unknown value. Served as an atta
   main or first engine's. Free text that a spreadsheet would execute as a formula is prefixed with `'`.
 - **`gpx`** — one track per entry.
 - **`pdf`** — the facsimile logbook (SPEC §4.5): A4 landscape, a page per day in the given time zone, with time,
-  position, course, speed over ground, wind, barometer, depth, engine or sail and remarks; departures and arrivals with
-  their totals, day totals, handwritten notes drawn. The wording is the webapp's, in `lang`.
+  position — with its bearing from the nearest amer under it (SPEC §4.13) — course, speed over ground, wind, barometer,
+  depth, engine or sail and remarks; departures and arrivals with their totals, day totals, handwritten notes drawn. The
+  wording is the webapp's, in `lang`.
 
 ### `GET /export/usb` — `readonly`
 

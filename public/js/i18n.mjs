@@ -219,6 +219,27 @@ export const MESSAGES = {
     'timeline.comment': 'Comment',
     'timeline.deleteConfirm': 'Delete this log line? This cannot be undone.',
 
+    // Where the position is from the landmark, the way a logbook gives it.
+    'landmark.bearing': '{distance} {cardinal} ({bearing}) — {name}',
+    'landmark.title': 'Position relative to the nearest landmark',
+
+    'compass.n': 'N',
+    'compass.nne': 'NNE',
+    'compass.ne': 'NE',
+    'compass.ene': 'ENE',
+    'compass.e': 'E',
+    'compass.ese': 'ESE',
+    'compass.se': 'SE',
+    'compass.sse': 'SSE',
+    'compass.s': 'S',
+    'compass.ssw': 'SSW',
+    'compass.sw': 'SW',
+    'compass.wsw': 'WSW',
+    'compass.w': 'W',
+    'compass.wnw': 'WNW',
+    'compass.nw': 'NW',
+    'compass.nnw': 'NNW',
+
     'observation.entry_start': 'Departure',
     'observation.entry_end': 'Arrival',
     'observation.periodic': 'Reading',
@@ -644,6 +665,28 @@ export const MESSAGES = {
     'timeline.heading': 'cap',
     'timeline.comment': 'Commentaire',
     'timeline.deleteConfirm': 'Supprimer cette ligne du journal ? C’est irréversible.',
+
+    // Le relèvement inverse : où se trouve le bateau par rapport à l’amer.
+    // Sans préposition, qui varierait avec l’aire de vent (au NE, à l’E).
+    'landmark.bearing': '{distance} {cardinal} ({bearing}) — {name}',
+    'landmark.title': 'Position par rapport à l’amer le plus proche',
+
+    'compass.n': 'N',
+    'compass.nne': 'NNE',
+    'compass.ne': 'NE',
+    'compass.ene': 'ENE',
+    'compass.e': 'E',
+    'compass.ese': 'ESE',
+    'compass.se': 'SE',
+    'compass.sse': 'SSE',
+    'compass.s': 'S',
+    'compass.ssw': 'SSO',
+    'compass.sw': 'SO',
+    'compass.wsw': 'OSO',
+    'compass.w': 'O',
+    'compass.wnw': 'ONO',
+    'compass.nw': 'NO',
+    'compass.nnw': 'NNO',
 
     'observation.entry_start': 'Départ',
     'observation.entry_end': 'Arrivée',

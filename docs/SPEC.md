@@ -306,7 +306,7 @@ As implemented (`lib/tide-forecaster.js`):
 - **Hourly resolution**, so a high or low tide time is accurate to within about half an hour — adequate for a logbook
   reference, not for a lock or a bar crossing planned to the minute.
 - **Shared fetch engine** with the weather forecast (§4.5.3): `lib/departure-forecast.js` holds the pending-entry
-  selection, retry schedule, give-up age and 24 h window for both, and `lib/forecast-schedule.js` runs each as its own
+  selection, retry schedule, give-up age and 24 h window for both, and `lib/background-schedule.js` runs each as its own
   chain of timeouts.
 - **Fetched as the passage opens**: detection wakes both chains as soon as it sees a new open passage, whatever they
   were waiting for — the minute between idle checks, or a retry delay. The retry delay starts again from 5 minutes for
@@ -568,12 +568,42 @@ boat already has in InfluxDB 1.x, written there by [signalk-to-influxdb](https:/
   tracks are drawn on a blank sea, the same promise the Leaflet map already makes.
 - **The map credit is burnt into every frame**, since the images leave the page.
 
+### 4.13 Landmark bearings (amers)
+
+Coordinates say where the boat was; they do not say what the crew could see. Every position the journal shows — each
+reading, each event, the departure and the arrival — is therefore also given the traditional way, as a distance and a
+bearing **from a landmark**: "2,0 M NE (053°) — Phare du Cap-Ferret" means the boat was two miles north-east of that
+lighthouse. It is printed under the coordinates, in a lighter grey, on the passage page and in the PDF logbook; the
+coordinates themselves stay as they are.
+
+- **Landmarks come from OpenStreetMap**, through an Overpass endpoint (`overpassUrl`), and only the features a position
+  is traditionally read against: lighthouses and major lights, capes, named seamark landmarks (towers, masts,
+  monuments), minor lights, isolated-danger and safe-water beacons, harbours and marinas. The lateral and cardinal marks
+  of a channel are deliberately left out — "6 c" or "L1" tells the reader nothing — as is anything unnamed.
+- **Fetched by area, once, and kept.** The world is cut into half-degree cells; a cell is fetched with a margin as wide
+  as the furthest an amer is quoted from, so every position inside it has all its landmarks. A passage is pending until
+  every cell it sailed through has been fetched, newest passage first; an open passage stays pending, since it keeps
+  moving into new cells. Offline is normal at sea, so a failed request is retried after 5 minutes, doubling up to an
+  hour, and Overpass answering trouble in the body (HTTP 200 with a `remark`, or an HTML page) counts as a failure.
+- **The bearing is worked out at read time**, never stored: a past passage fills in on its own as soon as its area is
+  known, and nothing about a landmark belongs to the logbook's record.
+- **Which amer a position is read against**: the one closest _relative to its own range_, so a lighthouse three miles
+  off wins over a marina half a mile away. Each kind carries a range — 15 nm for a lighthouse, 8 for a landmark, 6 for a
+  cape, 4 for a minor light, 3 for a harbour, 2 for a beacon — and a light's own nominal range narrows it when
+  OpenStreetMap gives one. Nothing in range means no line at all: the open sea keeps its coordinates alone. Within 30 m,
+  the name alone is shown — a bearing from the harbour you are moored in is noise.
+- **The distance** reads in metres under a cable (rounded to 10 m) and in miles beyond, and the compass point is given
+  to sixteenths (N, NNE, NE…) next to the bearing in degrees.
+- **`landmarksEnabled` turns the whole thing off**, for privacy or to keep the boat off the network; the coordinates are
+  then shown alone. Names are OpenStreetMap data (© OpenStreetMap contributors, ODbL) and the webapp says so.
+
 ## 5. Data model and API
 
 The data model has been refined into a precise schema: the authoritative DDL lives in
 [`lib/database.js`](../lib/database.js), with the conventions and rationale documented in
 [DATA_MODEL.md](DATA_MODEL.md). Entities: `log_entries`, `track_points`, `observations`, `propulsion_segments`,
-`events`, `places`, `manoeuvre_types`, `crew_members`, `log_entry_crew`, `tide_forecasts`, `weather_forecasts`.
+`events`, `places`, `manoeuvre_types`, `crew_members`, `log_entry_crew`, `tide_forecasts`, `weather_forecasts`,
+`landmarks`, `landmark_areas`.
 
 Two points worth carrying back into this document:
 
@@ -640,6 +670,7 @@ _(This MVP breakdown is a proposal — to be validated with you before committin
 | Place matching radius                              | A single global configurable radius (no per-place setting in V1)                                                                                                                                                                                                                                                                   |
 | Place not found (offline, first visit)             | Name generated from coordinates, manually correctable                                                                                                                                                                                                                                                                              |
 | Passage animation                                  | A page over a date range, all its passages in sequence with the port time skipped; a renderer of our own on a canvas rather than Leaflet, a zoom per passage at a ~32 km working scale widened by at most one level, time-driven interpolation, 1 h of sailing per second at x1 (x0.5–x4), 30 fps, entirely in the browser (§4.12) |
+| Landmark bearings                                  | Every journal position also read against the nearest amer, from OpenStreetMap through Overpass, fetched by half-degree cell and kept; the bearing computed at read time, the amer chosen by distance relative to its kind's range; shown in grey under the coordinates on the passage page and in the PDF (§4.13)                  |
 | MP4 export                                         | WebCodecs H.264 plus a vendored Mediabunny (one self-contained ES module covering encoder and container, MPL-2.0, imported lazily); five shapes up to 1920×1080; `mp4-muxer` was set aside as deprecated and muxer-only; hidden when the browser has no WebCodecs (§4.12)                                                          |
 
 ### Remaining minor points (non-blocking for starting)

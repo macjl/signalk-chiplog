@@ -69,6 +69,17 @@ export function createFormatter({ locale, units, timeZone }) {
       missing(mps) ? '' : `${oneDecimal.format(mps * KNOTS_PER_MPS)} ${units.knots}`,
     distance: (metres) =>
       missing(metres) ? '' : `${oneDecimal.format(metres / METRES_PER_NM)} ${units.nauticalMiles}`,
+    // A short range, as a sailor gives one: metres close in -- "0.1 nm" says
+    // nothing about a landmark 60 m off the quay -- miles beyond a cable.
+    shortDistance: (metres) => {
+      if (missing(metres)) {
+        return '';
+      }
+      if (metres < 0.2 * METRES_PER_NM) {
+        return `${noDecimal.format(Math.round(metres / 10) * 10)} m`;
+      }
+      return `${oneDecimal.format(metres / METRES_PER_NM)} ${units.nauticalMiles}`;
+    },
     bearing: (radians) => {
       if (missing(radians)) {
         return '';

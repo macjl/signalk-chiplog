@@ -171,6 +171,26 @@ Departures and arrivals are named automatically:
 3. **Corrections are remembered.** Renaming a departure or arrival in the webapp also renames that place for every later
    passage starting or ending nearby. Past passages keep the name they recorded.
 
+### Landmarks (amers)
+
+Every position in the log is also given the way a paper logbook gives one — as a distance and a bearing **from a
+landmark**, under the coordinates, in a lighter grey:
+
+```text
+46°08.88′N 001°12.90′W
+2,3 M ENE (065°) — Phare de Chauveau
+```
+
+- **The landmarks come from OpenStreetMap**, fetched area by area through Overpass and kept: lighthouses and major
+  lights, capes, named towers and other seamark landmarks, minor lights, isolated-danger and safe-water beacons,
+  harbours and marinas. The numbered marks of a channel are left out — "6 c" says nothing in a logbook.
+- **The nearest useful one wins**, not simply the nearest: each kind carries a range (15 nm for a lighthouse, 3 for a
+  harbour…), narrowed by the light's own range when known, and the landmark closest relative to its range is the one
+  quoted. Offshore, beyond them all, the coordinates stay alone.
+- **Past passages fill in by themselves** once their area has been fetched — the bearing is worked out when the page or
+  the PDF is drawn, never stored.
+- Turn **Read each journal line against the nearest landmark** off to keep the boat off Overpass entirely.
+
 ## The logbook webapp 💻
 
 Open **Chiplog** from the Signal K webapps, or `/signalk-chiplog/`. Reading needs no more than read-only access.
@@ -191,7 +211,7 @@ Open **Chiplog** from the Signal K webapps, or `/signalk-chiplog/`. Reading need
   current noted at departure), and the log: every reading and event in order, including handwritten notes. A passage in
   progress refreshes every minute. Each line's comment can be edited (read/write access); a manoeuvre or note the crew
   logged themselves can also be deleted — automatic lines (alarms, autopilot, weather, corrections) can only be
-  annotated.
+  annotated. Under each position, in grey, its bearing and distance from the nearest landmark.
 - **Corrections** (read/write access):
   - rename the departure, or the arrival once the passage is closed — a passage in progress has none yet to rename;
   - switch an engine period to sail or back;
@@ -300,33 +320,35 @@ a regular Signal K user account.
 
 In the Signal K admin, **Apps & Plugins → Configuration → Chiplog**.
 
-| Setting                                                          | Default                                       | What it does                                                                                                                                            |
-| ---------------------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Stop duration within which a new departure continues the passage | 30 min                                        | A passage closes when the boat stops; leaving again sooner reopens it, the stop kept as a stopover.                                                     |
-| Under-way speed without navigation.state                         | 1 kn                                          | Used only without signalk-autostate: under way above it, stopped below half of it.                                                                      |
-| Propulsion assumed without engine data                           | sail                                          | When nothing says whether the engine is running. Set to engine on a motorboat.                                                                          |
-| Instrument snapshot interval                                     | 60 min                                        | Readings on this clock boundary during a passage.                                                                                                       |
-| Track point interval                                             | 15 s                                          | A track point at least this often while moving.                                                                                                         |
-| Place matching radius                                            | 200 m                                         | A departure or arrival this close to a known place takes its name.                                                                                      |
-| Name departures and arrivals with online geocoding               | on                                            | Turn off to never send positions online; places are then named after their coordinates until corrected.                                                 |
-| Geocoding service                                                | `https://nominatim.openstreetmap.org`         | Any Nominatim-compatible service, e.g. a self-hosted one.                                                                                               |
-| Fetch the tide forecast at departure                             | on                                            | Turn off to never send the departure position online; the passage page then shows no tide.                                                              |
-| Marine service                                                   | `https://marine-api.open-meteo.com/v1/marine` | Any Open-Meteo Marine-compatible service, e.g. a self-hosted one. Serves the tide, and the sea state and current of the weather forecast.               |
-| Fetch the marine weather forecast at departure                   | on                                            | Turn off to never send the departure position to the weather services; the passage page and the PDF then show no forecast.                              |
-| Weather service                                                  | `https://api.open-meteo.com/v1/forecast`      | Any Open-Meteo-compatible forecast service, e.g. a self-hosted one.                                                                                     |
-| USB export directory                                             | —                                             | Where the abandon-ship copy is written, e.g. `/media/usb`. Empty turns the USB copy off.                                                                |
-| Automatic USB copy interval                                      | 15 min                                        | How often the USB copy is brought up to date. 0 turns the periodic copy off.                                                                            |
-| Copy to the USB drive at each arrival                            | on                                            | Brings the USB copy up to date as soon as a passage ends.                                                                                               |
-| Logbook language (PDF)                                           | en                                            | Language of the PDF logbooks on the USB drive (English or French).                                                                                      |
-| Ship's time zone (PDF)                                           | the server's                                  | Time zone of the PDF logbooks on the USB drive, e.g. `Europe/Paris`.                                                                                    |
-| Wind speed thresholds                                            | 20, 30 kn                                     | Logged when the 2-minute average true wind crosses them.                                                                                                |
-| Barometric drop warning                                          | 4 hPa / 3 h                                   | 0 turns it off.                                                                                                                                         |
-| InfluxDB host (retrospective analysis)                           | —                                             | Local or remote host of the InfluxDB 1.x database signalk-to-influxdb writes to. Empty turns the retrospective analysis page off.                       |
-| InfluxDB port                                                    | 8086                                          |                                                                                                                                                         |
-| InfluxDB database                                                | —                                             |                                                                                                                                                         |
-| InfluxDB username / password                                     | —                                             | Leave empty if the database needs none.                                                                                                                 |
-| InfluxDB protocol                                                | http                                          | `http` or `https`.                                                                                                                                      |
-| InfluxDB vessel context                                          | this server's own                             | Only needed running the replay from a different Signal K server than the one that wrote the history, e.g. development pointed at a production database. |
+| Setting                                                          | Default                                       | What it does                                                                                                                                                                     |
+| ---------------------------------------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Stop duration within which a new departure continues the passage | 30 min                                        | A passage closes when the boat stops; leaving again sooner reopens it, the stop kept as a stopover.                                                                              |
+| Under-way speed without navigation.state                         | 1 kn                                          | Used only without signalk-autostate: under way above it, stopped below half of it.                                                                                               |
+| Propulsion assumed without engine data                           | sail                                          | When nothing says whether the engine is running. Set to engine on a motorboat.                                                                                                   |
+| Instrument snapshot interval                                     | 60 min                                        | Readings on this clock boundary during a passage.                                                                                                                                |
+| Track point interval                                             | 15 s                                          | A track point at least this often while moving.                                                                                                                                  |
+| Place matching radius                                            | 200 m                                         | A departure or arrival this close to a known place takes its name.                                                                                                               |
+| Name departures and arrivals with online geocoding               | on                                            | Turn off to never send positions online; places are then named after their coordinates until corrected.                                                                          |
+| Geocoding service                                                | `https://nominatim.openstreetmap.org`         | Any Nominatim-compatible service, e.g. a self-hosted one.                                                                                                                        |
+| Read each journal line against the nearest landmark              | on                                            | Fetches the landmarks of the areas sailed through from OpenStreetMap, so each position is also given as a bearing and distance from one. Turn off to keep the coordinates alone. |
+| Landmark service (Overpass API)                                  | `https://overpass-api.de/api/interpreter`     | Any Overpass-compatible service, e.g. a self-hosted one.                                                                                                                         |
+| Fetch the tide forecast at departure                             | on                                            | Turn off to never send the departure position online; the passage page then shows no tide.                                                                                       |
+| Marine service                                                   | `https://marine-api.open-meteo.com/v1/marine` | Any Open-Meteo Marine-compatible service, e.g. a self-hosted one. Serves the tide, and the sea state and current of the weather forecast.                                        |
+| Fetch the marine weather forecast at departure                   | on                                            | Turn off to never send the departure position to the weather services; the passage page and the PDF then show no forecast.                                                       |
+| Weather service                                                  | `https://api.open-meteo.com/v1/forecast`      | Any Open-Meteo-compatible forecast service, e.g. a self-hosted one.                                                                                                              |
+| USB export directory                                             | —                                             | Where the abandon-ship copy is written, e.g. `/media/usb`. Empty turns the USB copy off.                                                                                         |
+| Automatic USB copy interval                                      | 15 min                                        | How often the USB copy is brought up to date. 0 turns the periodic copy off.                                                                                                     |
+| Copy to the USB drive at each arrival                            | on                                            | Brings the USB copy up to date as soon as a passage ends.                                                                                                                        |
+| Logbook language (PDF)                                           | en                                            | Language of the PDF logbooks on the USB drive (English or French).                                                                                                               |
+| Ship's time zone (PDF)                                           | the server's                                  | Time zone of the PDF logbooks on the USB drive, e.g. `Europe/Paris`.                                                                                                             |
+| Wind speed thresholds                                            | 20, 30 kn                                     | Logged when the 2-minute average true wind crosses them.                                                                                                                         |
+| Barometric drop warning                                          | 4 hPa / 3 h                                   | 0 turns it off.                                                                                                                                                                  |
+| InfluxDB host (retrospective analysis)                           | —                                             | Local or remote host of the InfluxDB 1.x database signalk-to-influxdb writes to. Empty turns the retrospective analysis page off.                                                |
+| InfluxDB port                                                    | 8086                                          |                                                                                                                                                                                  |
+| InfluxDB database                                                | —                                             |                                                                                                                                                                                  |
+| InfluxDB username / password                                     | —                                             | Leave empty if the database needs none.                                                                                                                                          |
+| InfluxDB protocol                                                | http                                          | `http` or `https`.                                                                                                                                                               |
+| InfluxDB vessel context                                          | this server's own                             | Only needed running the replay from a different Signal K server than the one that wrote the history, e.g. development pointed at a production database.                          |
 
 ## Signal K data used 🔌
 
@@ -387,6 +409,8 @@ at the time.
 - **Place names.** With geocoding on, the position of each departure and arrival that matches no known place is sent to
   the geocoding service — OpenStreetMap's public Nominatim by default. Nothing else is sent, and nothing at all when it
   is off.
+- **Landmarks.** With them on, the area a passage sailed through — a half-degree box, not its track — is sent to the
+  Overpass service, OpenStreetMap's public instance by default, once per area ever. Nothing at all when it is off.
 - **Tide forecast.** With it on, the departure position of each passage is sent to the tide service — the public
   Open-Meteo by default — once, at departure. Nothing at all when it is off.
 - **Weather forecast.** With it on, the departure position of each passage is sent to the weather service and to the

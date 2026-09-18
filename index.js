@@ -2,9 +2,10 @@ const { registerRoutes } = require('./lib/api');
 const { openDatabase } = require('./lib/database');
 const { createPassageDetector, DETECTION_DEFAULTS, TICK_INTERVAL_MS } = require('./lib/detection');
 const { ApiError } = require('./lib/errors');
-const { createForecastSchedule } = require('./lib/forecast-schedule');
+const { createBackgroundSchedule } = require('./lib/background-schedule');
 const { createEventWatcher, CHECK_INTERVAL_MS, EVENT_DEFAULTS } = require('./lib/event-watcher');
 const { INFLUX_DEFAULTS } = require('./lib/influx-history');
+const { createLandmarkFinder, LANDMARK_DEFAULTS } = require('./lib/landmark-finder');
 const { OBSERVATION_DEFAULTS } = require('./lib/observation-recorder');
 const { createPlaceNamer, GEOCODING_DEFAULTS } = require('./lib/place-names');
 const { PROPULSION_DEFAULTS } = require('./lib/propulsion-detector');
@@ -26,6 +27,9 @@ const DEFAULT_PLACE_MATCH_RADIUS = 200;
 const FIRST_NAMING_DELAY_MS = 5 * 1000;
 const NAMING_ERROR_RETRY_MS = 5 * 60 * 1000;
 const FIRST_FORECAST_DELAY_MS = 5 * 1000;
+// Landmarks are not needed for the passage under way, only for reading it back,
+// so the first lookup waits for the busier start-up work to be done.
+const FIRST_LANDMARK_DELAY_MS = 30 * 1000;
 
 const MOTION_LABELS = { underway: 'Under way', stopped: 'Stopped', unknown: 'Waiting for data' };
 const MODE_LABELS = { autostate: 'navigation.state', fallback: 'speed fallback' };
@@ -56,7 +60,7 @@ module.exports = function (app) {
   let settings = null;
   let detector = null;
   let namer = null;
-  let forecasts = [];
+  let schedules = [];
   // The open passage detection last reported, to notice a new one.
   let lastActiveEntryId = null;
   let usbExport = null;
@@ -131,6 +135,19 @@ module.exports = function (app) {
         title: 'Geocoding service (Nominatim-compatible)',
         description: 'The public OpenStreetMap instance by default, or a self-hosted Nominatim',
         default: GEOCODING_DEFAULTS.geocodingUrl
+      },
+      landmarksEnabled: {
+        type: 'boolean',
+        title: 'Read each journal line against the nearest landmark',
+        description:
+          'Fetches the lighthouses, capes, towers and harbours of the areas sailed through from OpenStreetMap, so every position in the logbook is also given as a bearing and distance from the nearest one (© OpenStreetMap contributors, ODbL). Without it, only the coordinates are shown',
+        default: LANDMARK_DEFAULTS.landmarksEnabled
+      },
+      overpassUrl: {
+        type: 'string',
+        title: 'Landmark service (Overpass API)',
+        description: 'The public Overpass instance by default, or a self-hosted one',
+        default: LANDMARK_DEFAULTS.overpassUrl
       },
       tidesEnabled: {
         type: 'boolean',
@@ -252,10 +269,11 @@ module.exports = function (app) {
     try {
       const outcome = detector.tick();
       usbExport.afterDetection(outcome);
-      // A passage just opened: fetch its forecasts now, not at the next idle
-      // poll or at the end of a retry delay left from an earlier failure.
+      // A passage just opened: fetch its forecasts and the landmarks of where
+      // it is starting from now, not at the next idle poll or at the end of a
+      // retry delay left from an earlier failure.
       if (outcome.activeEntryId !== null && outcome.activeEntryId !== lastActiveEntryId) {
-        forecasts.forEach((schedule) => schedule.nudge());
+        schedules.forEach((schedule) => schedule.nudge());
       }
       lastActiveEntryId = outcome.activeEntryId;
       const usbError = usbExport.status().lastError;
@@ -344,6 +362,8 @@ module.exports = function (app) {
         placeMatchRadius: config.placeMatchRadius ?? DEFAULT_PLACE_MATCH_RADIUS,
         geocodingEnabled: config.geocodingEnabled ?? GEOCODING_DEFAULTS.geocodingEnabled,
         geocodingUrl: config.geocodingUrl || GEOCODING_DEFAULTS.geocodingUrl,
+        landmarksEnabled: config.landmarksEnabled ?? LANDMARK_DEFAULTS.landmarksEnabled,
+        overpassUrl: config.overpassUrl || LANDMARK_DEFAULTS.overpassUrl,
         tidesEnabled: config.tidesEnabled ?? TIDE_DEFAULTS.tidesEnabled,
         tideUrl: config.tideUrl || TIDE_DEFAULTS.tideUrl,
         weatherEnabled: config.weatherEnabled ?? WEATHER_DEFAULTS.weatherEnabled,
@@ -411,23 +431,29 @@ module.exports = function (app) {
     });
     namingTimer = setTimeout(runNaming, FIRST_NAMING_DELAY_MS);
     // Same idea as geocoding: network calls fetching the tide and weather
-    // forecasts near a recent departure, each on its own chain rather than
-    // inside detection.
-    const forecastOptions = { db: database, settings, userAgent: `signalk-chiplog/${version}` };
+    // forecasts near a recent departure, and the landmarks of the areas
+    // sailed through, each on its own chain rather than inside detection.
+    const networkOptions = { db: database, settings, userAgent: `signalk-chiplog/${version}` };
     const log = (level, message) => (level === 'error' ? app.error(message) : app.debug(message));
     lastActiveEntryId = null;
-    forecasts = [
-      createForecastSchedule({
-        label: 'Tide',
-        forecaster: createTideForecaster(forecastOptions),
+    schedules = [
+      createBackgroundSchedule({
+        label: 'Tide forecast',
+        resolver: createTideForecaster(networkOptions),
         log,
         firstDelayMs: FIRST_FORECAST_DELAY_MS
       }),
-      createForecastSchedule({
-        label: 'Weather',
-        forecaster: createWeatherForecaster(forecastOptions),
+      createBackgroundSchedule({
+        label: 'Weather forecast',
+        resolver: createWeatherForecaster(networkOptions),
         log,
         firstDelayMs: FIRST_FORECAST_DELAY_MS
+      }),
+      createBackgroundSchedule({
+        label: 'Landmark lookup',
+        resolver: createLandmarkFinder(networkOptions),
+        log,
+        firstDelayMs: FIRST_LANDMARK_DELAY_MS
       })
     ];
     lastStatus = null;
@@ -455,8 +481,8 @@ module.exports = function (app) {
     clearTimeout(namingTimer);
     namer?.stop();
     namer = null;
-    forecasts.forEach((schedule) => schedule.stop());
-    forecasts = [];
+    schedules.forEach((schedule) => schedule.stop());
+    schedules = [];
     usbExport?.stop();
     usbExport = null;
     replayJob?.cancel();

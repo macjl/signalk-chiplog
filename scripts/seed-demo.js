@@ -11,12 +11,14 @@
 // what the webapp shows: tracks, engine and sail segments, instrument snapshots,
 // manoeuvres, automatic events, a handwritten note, a passage across midnight,
 // a place name pending geocoding, marine weather forecasts (one passage has
-// none), and a passage still in progress.
+// none), the landmarks each position is read against, and a passage still in
+// progress.
 
 const fs = require('node:fs');
 const path = require('node:path');
 const { DATABASE_FILENAME, openDatabase, withTransaction } = require('../lib/database');
 const { recomputeDurations } = require('../lib/entries');
+const { entryCells } = require('../lib/landmarks');
 const { distanceBetween } = require('../lib/places');
 
 const MINUTE = 60 * 1000;
@@ -28,6 +30,18 @@ const PLACES = {
   sables: { name: "Les Sables-d'Olonne", lat: 46.4969, lon: -1.7937, source: 'geocoding' },
   bourgenay: { name: 'Port Bourgenay', lat: 46.4383, lon: -1.6769, source: 'manual' }
 };
+
+// The amers of these waters (SPEC §4.13), as OpenStreetMap has them, rounded
+// to what a demo needs: every journal line is read against the nearest one.
+const LANDMARKS = [
+  { name: 'Tour Richelieu', kind: 'landmark', lat: 46.1406, lon: -1.1836, range: null },
+  { name: 'Phare de Chauveau', kind: 'lighthouse', lat: 46.1317, lon: -1.2649, range: 15 },
+  { name: 'Phare des Baleines', kind: 'lighthouse', lat: 46.2447, lon: -1.5545, range: 27 },
+  { name: 'Port de Saint-Martin-de-Ré', kind: 'harbour', lat: 46.2044, lon: -1.3647, range: null },
+  { name: 'Pointe du Grouin du Cou', kind: 'cape', lat: 46.4106, lon: -1.4664, range: null },
+  { name: "Phare de l'Armandèche", kind: 'lighthouse', lat: 46.4939, lon: -1.805, range: 24 },
+  { name: 'Port Bourgenay', kind: 'harbour', lat: 46.4383, lon: -1.6769, range: null }
+];
 
 // A stopover along the way, not a known place: only its name is recorded.
 const CAYOLA = { lat: 46.4668, lon: -1.7275 };
@@ -606,7 +620,39 @@ function seedDemoLogbook(db, { now = Date.now() } = {}) {
     saveForecast(night, { stormAt: 4, baseWind: 12 });
     saveForecast(current, { stormAt: 30, baseWind: 10 });
 
-    return [beat, night, hop, current];
+    const passages = [beat, night, hop, current];
+
+    // The landmarks, and the areas they were fetched for -- every cell these
+    // passages sailed through, so the demo asks nothing of Overpass.
+    LANDMARKS.forEach((landmark, index) =>
+      insert('landmarks', {
+        osm_type: 'node',
+        osm_id: 1000 + index,
+        name: landmark.name,
+        kind: landmark.kind,
+        lat: landmark.lat,
+        lon: landmark.lon,
+        light_range: landmark.range === null ? null : landmark.range * 1852,
+        created_at: iso(at(10, 9)),
+        updated_at: iso(at(10, 9))
+      })
+    );
+    const covered = new Set();
+    for (const entryId of passages) {
+      for (const cell of entryCells(db, entryId)) {
+        const key = `${cell.cellLat}/${cell.cellLon}`;
+        if (!covered.has(key)) {
+          covered.add(key);
+          insert('landmark_areas', {
+            cell_lat: cell.cellLat,
+            cell_lon: cell.cellLon,
+            fetched_at: iso(at(10, 9))
+          });
+        }
+      }
+    }
+
+    return passages;
   });
 }
 

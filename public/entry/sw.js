@@ -35,6 +35,7 @@ const SHELL = [
   '../js/format.mjs',
   '../js/i18n.mjs',
   '../js/ids.mjs',
+  '../js/landmarks.mjs',
   '../js/log-lines.mjs',
   '../js/status.mjs',
   '../js/components/common.mjs',

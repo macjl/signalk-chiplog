@@ -1,6 +1,7 @@
 import { html, useEffect, useRef, useState } from '../../vendor/preact-htm.mjs';
 import { useLocale } from '../context.mjs';
 import { dayKey } from '../days.mjs';
+import { landmarkLine } from '../landmarks.mjs';
 import { buildRows, describeEvent } from '../log-lines.mjs';
 
 // A dot — the stroke of an i or a full stop — has a single point, which a
@@ -139,7 +140,15 @@ function EventLine({ event, manoeuvreLabels, busy, onEditComment, onDelete }) {
   `;
 }
 
-export function Timeline({ events, observations, manoeuvreLabels, busy, onEditComment, onDelete }) {
+export function Timeline({
+  events,
+  observations,
+  landmarks,
+  manoeuvreLabels,
+  busy,
+  onEditComment,
+  onDelete
+}) {
   const { t, format } = useLocale();
   const rows = buildRows(events, observations);
   if (rows.length === 0) {
@@ -160,6 +169,18 @@ export function Timeline({ events, observations, manoeuvreLabels, busy, onEditCo
       return `${format.speed(readings.aws)} ${t('timeline.apparent')} ${format.angle(readings.awa)}`.trim();
     }
     return '';
+  };
+
+  // The coordinates, and under them where they are in relation to the nearest
+  // amer (SPEC §4.13) -- nothing when none is near enough, or when the area's
+  // landmarks have not been fetched.
+  const position = (readings, event) => {
+    const at = readings?.position ?? event?.position ?? null;
+    const bearing = landmarkLine(at, landmarks ?? [], { t, format });
+    return html`${format.position(at)}${
+      bearing &&
+      html`<span class="timeline-landmark" title=${t('landmark.title')}>${bearing}</span>`
+    }`;
   };
 
   let previousDay = null;
@@ -194,7 +215,7 @@ export function Timeline({ events, observations, manoeuvreLabels, busy, onEditCo
               <tr key=${row.key} class=${row.event ? `timeline-event event-${row.event.type}` : ''}>
                 <td class="timeline-time">${format.time(row.time)}</td>
                 <td class="timeline-position">
-                  ${format.position(readings?.position ?? row.event?.position ?? null)}
+                  ${position(readings, row.event)}
                 </td>
                 <td>${format.speed(readings?.sog)}</td>
                 <td>${course(readings)}</td>

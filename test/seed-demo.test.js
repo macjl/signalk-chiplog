@@ -73,6 +73,51 @@ describe('demo logbook', () => {
     ]);
   });
 
+  // Every journal line is read against the nearest amer (SPEC §4.13), which
+  // needs both the landmarks and the areas they were fetched for.
+  it('covers the landmarks positions are read against', async () => {
+    const { landmarkLine } = await import('../public/js/landmarks.mjs');
+    const { createFormatter } = await import('../public/js/format.mjs');
+    const { createTranslator } = await import('../public/js/i18n.mjs');
+    const t = createTranslator('en');
+    const format = createFormatter({
+      locale: 'en',
+      units: { knots: t('unit.knots'), nauticalMiles: t('unit.nauticalMiles') },
+      timeZone: 'UTC'
+    });
+
+    const { body: entries } = await ctx.request('GET', '/entries');
+    const lines = [];
+    for (const entry of entries.items) {
+      const { body: landmarks } = await ctx.request('GET', `/entries/${entry.id}/landmarks`);
+      assert.ok(landmarks.items.length > 0, `passage ${entry.id} has landmarks near it`);
+      const { body: observations } = await ctx.request(
+        'GET',
+        `/entries/${entry.id}/observations?limit=500`
+      );
+      const read = observations.items
+        .map((observation) => landmarkLine(observation.position, landmarks.items, { t, format }))
+        .filter(Boolean);
+      assert.ok(read.length > 0, `passage ${entry.id} has a position read against an amer`);
+      lines.push(...read);
+    }
+
+    assert.ok(
+      lines.some((line) => /^\d+\.\d nm [NSEW]+ \(\d{3}°\) — Phare /.test(line)),
+      `a lighthouse bearing: ${lines[0]}`
+    );
+    assert.ok(
+      lines.some((line) => line.startsWith('Port ')),
+      'a passage alongside, named without a bearing'
+    );
+    // Every area the demo sailed through is covered: nothing left to fetch.
+    assert.equal(
+      ctx.db.prepare('SELECT COUNT(*) AS n FROM landmark_areas').get().n,
+      2,
+      'the cells of these waters'
+    );
+  });
+
   // The animation (SPEC §4.12) strings the range's passages together, so the
   // demo has to offer passages of different sizes and a night in port.
   it('covers what the animation needs', async () => {
