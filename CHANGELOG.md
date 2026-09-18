@@ -6,6 +6,15 @@ All notable changes to Chiplog are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- **Retrospective replay backfilling a gap before passages already logged live** no longer dated every reconstructed
+  passage to the most recent existing passage's end time. Detection's guard against an out-of-order departure looked at
+  the latest `end_time` in the whole logbook rather than only at passages that actually preceded the new one, so filling
+  in an earlier gap — installing Chiplog after the fact, or after a stop — pinned every reconstructed departure to that
+  unrelated, later date, and the replay summary reported no passage found for the requested period even though entries
+  had been created.
+
 ## [2.2.0] - 2026-09-18
 
 ### Added

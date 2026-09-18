@@ -226,6 +226,38 @@ describe('retrospective replay', () => {
     assert.ok(Math.abs(Date.parse(entries[0].start_time) - (from + 10 * MINUTE)) <= MINUTE);
     assert.ok(Math.abs(Date.parse(entries[0].end_time) - (from + 50 * MINUTE)) <= MINUTE);
   });
+
+  it('dates a passage reconstructed before one already logged live on its own departure', async () => {
+    ({ db, dataDir } = openDb());
+    // A passage detection already logged live, well after the gap being
+    // backfilled -- the "installed after the fact" case from SPEC §4.10.
+    const liveFrom = T0 + 30 * 24 * HOUR;
+    const liveTo = liveFrom + HOUR;
+    db.prepare(
+      `INSERT INTO log_entries (state, start_time, end_time, created_at, updated_at)
+       VALUES ('closed', ?, ?, ?, ?)`
+    ).run(iso(liveFrom), iso(liveTo), iso(liveFrom), iso(liveTo));
+
+    const history = createHistory();
+    const from = T0;
+    const to = T0 + 20 * MINUTE;
+    sailStraight(history, from, to, 6);
+
+    await runReplay({
+      db,
+      settings: {},
+      history: (skPath, atMs) => history.read(skPath, atMs),
+      from: iso(from),
+      to: iso(to)
+    });
+
+    const reconstructed = db
+      .prepare('SELECT start_time FROM log_entries WHERE start_time < ?')
+      .get(iso(liveFrom));
+    assert.ok(reconstructed, 'expected the earlier passage to have been reconstructed');
+    assert.ok(Date.parse(reconstructed.start_time) >= from);
+    assert.ok(Date.parse(reconstructed.start_time) < to);
+  });
 });
 
 describe('replay windows', () => {
