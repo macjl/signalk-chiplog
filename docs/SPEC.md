@@ -500,11 +500,13 @@ boat already has in InfluxDB 1.x, written there by [signalk-to-influxdb](https:/
   its own, so an unreachable or overloaded database would otherwise hang far longer than that for an error no clearer
   once it arrived — a bare "fetch failed" instead of the actual connection problem.
 - **A query that times out is retried up to 3 times, 5 seconds apart**, rather than failing the whole run on what is
-  often just a Raspberry Pi momentarily busy sharing its InfluxDB with Signal K itself. Each attempt gets the full
-  timeout again, not whatever was left of a shared one. `GET /replay`'s `progress.retry` names the attempt under way
-  while it waits, so the webapp can show it instead of the run looking stalled; giving up after the last retry surfaces
-  the same message in `lastError` as before. Only a timeout is retried — a connection refused, an HTTP error or a
-  malformed response fails outright, since trying again would not change the answer.
+  often just a Raspberry Pi momentarily busy sharing its InfluxDB with Signal K itself. The timeout covers the whole
+  round trip, reading the response body included, not just getting the connection to answer — a chunk's JSON can be slow
+  to stream even once InfluxDB has accepted the request, and that counts the same as never answering at all. Each
+  attempt gets the full timeout again, not whatever was left of a shared one. `GET /replay`'s `progress.retry` names the
+  attempt under way while it waits, so the webapp can show it instead of the run looking stalled; giving up after the
+  last retry surfaces the same message in `lastError` as before. Only a timeout is retried — a connection refused, an
+  HTTP error or a malformed response fails outright, since trying again would not change the answer.
 - **One reconstruction at a time**, run in the background from the webapp: `POST /replay` starts it and returns
   immediately, `GET /replay` reports progress (including which phase is in flight), `POST /replay/cancel` stops one in
   flight, fetching or replaying (`lib/replay-job.js`).

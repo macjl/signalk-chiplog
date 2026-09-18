@@ -305,6 +305,44 @@ describe('InfluxDB history', () => {
     assert.ok(Date.now() - before >= 14, 'paused between the two failed attempts');
   });
 
+  it('retries when the timeout fires while reading a slow response body, not just while connecting', async () => {
+    // The connection can come back quickly with the InfluxDB server still slow
+    // to stream a large chunk's JSON -- the same timeout budget covers both,
+    // and a query stuck in that second phase must be retried exactly the same
+    // way as one that never got a response at all.
+    let attempts = 0;
+    const { fetch: normally } = fakeInflux({});
+    const influx = createInfluxHistory({
+      host: 'flaky.example.com',
+      port: 8086,
+      database: 'signalk',
+      selfContext: 'vessels.self',
+      retryDelayMs: 0,
+      fetch: async (url, options) => {
+        if (!options.body.get('q').includes('SHOW TAG VALUES')) {
+          return normally(url, options);
+        }
+        attempts += 1;
+        if (attempts === 1) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => {
+              const err = new Error('The operation was aborted');
+              err.name = 'TimeoutError';
+              throw err;
+            }
+          };
+        }
+        return normally(url, options);
+      }
+    });
+
+    await influx.preload(T0, T0 + MINUTE);
+
+    assert.equal(attempts, 2, 'the slow body times out once, then the retry goes through');
+  });
+
   it('gives up after retrying the configured number of times', async () => {
     let calls = 0;
     const influx = createInfluxHistory({
