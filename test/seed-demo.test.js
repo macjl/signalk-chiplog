@@ -72,6 +72,47 @@ describe('demo logbook', () => {
       'weather_threshold'
     ]);
   });
+
+  // The animation (SPEC §4.12) strings the range's passages together, so the
+  // demo has to offer passages of different sizes and a night in port.
+  it('covers what the animation needs', async () => {
+    const { buildLegs, buildStoryboard, OVERNIGHT_HOLD_UNITS } =
+      await import('../public/js/animation/storyboard.mjs');
+    const { fitZoom, MAX_WIDEN_LEVELS, referenceBounds } =
+      await import('../public/js/animation/camera.mjs');
+    const { trackPoints } = await import('../public/js/track.mjs');
+
+    const { body: entries } = await ctx.request('GET', '/entries');
+    const passages = [];
+    for (const entry of entries.items) {
+      const track = await ctx.request('GET', `/entries/${entry.id}/track`);
+      passages.push({ entry, points: trackPoints(track.body) });
+    }
+
+    const legs = buildLegs(passages, { width: 1920, height: 1080 });
+    assert.equal(legs.length, entries.items.length, 'every demo passage is animatable');
+    // Coastal hops of a few miles: each is animated at the working scale rather
+    // than magnified to its own extent, and none is pulled wider than the cap.
+    for (const leg of legs) {
+      const centre = { lat: leg.bounds.centreLat, lon: leg.bounds.centreLon };
+      const working = fitZoom(referenceBounds(centre), { width: 1920, height: 1080 });
+      assert.ok(leg.frame.zoom <= working, `passage ${leg.entry.id} is magnified`);
+      assert.ok(
+        leg.frame.zoom >= working - MAX_WIDEN_LEVELS,
+        `passage ${leg.entry.id} is too wide`
+      );
+    }
+
+    const board = buildStoryboard(legs);
+    assert.ok(
+      board.segments.some(
+        (segment) => segment.kind === 'hold' && segment.units === OVERNIGHT_HOLD_UNITS
+      ),
+      'a night in port, for the longer rest between legs'
+    );
+    // The range spans days; the animation must still be seconds long.
+    assert.ok(board.totalUnits < 60, `${board.totalUnits} units is too long for the demo range`);
+  });
 });
 
 describe('demo logbook script', () => {

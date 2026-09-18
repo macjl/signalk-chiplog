@@ -12,6 +12,11 @@ const files = [
   ['node_modules/htm/LICENSE', 'htm-LICENSE'],
   // The htm standalone build bundles Preact.
   ['node_modules/preact/LICENSE', 'preact-LICENSE'],
+  // Encoder and muxer for the animation's MP4 export: one self-contained ES
+  // module, loaded only when a video is actually exported. MPL-2.0, so the
+  // licence travels with it.
+  ['node_modules/mediabunny/dist/bundles/mediabunny.min.mjs', 'mediabunny.min.mjs'],
+  ['node_modules/mediabunny/LICENSE', 'mediabunny-LICENSE'],
   ['node_modules/leaflet/dist/leaflet.js', 'leaflet/leaflet.js'],
   ['node_modules/leaflet/dist/leaflet.css', 'leaflet/leaflet.css'],
   ['node_modules/leaflet/dist/images', 'leaflet/images'],

@@ -5,6 +5,16 @@ function localMidnight(date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
+// A date input gives a calendar day; the API wants an instant. `dayOffset` of 1
+// gives the following midnight, for the exclusive end of a range.
+export function rangeBoundary(value, dayOffset = 0) {
+  if (!value) {
+    return null;
+  }
+  const [year, month, day] = value.split('-').map(Number);
+  return new Date(year, month - 1, day + dayOffset);
+}
+
 export function dayKey(date) {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');

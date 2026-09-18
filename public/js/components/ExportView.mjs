@@ -1,15 +1,10 @@
 import { html, useState } from '../../vendor/preact-htm.mjs';
 import { apiUrl, get, request } from '../api.mjs';
 import { useLocale, usePolling } from '../context.mjs';
+import { rangeBoundary } from '../days.mjs';
 import { ErrorNotice } from './common.mjs';
 
 const PLUGIN_CONFIGURATION = '/admin/#/serverConfiguration/plugins/signalk-chiplog';
-
-// Date inputs give local calendar dates; the API wants instants, `to` exclusive.
-function localMidnight(value, dayOffset = 0) {
-  const [year, month, day] = value.split('-').map(Number);
-  return new Date(year, month - 1, day + dayOffset);
-}
 
 // The PDF logbook is written in the webapp's language and the device's time zone.
 function exportUrl(format, from, to, language) {
@@ -19,10 +14,10 @@ function exportUrl(format, from, to, language) {
     params.set('tz', Intl.DateTimeFormat().resolvedOptions().timeZone);
   }
   if (from) {
-    params.set('from', localMidnight(from).toISOString());
+    params.set('from', rangeBoundary(from).toISOString());
   }
   if (to) {
-    params.set('to', localMidnight(to, 1).toISOString());
+    params.set('to', rangeBoundary(to, 1).toISOString());
   }
   return apiUrl(`/export?${params}`);
 }

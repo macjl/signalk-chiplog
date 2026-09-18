@@ -15,6 +15,16 @@ import { trackPoints } from '../track.mjs';
 
 const ACTIVE_REFRESH_MS = 60 * 1000;
 
+// The animation is a page of its own, over a date range; a passage links to it
+// with its own days already filled in.
+function animationLink(entry, format) {
+  const params = new URLSearchParams({
+    from: format.dayKey(entry.startTime),
+    to: format.dayKey(entry.endTime ?? Date.now())
+  });
+  return `#/animation?${params}`;
+}
+
 async function findPrevious(entry) {
   const page = await get(`/entries?to=${encodeURIComponent(entry.startTime)}&limit=1`);
   return page.items[0] ?? null;
@@ -421,12 +431,18 @@ export function PassageView({ id }) {
     <section class="card">
       <header class="card-header">
         <h2>${t('passage.track')}</h2>
-        ${
-          data.track.geometry &&
-          html`<a href=${apiUrl(`/entries/${id}/track?format=gpx`)} download
-            >${t('passage.downloadGpx')}</a
-          >`
-        }
+        <div class="card-header-actions">
+          ${
+            points.length > 1 &&
+            html`<a href=${animationLink(entry, format)}>${t('passage.animate')}</a>`
+          }
+          ${
+            data.track.geometry &&
+            html`<a href=${apiUrl(`/entries/${id}/track?format=gpx`)} download
+              >${t('passage.downloadGpx')}</a
+            >`
+          }
+        </div>
       </header>
       ${
         hasMap

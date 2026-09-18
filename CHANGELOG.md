@@ -6,6 +6,21 @@ All notable changes to Chiplog are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Animation** — a new page that replays passages on the map. Pick a start and an end date and every passage between
+  them plays in sequence, the time spent in port skipped, so a week's cruise takes seconds. The map follows the boat at
+  a scale chosen for each passage — a short hop stays readable instead of being magnified, a long crossing gets a wider
+  view without leaving the boat crawling across empty water — and a bubble on the chart shows the speed, the distance
+  covered since the animation began and the date and hour. Play, pause, four speeds (×0,5, ×1, ×2, ×4 — an hour of
+  sailing per second at ×1) and a slider over the animation's own time. A passage page links straight to it with its own
+  dates filled in.
+- **Save an animation as an MP4** — Mobile (9:16), Portrait (3:4), Square (1:1), Landscape (4:3) or Widescreen (16:9),
+  encoded in the browser: nothing is uploaded, and the Signal K server renders nothing. Each frame's map is downloaded
+  just before that frame is drawn, so the film is the same whatever the connection was doing and no range is ever too
+  long to export. Needs a browser with WebCodecs (Chrome, Edge, Safari 17, Firefox 130 and later); without one the
+  animation still plays on screen.
+
 ## [2.1.0] - 2026-09-17
 
 ### Added

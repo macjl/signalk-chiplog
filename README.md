@@ -11,6 +11,8 @@ sensors cannot know from a tablet at the helm: manoeuvres, notes and handwriting
 - **Automatic events**: alarms, autopilot changes, strong wind, falling barometer.
 - **Departure and arrival names**, looked up online and corrected once for good.
 - **Consultation webapp**: logbook by day, map, timeline, corrections, export.
+- **Replay a range of passages** on the map — an hour of sailing per second — and save it as an MP4 for a phone, a
+  square post or a widescreen, rendered entirely in your browser.
 - **Tablet entry app**: big buttons for gloves and wet fingers, stylus handwriting, night mode, works through Wi-Fi
   dropouts.
 - **Abandon-ship copy**: JSON, CSV and GPX, downloadable or written to a USB drive.
@@ -196,6 +198,13 @@ Open **Chiplog** from the Signal K webapps, or `/signalk-chiplog/`. Reading need
   - close a passage in progress, e.g. to confirm an arrival;
   - merge with the previous or next passage;
   - delete a passage (admin).
+- **Animation** — pick two dates and every passage between them replays on the map, one after another, the port time
+  skipped. The map follows the boat at a scale chosen for each passage — a short hop kept readable rather than
+  magnified, a long crossing allowed a wider view but never so wide the boat crawls across empty water — while a bubble
+  shows the speed, the distance covered since the start and the date. Play, pause and a slider over the animation's own
+  time, at ×0,5, ×1, ×2 or ×4. **Export MP4** saves it as a video in one of five shapes (Mobile 9:16, Portrait 3:4,
+  Square 1:1, Landscape 4:3, Widescreen 16:9). Everything happens in the browser: nothing is rendered or encoded on the
+  Signal K server, and the map tiles are the only thing downloaded.
 - **Export** — download the whole logbook or a date range as a PDF logbook to print, JSON, CSV or GPX, and write the
   abandon-ship copy to the USB drive now (admin). The PDF is written in the webapp's language and the device's time
   zone.
@@ -486,7 +495,11 @@ between attempts; nothing is lost, it just takes longer to resolve.
 ## Limitations 🚧
 
 - **Not yet:** a places page, and editing manoeuvre shortcuts from the webapps.
-- **Offline charts** are not provided.
+- **Offline charts** are not provided; the animation draws the tracks on a blank sea when there is no connection.
+- **The MP4 export needs a browser with WebCodecs** — Chrome, Edge, Safari 17 or Firefox 130 and later. Without it the
+  animation still plays on screen, and the export button is simply not offered.
+- **A long animation takes a while to export**: every frame waits for its map before it is drawn, so the video is the
+  same whatever the connection was doing, but a long range means a lot of tiles. Turning the seamarks off halves them.
 - **One vessel per Signal K server**, and no per-crew-member authorship.
 
 ## Development 🧑‍💻

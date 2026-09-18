@@ -27,6 +27,13 @@ function parseRoute(hash) {
   if (hash === '#/export') {
     return { name: 'export' };
   }
+  // The dates a passage page hands over travel in the hash; the playback state
+  // does not, since every hash change scrolls the page back to the top.
+  const animation = hash.match(/^#\/animation(?:\?(.*))?$/);
+  if (animation) {
+    const params = new URLSearchParams(animation[1] ?? '');
+    return { name: 'animation', from: params.get('from') ?? '', to: params.get('to') ?? '' };
+  }
   return hash === '#/replay' ? { name: 'replay' } : { name: 'log' };
 }
 
