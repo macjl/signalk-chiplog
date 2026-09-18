@@ -112,6 +112,32 @@ describe('entries', () => {
   });
 
   describe('GET /entries/:id', () => {
+    it('names the passages either side, in the order of the log', async () => {
+      const first = insertEntry(ctx.db, { start_time: at(0), end_time: at(1) });
+      // Same start time as the next one: the id breaks the tie, as in the list.
+      const second = insertEntry(ctx.db, { start_time: at(24), end_time: at(25) });
+      const third = insertEntry(ctx.db, { start_time: at(24), end_time: at(26) });
+      const last = insertEntry(ctx.db, { start_time: at(48), end_time: at(49) });
+      const neighbours = async (id) => {
+        const { body } = await ctx.request('GET', `/entries/${id}`);
+        return [body.previousEntryId, body.nextEntryId];
+      };
+
+      assert.deepEqual(await neighbours(first), [null, second]);
+      assert.deepEqual(await neighbours(second), [first, third]);
+      assert.deepEqual(await neighbours(third), [second, last]);
+      assert.deepEqual(await neighbours(last), [third, null]);
+    });
+
+    it('has no neighbour for the only passage', async () => {
+      const only = insertEntry(ctx.db);
+
+      const { body } = await ctx.request('GET', `/entries/${only}`);
+
+      assert.equal(body.previousEntryId, null);
+      assert.equal(body.nextEntryId, null);
+    });
+
     it('returns the entry with camelCase fields, nested positions and counts', async () => {
       const id = insertEntry(ctx.db, {
         start_lat: 46.1591,

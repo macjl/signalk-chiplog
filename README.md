@@ -201,17 +201,18 @@ Open **Chiplog** from the Signal K webapps, or `/signalk-chiplog/`. Reading need
   not just what is loaded), then passages grouped by day, newest first, with times, departure and arrival, distance,
   duration and an engine/sail bar. A passage across midnight appears on both days. Provisional place names are shown as
   such.
-- **Passage page** — summary (distance, duration, average speed, the highest speed and wind seen, and the crew aboard),
-  map of the track (OpenStreetMap with OpenSeaMap seamarks, which can be hidden) with a small boat marker at the
-  selected point, a scrubber under the map to step back and forth through its history (defaulting to the latest point,
-  so it shows the current position on a passage in progress) with a band of that point's time, SOG, COG, STW, TWS, TWD,
-  TWA and AWA, the marine weather forecast every 3 hours from departure, the tide forecast near the departure (place,
-  high/low times and heights, height curve) when one was fetched, the engine and sail periods, the boat's status (each
-  engine's hour counter at departure and arrival and the hours run, and the tank levels and battery charge, voltage and
-  current noted at departure), and the log: every reading and event in order, including handwritten notes. A passage in
-  progress refreshes every minute. Each line's comment can be edited (read/write access); a manoeuvre or note the crew
-  logged themselves can also be deleted — automatic lines (alarms, autopilot, weather, corrections) can only be
-  annotated. Under each position, in grey, its bearing and distance from the nearest landmark.
+- **Passage page** — links at the top to the previous and the next passage (or **Alt+←** and **Alt+→**), then a summary
+  (distance, duration, average speed, the highest speed and wind seen, and the crew aboard), map of the track
+  (OpenStreetMap with OpenSeaMap seamarks, which can be hidden) with a small boat marker at the selected point, a
+  scrubber under the map to step back and forth through its history (defaulting to the latest point, so it shows the
+  current position on a passage in progress) with a band of that point's time, SOG, COG, STW, TWS, TWD, TWA and AWA, the
+  marine weather forecast every 3 hours from departure, the tide forecast near the departure (place, high/low times and
+  heights, height curve) when one was fetched, the engine and sail periods, the boat's status (each engine's hour
+  counter at departure and arrival and the hours run, and the tank levels and battery charge, voltage and current noted
+  at departure), and the log: every reading and event in order, including handwritten notes. A passage in progress
+  refreshes every minute. Each line's comment can be edited (read/write access); a manoeuvre or note the crew logged
+  themselves can also be deleted — automatic lines (alarms, autopilot, weather, corrections) can only be annotated.
+  Under each position, in grey, its bearing and distance from the nearest landmark.
 - **Corrections** (read/write access):
   - rename the departure, or the arrival once the passage is closed — a passage in progress has none yet to rename;
   - switch an engine period to sail or back;

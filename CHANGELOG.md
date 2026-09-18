@@ -8,6 +8,9 @@ All notable changes to Chiplog are documented here. The format follows
 
 ### Added
 
+- **Previous and next passage links at the top of a passage page**, to step through the log without going back to it.
+  `GET /entries/:id` gives them as `previousEntryId` and `nextEntryId`, in the log's order. Alt+← and Alt+→ do the same
+  from the keyboard.
 - **A Statistics page** sums the logbook up over a period: number of passages, first and last dates, total distance,
   time under way, top speed, strongest wind, the longest passage without a stop (a passage is cut at its stopovers, each
   stretch measured on its own), the flags of the countries visited, and the top 5 passages by duration, distance,

@@ -198,6 +198,8 @@ One entry, with the counts the detail view needs:
   "startBatteries": [{ "id": "house", "voltage": 12.8, "current": -3.2, "stateOfCharge": 0.86 }],
   "createdAt": "2026-09-13T06:12:00.000Z",
   "updatedAt": "2026-09-13T15:47:30.000Z",
+  "previousEntryId": 41,
+  "nextEntryId": null,
   "counts": { "trackPoints": 1187, "observations": 11, "events": 9 },
   "maxSpeed": 6.7,
   "maxWindSpeed": 12.9,
@@ -207,6 +209,9 @@ One entry, with the counts the detail view needs:
 ```
 
 On an active entry, `endPosition` is the last position detection saw — not yet an arrival.
+
+`previousEntryId` and `nextEntryId` are the passages just before and just after this one in the log's order (start time,
+then id), `null` for the first and the last, so a page can step from one passage to the next.
 
 `maxSpeed` is the highest speed over ground seen in the track, `null` with none. `maxWindSpeed` is the highest true wind
 speed seen, from the track and the instrument snapshots (SPEC §4.5.1) combined, falling back to apparent wind — flagged

@@ -95,6 +95,8 @@ export const MESSAGES = {
     'place.pending': 'Provisional name: waiting for geocoding',
 
     'passage.back': 'Back to the logbook',
+    'passage.previous': 'Previous passage',
+    'passage.next': 'Next passage',
     'passage.notFound': 'This passage does not exist.',
     'passage.inProgress': 'In progress',
     'passage.stoppedSince': 'Stopped since {time}',
@@ -572,6 +574,8 @@ export const MESSAGES = {
     'place.pending': 'Nom provisoire : en attente du géocodage',
 
     'passage.back': 'Retour au journal',
+    'passage.previous': 'Navigation précédente',
+    'passage.next': 'Navigation suivante',
     'passage.notFound': 'Cette navigation n’existe pas.',
     'passage.inProgress': 'En cours',
     'passage.stoppedSince': 'À l’arrêt depuis {time}',

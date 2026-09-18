@@ -11,6 +11,7 @@ import { Timeline } from './Timeline.mjs';
 import { TrackMap } from './TrackMap.mjs';
 import { TrackScrubber } from './TrackScrubber.mjs';
 import { WeatherCard } from './WeatherCard.mjs';
+import { stepDirection } from '../shortcuts.mjs';
 import { trackPoints } from '../track.mjs';
 
 const ACTIVE_REFRESH_MS = 60 * 1000;
@@ -236,6 +237,14 @@ function NameField({ label, name, pending, busy, onSave }) {
   `;
 }
 
+// A neighbouring passage, or its place kept as a dimmed label at the log's end.
+// `shortcut` is the key that does the same, told in the tooltip.
+function StepLink({ id, label, shortcut, keyName }) {
+  return id === null
+    ? html`<span class="muted" aria-disabled="true">${label}</span>`
+    : html`<a href=${`#/passages/${id}`} title=${shortcut} aria-keyshortcuts=${keyName}>${label}</a>`;
+}
+
 export function PassageView({ id }) {
   const { t, format } = useLocale();
   const [data, setData] = useState(null);
@@ -246,6 +255,28 @@ export function PassageView({ id }) {
   // null follows the latest point as new ones arrive; scrubbing pins it.
   const [selectedIndex, setSelectedIndex] = useState(null);
   const active = data?.entry.state === 'active';
+  // Only the neighbours of the passage on screen, not of the one just left.
+  const shown = data?.entry.id === id ? data.entry : null;
+  const previousId = shown?.previousEntryId ?? null;
+  const nextId = shown?.nextEntryId ?? null;
+
+  // Alt+arrow steps through the log. The key is taken even at either end of it,
+  // where it does nothing, rather than left to the browser's own Alt+left: back.
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      const direction = stepDirection(event);
+      if (direction === null) {
+        return;
+      }
+      event.preventDefault();
+      const target = direction === 'previous' ? previousId : nextId;
+      if (target !== null && !event.repeat) {
+        location.hash = `#/passages/${target}`;
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [previousId, nextId]);
 
   // A different passage starts by following its latest point too, not
   // wherever the scrubber was left on the previous one.
@@ -357,7 +388,23 @@ export function PassageView({ id }) {
   const boat = points[scrubIndex] ?? null;
 
   return html`
-    <a class="back" href="#/">← ${t('passage.back')}</a>
+    <div class="passage-nav">
+      <a class="back" href="#/">← ${t('passage.back')}</a>
+      <div class="passage-steps">
+        <${StepLink}
+          id=${entry.previousEntryId}
+          label=${`← ${t('passage.previous')}`}
+          shortcut="Alt+←"
+          keyName="Alt+ArrowLeft"
+        />
+        <${StepLink}
+          id=${entry.nextEntryId}
+          label=${`${t('passage.next')} →`}
+          shortcut="Alt+→"
+          keyName="Alt+ArrowRight"
+        />
+      </div>
+    </div>
 
     <header class="passage-header">
       <h1>

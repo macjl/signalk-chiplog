@@ -73,6 +73,12 @@ calendar/list groups entries by start date, and displays entries spanning multip
 Above the day-grouped list, a summary line totals every entry, not just the pages loaded so far: number of passages,
 total distance, total elapsed time (`GET /entries/stats`).
 
+A passage page has links at the top to the previous and the next passage, in the log's order (start time, then id), so
+the log can be walked without going back to the list; they come with the entry as `previousEntryId` and `nextEntryId`
+(`GET /entries/:id`), and the end of the log leaves its own link dimmed. **Alt+←** and **Alt+→** do the same from the
+keyboard, except while typing in a field; the key is taken even at either end of the log, where it does nothing, so the
+browser's own Alt+← (back) does not fire instead.
+
 ### 3.3 Events within an entry
 
 Within an entry in progress, a timestamped timeline of events is recorded:
