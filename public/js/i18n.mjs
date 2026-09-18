@@ -351,6 +351,7 @@ export const MESSAGES = {
     'replay.start': 'Reconstruct',
     'replay.cancel': 'Cancel',
     'replay.progress': '{percent}% — at {time}',
+    'replay.retrying': 'Retrying after a timeout (attempt {attempt}/{of}): {message}',
     'replay.done': 'Reconstruction finished at {time}.',
     'replay.cancelled': 'Reconstruction cancelled at {time}.',
     'replay.failed': 'Reconstruction failed at {time}: {message}',
@@ -802,6 +803,8 @@ export const MESSAGES = {
     'replay.start': 'Reconstruire',
     'replay.cancel': 'Annuler',
     'replay.progress': '{percent} % — à {time}',
+    'replay.retrying':
+      'Nouvelle tentative après un délai dépassé (essai {attempt}/{of}) : {message}',
     'replay.done': 'Reconstruction terminée à {time}.',
     'replay.cancelled': 'Reconstruction annulée à {time}.',
     'replay.failed': 'Échec de la reconstruction à {time} : {message}',

@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const { describe, it } = require('node:test');
-const { createInfluxHistory } = require('../lib/influx-history');
+const { createInfluxHistory, CHUNK_MS, QUERY_MAX_RETRIES } = require('../lib/influx-history');
 
 const T0 = Date.parse('2026-09-13T08:00:00.000Z');
 const MINUTE = 60 * 1000;
@@ -237,12 +237,13 @@ describe('InfluxDB history', () => {
     await assert.rejects(influx.preload(T0, T0 + MINUTE), /401/);
   });
 
-  it('gives a clear message when the connection times out', async () => {
+  it('gives a clear message when the connection times out, after retrying', async () => {
     const influx = createInfluxHistory({
       host: 'unreachable.example.com',
       port: 8086,
       database: 'signalk',
       selfContext: 'vessels.self',
+      retryDelayMs: 0,
       fetch: async () => {
         const err = new Error('The operation was aborted');
         err.name = 'TimeoutError';
@@ -260,6 +261,7 @@ describe('InfluxDB history', () => {
       database: 'signalk',
       selfContext: 'vessels.self',
       queryTimeoutSeconds: 5,
+      retryDelayMs: 0,
       fetch: async () => {
         const err = new Error('The operation was aborted');
         err.name = 'TimeoutError';
@@ -268,6 +270,110 @@ describe('InfluxDB history', () => {
     });
 
     await assert.rejects(influx.preload(T0, T0 + MINUTE), /did not answer within 5s/);
+  });
+
+  it('retries a timed-out query, pausing between attempts, and succeeds once it goes through', async () => {
+    // Only the context check times out, so its own retries are the only thing
+    // being measured -- discovering engines and fetching the chunk each
+    // succeed outright and would otherwise add their own calls to the count.
+    let attempts = 0;
+    const { fetch: normally } = fakeInflux({});
+    const influx = createInfluxHistory({
+      host: 'flaky.example.com',
+      port: 8086,
+      database: 'signalk',
+      selfContext: 'vessels.self',
+      retryDelayMs: 7,
+      fetch: async (url, options) => {
+        if (!options.body.get('q').includes('SHOW TAG VALUES')) {
+          return normally(url, options);
+        }
+        attempts += 1;
+        if (attempts <= 2) {
+          const err = new Error('The operation was aborted');
+          err.name = 'TimeoutError';
+          throw err;
+        }
+        return normally(url, options);
+      }
+    });
+    const before = Date.now();
+
+    await influx.preload(T0, T0 + MINUTE);
+
+    assert.equal(attempts, 3, 'two timeouts, then a query that goes through');
+    assert.ok(Date.now() - before >= 14, 'paused between the two failed attempts');
+  });
+
+  it('gives up after retrying the configured number of times', async () => {
+    let calls = 0;
+    const influx = createInfluxHistory({
+      host: 'unreachable.example.com',
+      port: 8086,
+      database: 'signalk',
+      selfContext: 'vessels.self',
+      retryDelayMs: 0,
+      fetch: async () => {
+        calls += 1;
+        const err = new Error('The operation was aborted');
+        err.name = 'TimeoutError';
+        throw err;
+      }
+    });
+
+    await assert.rejects(influx.preload(T0, T0 + MINUTE), /did not answer within 30s/);
+    assert.equal(calls, QUERY_MAX_RETRIES + 1, 'the original attempt plus every retry');
+  });
+
+  it('reports each retry attempt as it happens, and clears it once a query goes through', async () => {
+    let attempts = 0;
+    const seen = [];
+    const { fetch: normally } = fakeInflux({});
+    const influx = createInfluxHistory({
+      host: 'flaky.example.com',
+      port: 8086,
+      database: 'signalk',
+      selfContext: 'vessels.self',
+      retryDelayMs: 0,
+      onRetry: (attempt, of, message) => seen.push({ attempt, of, message }),
+      fetch: async (url, options) => {
+        if (!options.body.get('q').includes('SHOW TAG VALUES')) {
+          return normally(url, options);
+        }
+        attempts += 1;
+        if (attempts === 1) {
+          const err = new Error('The operation was aborted');
+          err.name = 'TimeoutError';
+          throw err;
+        }
+        return normally(url, options);
+      }
+    });
+
+    await influx.preload(T0, T0 + MINUTE);
+
+    assert.equal(seen.at(0).attempt, 1);
+    assert.equal(seen.at(0).of, QUERY_MAX_RETRIES);
+    assert.match(seen.at(0).message, /did not answer within 30s/);
+    assert.deepEqual(seen.at(-1), { attempt: null, of: undefined, message: undefined });
+  });
+
+  it('does not retry a failure that is not a timeout', async () => {
+    let calls = 0;
+    const influx = createInfluxHistory({
+      host: 'unreachable.example.com',
+      port: 8086,
+      database: 'signalk',
+      selfContext: 'vessels.self',
+      retryDelayMs: 0,
+      fetch: async () => {
+        calls += 1;
+        return { ok: false, status: 500, text: async () => 'boom' };
+      }
+    });
+
+    await assert.rejects(influx.preload(T0, T0 + MINUTE), /500/);
+    assert.equal(calls, 1);
   });
 
   it('surfaces the real cause of a connection failure, not just "fetch failed"', async () => {
@@ -323,9 +429,9 @@ describe('InfluxDB history', () => {
   });
 
   describe('chunking a long range', () => {
-    const CHUNK = 6 * 60 * 60 * 1000;
+    const CHUNK = CHUNK_MS;
 
-    it('fetches six hours at a time rather than the whole range in one query', async () => {
+    it('fetches one chunk at a time rather than the whole range in one query', async () => {
       const { influx, requests } = history({
         'navigation.speedOverGround': [
           { time: T0, value: 1 },

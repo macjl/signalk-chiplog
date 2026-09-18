@@ -5,6 +5,7 @@ const path = require('node:path');
 const { describe, it, afterEach } = require('node:test');
 const { openDatabase } = require('../lib/database');
 const { createReplayJob } = require('../lib/replay-job');
+const { QUERY_MAX_RETRIES } = require('../lib/influx-history');
 const { insert, insertEntry } = require('./helpers');
 
 const T0 = Date.parse('2026-09-13T08:00:00.000Z');
@@ -247,6 +248,46 @@ describe('replay job', () => {
     const status = job.status();
     assert.equal(status.running, false);
     assert.match(status.lastError.message, /500/);
+  });
+
+  it('surfaces a retry attempt in progress.retry while it is in flight, then clears it', async () => {
+    ({ db, dataDir } = openDb());
+    const empty = emptyInfluxFetch();
+    let timedOutOnce = false;
+    const job = createReplayJob({
+      db,
+      settings: configuredSettings(),
+      app: { selfContext: 'vessels.self' },
+      retryDelayMs: 300,
+      fetch: async (url, options) => {
+        if (!timedOutOnce && options.body.get('q').includes('SHOW TAG VALUES')) {
+          timedOutOnce = true;
+          const err = new Error('The operation was aborted');
+          err.name = 'TimeoutError';
+          throw err;
+        }
+        return empty(url, options);
+      }
+    });
+
+    job.start(iso(T0), iso(T0 + MINUTE));
+
+    const start = Date.now();
+    let retry = null;
+    while (!retry && Date.now() - start < 2000) {
+      retry = job.status().progress?.retry;
+      if (!retry) {
+        await new Promise((resolve) => setTimeout(resolve, 5));
+      }
+    }
+
+    assert.ok(retry, 'the retry notice should appear while the pause is in flight');
+    assert.equal(retry.attempt, 1);
+    assert.equal(retry.of, QUERY_MAX_RETRIES);
+    assert.match(retry.message, /did not answer within/);
+
+    await waitUntilIdle(job);
+    assert.equal(job.status().progress, null, 'nothing left to show once the run is done');
   });
 
   it('keeps a summary of what an earlier slice already committed when a later query fails', async () => {

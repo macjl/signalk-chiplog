@@ -653,7 +653,8 @@ detection pipeline used live (SPEC §4.10). One reconstruction runs at a time, i
       "sailDuration": 9800,
       "trackPoints": 1840,
       "events": 3
-    }
+    },
+    "retry": { "attempt": 1, "of": 3, "message": "InfluxDB at http://influx:8086 did not answer within 30s" }
   },
   "lastResult": null,
   "lastError": null
@@ -669,16 +670,19 @@ detection pipeline used live (SPEC §4.10). One reconstruction runs at a time, i
 - `progress.summary` is recomputed after every committed slice (SPEC §4.10) with the same shape as `lastResult.summary`
   below, `null` while still scanning — so the webapp can show what has actually been saved so far rather than only the
   clock position, and a run that then times out still leaves something on screen instead of a bare error.
-- The scan reads a week at a time and a window's history six hours at a time, with a short pause between requests, so
+- `progress.retry` — `{ attempt, of, message }`, `null` outside a retry — appears while an individual InfluxDB query is
+  being retried after timing out (SPEC §4.10), `attempt` counting from 1 up to `of` (3); it disappears again as soon as
+  a query gets through.
+- The scan reads a week at a time and a window's history two hours at a time, with a short pause between requests, so
   one query cannot overwhelm a resource-constrained host running both Signal K and InfluxDB (SPEC §4.10).
 - `lastResult` — `{ at, from, to, cancelled?, summary }` — and `lastError` — `{ at, from, to, message, summary }` —
   describe the latest attempt. `summary` — `{ passages, distance, engineDuration, sailDuration, trackPoints, events }`,
   metres and seconds — totals what the run added, including up to a cancellation or a failure; a passage live detection
   opened meanwhile is not counted. Both are kept in memory and start empty when the plugin starts. `lastError.message`
   names the InfluxDB vessel contexts actually found when none match the one configured (SPEC §4.10) — the usual cause of
-  a replay that runs to completion but reconstructs nothing. An InfluxDB query that does not answer within the
-  configured timeout fails with that instead of hanging; passages already committed before the failing chunk stay on
-  record, so `lastError.summary` reports them and a follow-up run starting after them does not repeat the work.
+  a replay that runs to completion but reconstructs nothing. A query that times out is retried up to 3 times, 5 seconds
+  apart, before `lastError` reports it; passages already committed before the failing chunk stay on record, so
+  `lastError.summary` reports them and a follow-up run starting after them does not repeat the work.
 
 ### `POST /replay` — admin
 

@@ -12,6 +12,10 @@ All notable changes to Chiplog are documented here. The format follows
   finishes: passages, distance, engine/sail time, track points and events update after every committed slice instead of
   only the clock position. A run that fails partway — an InfluxDB query timing out on a slow host — keeps that same
   summary next to the error, instead of leaving a bare error message with no way to tell what was saved.
+- **A retrospective replay retries an InfluxDB query that times out** up to 3 times, 5 seconds apart, instead of failing
+  the whole run on what is often just a Raspberry Pi momentarily busy sharing its InfluxDB with Signal K itself; the
+  webapp shows which attempt is under way while it waits. Each window of history is also fetched in smaller, two-hour
+  chunks instead of six, so a slow host has less to answer per request in the first place.
 
 ### Fixed
 

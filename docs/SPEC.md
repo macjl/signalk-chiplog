@@ -488,7 +488,7 @@ boat already has in InfluxDB 1.x, written there by [signalk-to-influxdb](https:/
 - **Reads InfluxDB directly, in bounded requests.** `lib/influx-history.js` knows signalk-to-influxdb's schema: one
   measurement per Signal K path, tagged with context (self) and source (for a path more than one source publishes,
   `navigation.state` chief among them — resolved the same way the server itself would). The motion scan asks for a week
-  at a time; a window's history is fetched six hours at a time, with a short pause between requests, then answered from
+  at a time; a window's history is fetched two hours at a time, with a short pause between requests, then answered from
   memory as fast as the replay loop asks, and dropped once the window is done — a boat's InfluxDB often shares its
   Raspberry Pi with Signal K itself, and a fixed-size request keeps each query's result small and gives the database
   room to recover between them.
@@ -499,6 +499,12 @@ boat already has in InfluxDB 1.x, written there by [signalk-to-influxdb](https:/
 - **Every InfluxDB query is bounded, 30 s by default (`influxQueryTimeoutSeconds`).** Node's `fetch` has no timeout of
   its own, so an unreachable or overloaded database would otherwise hang far longer than that for an error no clearer
   once it arrived — a bare "fetch failed" instead of the actual connection problem.
+- **A query that times out is retried up to 3 times, 5 seconds apart**, rather than failing the whole run on what is
+  often just a Raspberry Pi momentarily busy sharing its InfluxDB with Signal K itself. Each attempt gets the full
+  timeout again, not whatever was left of a shared one. `GET /replay`'s `progress.retry` names the attempt under way
+  while it waits, so the webapp can show it instead of the run looking stalled; giving up after the last retry surfaces
+  the same message in `lastError` as before. Only a timeout is retried — a connection refused, an HTTP error or a
+  malformed response fails outright, since trying again would not change the answer.
 - **One reconstruction at a time**, run in the background from the webapp: `POST /replay` starts it and returns
   immediately, `GET /replay` reports progress (including which phase is in flight), `POST /replay/cancel` stops one in
   flight, fetching or replaying (`lib/replay-job.js`).

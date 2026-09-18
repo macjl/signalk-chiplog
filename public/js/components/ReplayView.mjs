@@ -27,6 +27,16 @@ function Progress({ progress }) {
         })}
       </p>
       ${
+        progress.retry &&
+        html`<p class="notice">
+          ${t('replay.retrying', {
+            attempt: progress.retry.attempt,
+            of: progress.retry.of,
+            message: progress.retry.message
+          })}
+        </p>`
+      }
+      ${
         progress.phase === 'replaying' &&
         html`<${Summary} summary=${progress.summary} live=${true} />`
       }
