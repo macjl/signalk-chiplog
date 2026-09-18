@@ -38,8 +38,9 @@ version left waiting out a stop, which ends the same way.
 `closed_by` (migration 13) is `detection` or `crew`, `NULL` while active and on entries closed before it existed. A
 departure less than `stopClosureMinutes` after the end of the last entry reopens it — back to `active`, `end_time` and
 the arrival place cleared, the stop recorded as a `stopover` event — only when detection closed it (SPEC §4.2); a crew
-close confirms the arrival. A crew departure manoeuvre logged on that entry after its end counts as the start of the
-wait. Merging keeps the later entry's value. Not exposed by the API.
+close confirms the arrival, and a passage imported through `POST /entries` (SPEC §4.15) has none at all, so nothing ever
+reopens it. A crew departure manoeuvre logged on that entry after its end counts as the start of the wait. Merging keeps
+the later entry's value. Not exposed by the API.
 
 `last_moving_at` (migration 2) is a heartbeat: passage detection refreshes it about once a minute while under way. It
 exists for restarts — when the plugin comes back to an open entry, it is the only record of when the boat was last seen

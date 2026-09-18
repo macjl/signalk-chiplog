@@ -30,6 +30,7 @@ English and French, chosen from the browser's language.
 - [Signal K data used](#signal-k-data-used-)
 - [Backups and abandon ship](#backups-and-abandon-ship-)
 - [Retrospective analysis](#retrospective-analysis-)
+- [Importing from PostgSail](#importing-from-postgsail-)
 - [Privacy and online services](#privacy-and-online-services-)
 - [Troubleshooting](#troubleshooting-)
 - [Limitations](#limitations-)
@@ -417,6 +418,32 @@ at the time.
   track has one point per **Track point interval**. Everything else read from a continuously published path — position,
   speed, wind, engine, autopilot, depth, barometer — is reconstructed the same as live.
 
+## Importing from PostgSail 📥
+
+Kept your logbook with [PostgSail](https://github.com/xbgmsharp/postgsail) until now? Its GeoJSON export — one trip or
+several — comes into Chiplog with the script `scripts/import-postgsail.js`, run from a checkout of this repository (Node
+22.13 or later, nothing to install). It talks to the plugin's REST API, so the logbook can be on the boat's Signal K
+server while you run it from your own computer.
+
+```bash
+node scripts/import-postgsail.js PostgSail_Trip.geojson --url http://boat.local:3000 --token <token>
+```
+
+- **Administrator access.** Give the token of an administrator with `--token` (or `CHIPLOG_TOKEN`), or sign in with
+  `--user` and `--password` (or `CHIPLOG_PASSWORD`); a server without Signal K security needs neither.
+- **Each trip becomes a passage**, with its track, wind and speed, the engine and sail periods read from PostgSail's
+  _sailing_ and _motoring_ status, the places from the trip name, and instrument snapshots every hour on the clock
+  (`--observation-interval <minutes>`, `0` for none).
+- **Safe to run again.** A passage that overlaps one already in the logbook is skipped, so a run cut short is finished
+  by running the same command; nothing is duplicated. `--dry-run` lists what the file holds without sending anything.
+- **Boat state at departure.** PostgSail's tank level is taken as the fuel tank, and its voltage and state of charge as
+  the house battery, noted like Chiplog does live.
+- **Not imported:** PostgSail's own distance — Chiplog sums the track, as for every passage, which lands within a few
+  percent of it.
+- Place names come as PostgSail has them. Passages near a place Chiplog already knows are named the same; the countries
+  and landmarks are then looked up in the background, like for any passage. Tide and weather forecasts are not fetched
+  for passages this old.
+
 ## Privacy and online services 🔒
 
 - **Place names.** With geocoding on, the position of each departure and arrival that matches no known place is sent to
@@ -549,6 +576,7 @@ npm install          # also copies the browser libraries into public/vendor/
 npm test
 npm run lint
 npm run demo:seed -- /tmp/chiplog-demo   # a demo logbook to try the webapps with
+npm run import:postgsail -- <trips.geojson> --url <server>   # see Importing from PostgSail
 ```
 
 The functional specification is in [docs/SPEC.md](docs/SPEC.md), the data model in

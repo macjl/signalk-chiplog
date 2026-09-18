@@ -18,11 +18,11 @@ Implemented in [`lib/api.js`](../lib/api.js); the behaviour described here is co
 **Access levels.** Signal K gives routes registered directly on the router **admin** authentication;
 `router.access('readonly')` and `router.access('readwrite')` open them further. The policy here:
 
-| Level       | What it covers                                                                                                          |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `readonly`  | Reading the logbook and exporting it                                                                                    |
-| `readwrite` | What the crew does underway: annotations, manoeuvres, closing an entry, correcting a name or a propulsion segment       |
-| admin       | Destructive or configuration-shaped operations: deleting entries and places, managing shortcuts, triggering a USB write |
+| Level       | What it covers                                                                                                                               |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `readonly`  | Reading the logbook and exporting it                                                                                                         |
+| `readwrite` | What the crew does underway: annotations, manoeuvres, closing an entry, correcting a name or a propulsion segment                            |
+| admin       | Destructive or configuration-shaped operations: importing a passage, deleting entries and places, managing shortcuts, triggering a USB write |
 
 Corrections are `readwrite` rather than admin on purpose — a crew member at the helm has to be able to fix a wrong place
 name or a mis-detected engine segment without an admin login.
@@ -48,13 +48,13 @@ timestamp is accepted in requests and normalised to millisecond precision.
 { "error": { "code": "entry_already_closed", "message": "Entry 42 is already closed" } }
 ```
 
-| Status | When                                                               | Codes                                                                                                                                                                                                             |
-| ------ | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `400`  | Malformed request                                                  | `invalid_request`, `unknown_manoeuvre_type`                                                                                                                                                                       |
-| `404`  | Unknown resource                                                   | `entry_not_found`, `event_not_found`, `place_not_found`, `propulsion_segment_not_found`, `manoeuvre_type_not_found`, `crew_member_not_found`, `tide_not_found`, `weather_not_found`                               |
-| `409`  | The request conflicts with current state                           | `no_passage`, `entry_active`, `entry_already_closed`, `entries_not_consecutive`, `manoeuvre_type_exists`, `builtin_manoeuvre_type`, `usb_export_not_configured`, `usb_export_unavailable`, `constraint_violation` |
-| `500`  | Unexpected failure — detail goes to the server log, not the client | `internal_error`                                                                                                                                                                                                  |
-| `503`  | The plugin is disabled or stopped                                  | `plugin_not_started`                                                                                                                                                                                              |
+| Status | When                                                               | Codes                                                                                                                                                                                                                               |
+| ------ | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `400`  | Malformed request                                                  | `invalid_request`, `unknown_manoeuvre_type`                                                                                                                                                                                         |
+| `404`  | Unknown resource                                                   | `entry_not_found`, `event_not_found`, `place_not_found`, `propulsion_segment_not_found`, `manoeuvre_type_not_found`, `crew_member_not_found`, `tide_not_found`, `weather_not_found`                                                 |
+| `409`  | The request conflicts with current state                           | `no_passage`, `entry_active`, `entry_already_closed`, `entry_overlaps`, `entries_not_consecutive`, `manoeuvre_type_exists`, `builtin_manoeuvre_type`, `usb_export_not_configured`, `usb_export_unavailable`, `constraint_violation` |
+| `500`  | Unexpected failure — detail goes to the server log, not the client | `internal_error`                                                                                                                                                                                                                    |
+| `503`  | The plugin is disabled or stopped                                  | `plugin_not_started`                                                                                                                                                                                                                |
 
 The server registers plugin routes once and never removes them, so they keep answering while the plugin is disabled —
 with `503` until it is started again.
@@ -230,6 +230,63 @@ Geocoded names from the public instance are OpenStreetMap data and need its attr
 `crew` is who was recorded aboard, in the order they were added — see [Crew](#crew) for how it is set. `name`/`role` are
 denormalised at assignment time like `startPlaceName`, so correcting or deleting a roster member never rewrites a past
 passage's recorded crew.
+
+### `POST /entries` — admin
+
+Adds a finished passage recorded elsewhere, such as another logbook's export — SPEC §4.15. `scripts/import-postgsail.js`
+uses it to bring in a PostgSail export. One passage per request, all or nothing: `201` with the entry as
+[`GET /entries/:id`](#get-entriesid--readonly) gives it.
+
+```json
+{
+  "startTime": "2026-08-16T12:16:50.731Z",
+  "endTime": "2026-08-16T14:46:54.122Z",
+  "startPosition": { "lat": 14.541493, "lon": -61.035652 },
+  "endPosition": { "lat": 14.687516, "lon": -61.176903 },
+  "startPlaceName": "Les Trois-Îlets",
+  "endPlaceName": "Anse Four à Chaux",
+  "distance": 23872,
+  "startTanks": [{ "type": "fuel", "id": "0", "level": 0.95 }],
+  "startBatteries": [{ "id": "house", "voltage": 13.3, "stateOfCharge": 0.6 }],
+  "trackPoints": [{ "time": "2026-08-16T12:16:50.731Z", "lat": 14.541493, "lon": -61.035652, "sog": 2.1, "tws": 6 }],
+  "observations": [
+    {
+      "time": "2026-08-16T12:16:50.731Z",
+      "reason": "entry_start",
+      "position": { "lat": 14.541493, "lon": -61.035652 },
+      "airTemp": 300.7
+    }
+  ],
+  "propulsion": [{ "type": "sail", "startTime": "2026-08-16T12:16:50.731Z", "endTime": "2026-08-16T14:46:54.122Z" }]
+}
+```
+
+- `startTime` and `endTime` are required, `endTime` not before `startTime`. Everything else is optional: the positions
+  and place names, `distance` in metres, and the three lists.
+- `startTanks` are the tanks as noted at departure, shaped as in `startTanks` of `GET /entries/:id`: `type`, `id`, and a
+  `level` (ratio) or a `volume` (m³), with optionally a `name` and a `capacity` (m³).
+- `startBatteries` are the batteries as noted at departure, shaped as in `startBatteries` of `GET /entries/:id`: an `id`
+  and, of `voltage` (V), `current` (A, negative discharging), `stateOfCharge` (ratio) and `temperature` (K), at least
+  one, with optionally a `name`.
+- `trackPoints` take `time`, `lat` and `lon` and, when known, `sog`, `cog`, `stw`, `heading`, `tws`, `twd`, `aws` and
+  `awa` — the fields of [`GET /entries/:id/track`](#get-entriesidtrack--readonly) points, in Signal K units. `null`, or
+  absent, for a reading not made.
+- `observations` take `time`, `reason` (`periodic`, `entry_start`, `entry_end` or `event`), `position`, the readings
+  above, and `depth`, `pressure`, `airTemp`, `waterTemp`, `tripLog`, `engineRuntime` — the fields of
+  [`GET /entries/:id/observations`](#get-entriesidobservations--readonly).
+- `propulsion` periods take `type` (`engine` or `sail`), `startTime` and `endTime`. The entry's `engineDuration` and
+  `sailDuration` are worked out from them.
+- Every time in the lists must fall between `startTime` and `endTime`.
+- **Names.** A place name is kept as given. With a position, it is tied to the known place within the matching radius
+  (`placeMatchRadius`), else to one of the same name within 500 m, else a new place is made of it (`source: "manual"`),
+  so later passages from there are named alike. Without a name, a position is named as for a passage detected live: a
+  known place, else its coordinates, pending geocoding.
+- **Distance** defaults to the sum over `trackPoints`, as for a passage logged live.
+- **Nothing is reopened.** The passage is closed by neither detection nor the crew (`closed_by` empty), so a departure
+  soon after it starts another passage instead of continuing it.
+
+`409 entry_overlaps` when the passage overlaps one on record, the one in progress included — a passage that ends where
+another starts does not. That makes an import safe to repeat: what is already there is refused, whatever else is sent.
 
 ### `PATCH /entries/:id` — `readwrite`
 

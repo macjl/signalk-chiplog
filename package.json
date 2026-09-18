@@ -17,6 +17,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "demo:seed": "node scripts/seed-demo.js",
+    "import:postgsail": "node scripts/import-postgsail.js",
     "prepare": "husky && node scripts/vendor.js"
   },
   "keywords": [

@@ -659,6 +659,38 @@ A page of its own (`#/statistics`, "Statistics" in the main menu) sums the logbo
 - **A passage in progress counts as it stands**, up to now, in every figure and ranking, as in the summary above the log
   (§3.2).
 
+### 4.15 Importing passages from PostgSail
+
+Brings a logbook kept with [PostgSail](https://github.com/xbgmsharp/postgsail) into Chiplog:
+`scripts/import-postgsail.js` reads PostgSail's GeoJSON export of one trip or several and sends each trip to
+`POST /entries` — through the API, not the database, so the logbook can be on the boat's Signal K server while the file
+is on another machine.
+
+- **A trip is a passage.** PostgSail's export is a list of positions, about one a minute; the first position of each
+  trip carries its `trip` (name, distance, duration). A trip starts at each of those, and ends with the position before
+  the next. A trip with a single position is left out.
+- **What comes across.** The trip's start and end (its first and last position), the track with the speed, course,
+  heading and wind of each position, the places from the trip name (`"<departure> → <arrival>"` — a trip renamed since
+  has none, and its places are named from their position, pending geocoding), the engine and sail periods from each
+  position's `status` (`motoring` is engine, `sailing` is sail, `moored` is not under way), and instrument snapshots
+  taken as live: at departure, at arrival and on the clock every hour by default (`--observation-interval`), with air
+  and water temperature, and depth and pressure where PostgSail has them, and the fuel level of the first position as
+  the tank noted at departure (`tanklevel` is the fuel tank), and its voltage and state of charge as the house battery.
+- **Places.** A name is tied to the known place within the matching radius, else to one of the same name within 500 m —
+  an anchorage is not left at the same spot twice — else made a place of its own.
+- **Units.** PostgSail gives speeds and wind speeds in knots, angles in degrees and temperatures in kelvin; the script
+  converts to Signal K's units. A pressure under 2000 is taken as hectopascals, and converted to pascals.
+- **Not imported:** notes, and the distance PostgSail computed — Chiplog sums it over the track, as for any passage,
+  which lands within a few percent.
+- **Safe to repeat.** The API refuses a passage that overlaps one on record (`409 entry_overlaps`); the script counts it
+  as already there and goes on, so a run interrupted by the network is finished by running it again. Any other failure
+  stops the run, since the next passage would most likely fail the same way.
+- **Administrator only**, like deleting a passage: a token given with `--token`, or `--user` and `--password` to sign
+  in.
+- **Imported passages are final.** They are closed by neither detection nor the crew, so a departure soon after one
+  never reopens it (§4.2). Their landmarks are fetched like any other passage's (§4.13); their tide and weather
+  forecasts (§4.5.2, §4.5.3) are not, the departure being long past.
+
 ## 5. Data model and API
 
 The data model has been refined into a precise schema: the authoritative DDL lives in
@@ -734,6 +766,7 @@ _(This MVP breakdown is a proposal — to be validated with you before committin
 | Passage animation                                  | A page over a date range, all its passages in sequence with the port time skipped; a renderer of our own on a canvas rather than Leaflet, a zoom per passage at a ~32 km working scale widened by at most one level, time-driven interpolation, 1 h of sailing per second at x1 (x0.5–x4), 30 fps, entirely in the browser (§4.12) |
 | Statistics                                         | One page over a date range with period shortcuts; longest non-stop stretch measured between stopovers; countries taken from geocoded places, worked out in the background (§4.14)                                                                                                                                                  |
 | Landmark bearings                                  | Every journal position also read against the nearest amer, from OpenStreetMap through Overpass, fetched by half-degree cell and kept; the bearing computed at read time, the amer chosen by distance relative to its kind's range; shown in grey under the coordinates on the passage page and in the PDF (§4.13)                  |
+| Import from PostgSail                              | A script over the REST API (`POST /entries`, admin), a passage per trip, refused when it overlaps one on record so it can be run again; fuel level and house battery kept as the boat's state at departure (§4.15)                                                                                                                 |
 | MP4 export                                         | WebCodecs H.264 plus a vendored Mediabunny (one self-contained ES module covering encoder and container, MPL-2.0, imported lazily); five shapes up to 1920×1080; `mp4-muxer` was set aside as deprecated and muxer-only; hidden when the browser has no WebCodecs (§4.12)                                                          |
 
 ### Remaining minor points (non-blocking for starting)

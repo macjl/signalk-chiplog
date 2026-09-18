@@ -19,6 +19,7 @@ npm run format        # prettier --write .
 npm run format:check  # prettier --check .
 node scripts/vendor.js  # refresh public/vendor/ (also run by `prepare` on npm install)
 npm run demo:seed -- <data dir>  # four demo passages around La Rochelle, dated relative to now
+npm run import:postgsail -- <trips.geojson> --url <server> [--token <token>]  # PostgSail GeoJSON export, through the API
 ```
 
 `scripts/seed-demo.js` writes straight into `<data dir>/chiplog.sqlite` (for a Signal K install:
@@ -28,8 +29,8 @@ active passage — so extend it alongside new UI features; `test/seed-demo.test.
 
 Tests use Node's built-in `node:test` — no framework dependency, matching the `node:sqlite` choice. `test/helpers.js`
 starts the plugin behind a real Express 4 app (the version signalk-server uses) with a router that mimics the server's
-`asPluginRouter`, recording the access level of each route. Tests seed data by writing SQL directly, since no API route
-creates entries.
+`asPluginRouter`, recording the access level of each route. Tests seed data by writing SQL directly; the only API route
+that creates entries is `POST /entries`, the import.
 
 A husky `pre-commit` hook runs `lint-staged`, which applies `eslint --fix` and `prettier --write` to staged files.
 Commits therefore reformat staged code automatically.
@@ -56,6 +57,11 @@ modules, and maps errors to responses. The resource modules (`entries`, `events`
 `manoeuvre-types`, `track`, `landmarks`, `statistics`, `export`) take a `db` and plain values, run SQL, return
 `camelCase` objects, and throw `ApiError` (`lib/errors.js`) for not-found and conflict cases. Unit conversion to
 nautical units happens only in `lib/formats.js`, for human-facing exports.
+
+`lib/passage-import.js` adds a finished passage recorded elsewhere (`POST /entries`, SPEC §4.15): one transaction,
+refused when it overlaps a passage on record. `scripts/import-postgsail.js` is its client for PostgSail GeoJSON exports
+— a plain Node script that reaches the logbook only through the API, so it works against a remote server; keep it that
+way. `test/passage-import.test.js` covers both.
 
 `lib/detection.js` is the passage state machine; SPEC §4.2 describes its behaviour. `index.js` runs its `tick()` every
 15 seconds and reports the outcome as the plugin status. Within that tick and transaction, `lib/propulsion-detector.js`

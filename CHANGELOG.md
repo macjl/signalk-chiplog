@@ -6,6 +6,14 @@ All notable changes to Chiplog are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Import a PostgSail logbook.** `node scripts/import-postgsail.js <trips.geojson> --url <server>` reads PostgSail's
+  GeoJSON export and adds each trip as a passage — track, wind, engine and sail periods, place names, fuel level, house
+  battery, instrument snapshots — through the API, so the logbook can be on the boat's server. It is safe to run again:
+  a passage already on record is skipped. The route it uses, `POST /entries` (administrator), adds any finished passage
+  and answers `409 entry_overlaps` when it overlaps one on record. See the README's _Importing from PostgSail_.
+
 ## [2.4.0] - 2026-09-18
 
 ### Added
