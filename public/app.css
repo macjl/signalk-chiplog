@@ -809,24 +809,124 @@ main {
 
 /* Export */
 
-.date-range {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.date-range label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
 /* Statistics */
 .presets {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
   margin-bottom: 1rem;
+}
+
+/* The range picker: a button, and a calendar dropping from it. */
+.range-picker {
+  position: relative;
+  display: inline-block;
+}
+
+button.range-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.range-popover {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 0.4rem);
+  left: 0;
+  width: min(20rem, calc(100vw - 2rem));
+  padding: 0.75rem;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+}
+
+.cal-header {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.cal-title {
+  flex: 1;
+  text-align: center;
+  text-transform: capitalize;
+}
+
+button.cal-nav {
+  padding: 0.3rem 0.6rem;
+  background: none;
+  border-color: var(--border);
+  color: var(--accent);
+}
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  row-gap: 2px;
+  text-align: center;
+}
+
+.cal-weekday {
+  color: var(--muted);
+  font-size: 0.75rem;
+  padding-bottom: 0.25rem;
+}
+
+/* Days run into each other along a row, so a range reads as one band. */
+button.cal-day {
+  height: 2.5rem;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  color: var(--text);
+}
+
+button.cal-today {
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+button.cal-in-range {
+  background: var(--bg);
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+button.cal-start,
+button.cal-end {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+button.cal-start {
+  border-radius: 8px 0 0 8px;
+}
+
+button.cal-end {
+  border-radius: 0 8px 8px 0;
+}
+
+button.cal-start.cal-end {
+  border-radius: 8px;
+}
+
+.cal-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.cal-hint {
+  font-size: 0.85rem;
 }
 
 button.preset {

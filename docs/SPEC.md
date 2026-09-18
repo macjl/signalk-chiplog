@@ -624,10 +624,17 @@ coordinates themselves stay as they are.
 
 A page of its own (`#/statistics`, "Statistics" in the main menu) sums the logbook up over a period: `GET /statistics`.
 
-- **The period** is two dates, both days included — the passages are matched on their start time, like the log, the
+- **The period** is a range of days, both included — the passages are matched on their start time, like the log, the
   export and the animation — with shortcuts for _all time_, _this month_, _last month_, _the last 12 months_, and this
-  year and last year, labelled by their number. Picking a shortcut fills the dates, and the dates being typed switch the
-  highlighted shortcut off. Local days, so the page and the log agree on where a night falls.
+  year and last year, labelled by their number. Beside them, a single range picker shows the period and opens a calendar
+  to pick it with two clicks, the first and the last day, in whichever order, with the range shown as a band under the
+  pointer before the second click; it moves by month and by year, and Escape or a click outside abandons a range
+  half-picked. Picking a shortcut fills the picker, and picking a range there switches the highlighted shortcut off.
+  Local days, so the page and the log agree on where a night falls. The calendar is our own, not a library: the webapp
+  has no build step and never loads from a CDN, and it starts its weeks on Monday. It is the one control every date
+  range of the webapp is picked with — the animation (§4.12), the export (§4.5) and the retrospective analysis (§4.10)
+  too, replacing a pair of date fields, so a reversed range cannot be entered. Where any date is allowed (everywhere but
+  the retrospective, which needs both ends) the calendar has an _Any date_ button to clear the range.
 - **The figures**: number of passages, the dates of the first and of the last, total distance, total time under way
   (each passage's elapsed time, stops within it included), top speed and strongest wind. Speeds are the highest reading
   in the passage's track and instrument snapshots; the wind is true wind, or apparent where a passage never had a true

@@ -218,24 +218,29 @@ Open **Chiplog** from the Signal K webapps, or `/signalk-chiplog/`. Reading need
   - close a passage in progress, e.g. to confirm an arrival;
   - merge with the previous or next passage;
   - delete a passage (admin).
-- **Statistics** — the logbook summed up over a period, picked as two dates or with a shortcut (all time, this month,
-  last month, the last 12 months, this year, last year): number of passages, the dates of the first and the last, total
-  distance, time under way, top speed and strongest wind, the longest passage without a stop (a passage with a stopover
-  counts as its stretches between stops) with its distance and time, the flags of the countries visited, and the top 5
-  passages by duration, distance, average speed, top speed and wind. Countries come from the place names, so they need
-  geocoding enabled and the boat online now and then; places named before this existed fill in by themselves.
-- **Animation** — pick two dates and every passage between them replays on the map, one after another, the port time
-  skipped. The map follows the boat at a scale chosen for each passage — a short hop kept readable rather than
-  magnified, a long crossing allowed a wider view but never so wide the boat crawls across empty water — while a bubble
-  shows the speed, the distance covered since the start and the date. Play, pause and a slider over the animation's own
-  time, at ×0,5, ×1, ×2 or ×4. **Export MP4** saves it as a video in one of five shapes (Mobile 9:16, Portrait 3:4,
-  Square 1:1, Landscape 4:3, Widescreen 16:9). Everything happens in the browser: nothing is rendered or encoded on the
-  Signal K server, and the map tiles are the only thing downloaded.
+- **Statistics** — the logbook summed up over a period: a shortcut (all time, this month, last month, the last 12
+  months, this year, last year) or a range picked in a calendar with two clicks, the first and the last day. It gives
+  the number of passages, the dates of the first and the last, total distance, time under way, top speed and strongest
+  wind, the longest passage without a stop (a passage with a stopover counts as its stretches between stops) with its
+  distance and time, the flags of the countries visited, and the top 5 passages by duration, distance, average speed,
+  top speed and wind. Countries come from the place names, so they need geocoding enabled and the boat online now and
+  then; places named before this existed fill in by themselves.
+- **Animation** — pick a period and every passage in it replays on the map, one after another, the port time skipped.
+  The map follows the boat at a scale chosen for each passage — a short hop kept readable rather than magnified, a long
+  crossing allowed a wider view but never so wide the boat crawls across empty water — while a bubble shows the speed,
+  the distance covered since the start and the date. Play, pause and a slider over the animation's own time, at ×0,5,
+  ×1, ×2 or ×4. **Export MP4** saves it as a video in one of five shapes (Mobile 9:16, Portrait 3:4, Square 1:1,
+  Landscape 4:3, Widescreen 16:9). Everything happens in the browser: nothing is rendered or encoded on the Signal K
+  server, and the map tiles are the only thing downloaded.
 - **Export** — download the whole logbook or a date range as a PDF logbook to print, JSON, CSV or GPX, and write the
   abandon-ship copy to the USB drive now (admin). The PDF is written in the webapp's language and the device's time
   zone.
 - **Retrospective** (admin) — reconstruct past passages for a date range from an InfluxDB history (see
   [Retrospective analysis](#retrospective-analysis-)).
+
+Every date range in the webapp — Statistics, Animation, Export and Retrospective — is picked the same way: one button
+showing the period, and a calendar under it where two clicks, the first and the last day, make the range. Statistics has
+shortcuts beside it; where any date is allowed, the calendar has an _Any date_ button to clear the range.
 
 **Helm entry** in the top bar opens the tablet entry app.
 

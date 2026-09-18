@@ -11,6 +11,7 @@ import { SPEEDS } from '../animation/schedule.mjs';
 import { buildLegs, buildStoryboard, stateAt } from '../animation/storyboard.mjs';
 import { createTileCache, TILE_LAYERS } from '../animation/tiles.mjs';
 import { AnimationExport } from './AnimationExport.mjs';
+import { DateRangePicker } from './DateRangePicker.mjs';
 import { ErrorNotice } from './common.mjs';
 
 const TRACK_CONCURRENCY = 4;
@@ -78,7 +79,6 @@ export function AnimationView({ from: initialFrom, to: initialTo }) {
     cache.current = createTileCache();
   }
 
-  const invalid = Boolean(from && to && to < from);
   const videoFormat = formatById(formatId);
   const layers = useMemo(
     () => (seamarks ? TILE_LAYERS : TILE_LAYERS.filter((layer) => layer.id !== 'seamarks')),
@@ -308,20 +308,17 @@ export function AnimationView({ from: initialFrom, to: initialTo }) {
 
     <section class="card">
       <p>${t('animation.intro')}</p>
-      <div class="date-range">
-        <label>
-          ${t('animation.from')}
-          <input type="date" value=${from} onInput=${(event) => setFrom(event.currentTarget.value)} />
-        </label>
-        <label>
-          ${t('animation.to')}
-          <input type="date" value=${to} onInput=${(event) => setTo(event.currentTarget.value)} />
-        </label>
-      </div>
-      ${invalid && html`<p class="notice notice-error">${t('animation.invalidRange')}</p>`}
+      <${DateRangePicker}
+        from=${from}
+        to=${to}
+        label=${t('range.period')}
+        onChange=${(range) => {
+          setFrom(range.from);
+          setTo(range.to);
+        }}
+      />
       ${
         summary &&
-        !invalid &&
         html`<p class="muted">
           ${t('animation.summary', {
             passages: summary.count,
@@ -331,7 +328,7 @@ export function AnimationView({ from: initialFrom, to: initialTo }) {
         </p>`
       }
       <div class="actions">
-        <button type="button" disabled=${invalid || loading !== null} onClick=${load}>
+        <button type="button" disabled=${loading !== null} onClick=${load}>
           ${t('animation.load')}
         </button>
       </div>

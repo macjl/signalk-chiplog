@@ -2,6 +2,7 @@ import { html, useState } from '../../vendor/preact-htm.mjs';
 import { apiUrl, get, request } from '../api.mjs';
 import { useLocale, usePolling } from '../context.mjs';
 import { rangeBoundary } from '../days.mjs';
+import { DateRangePicker } from './DateRangePicker.mjs';
 import { ErrorNotice } from './common.mjs';
 
 const PLUGIN_CONFIGURATION = '/admin/#/serverConfiguration/plugins/signalk-chiplog';
@@ -108,7 +109,6 @@ export function ExportView() {
   const [writing, setWriting] = useState(false);
   const [status, setStatus] = useState(null);
   const [version, setVersion] = useState(0);
-  const invalid = Boolean(from && to && to < from);
 
   usePolling(
     (isCurrent) => {
@@ -140,31 +140,21 @@ export function ExportView() {
 
     <section class="card">
       <p>${t('export.intro')}</p>
-      <div class="date-range">
-        <label>
-          ${t('export.from')}
-          <input
-            type="date"
-            value=${from}
-            onInput=${(event) => setFrom(event.currentTarget.value)}
-          />
-        </label>
-        <label>
-          ${t('export.to')}
-          <input type="date" value=${to} onInput=${(event) => setTo(event.currentTarget.value)} />
-        </label>
-      </div>
+      <${DateRangePicker}
+        from=${from}
+        to=${to}
+        label=${t('range.period')}
+        onChange=${(range) => {
+          setFrom(range.from);
+          setTo(range.to);
+        }}
+      />
       <p class="muted">${t('export.allHint')}</p>
-      ${invalid && html`<p class="notice notice-error">${t('export.invalidRange')}</p>`}
       <ul class="downloads">
         ${['pdf', 'json', 'csv', 'gpx'].map(
           (format) =>
             html`<li key=${format}>
-              ${
-                invalid
-                  ? html`<span class="muted">${t(`export.${format}`)}</span>`
-                  : html`<a href=${exportUrl(format, from, to, language)} download>${t(`export.${format}`)}</a>`
-              }
+              <a href=${exportUrl(format, from, to, language)} download>${t(`export.${format}`)}</a>
             </li>`
         )}
       </ul>

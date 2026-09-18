@@ -1,6 +1,7 @@
 import { html, useState } from '../../vendor/preact-htm.mjs';
 import { get, request } from '../api.mjs';
 import { useLocale, usePolling } from '../context.mjs';
+import { DateRangePicker } from './DateRangePicker.mjs';
 import { ErrorNotice } from './common.mjs';
 
 const PLUGIN_CONFIGURATION = '/admin/#/serverConfiguration/plugins/signalk-chiplog';
@@ -113,7 +114,6 @@ export function ReplayView() {
   const [status, setStatus] = useState(null);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState(null);
-  const invalid = Boolean(from && to && to < from);
 
   usePolling(
     (isCurrent) => {
@@ -159,27 +159,17 @@ export function ReplayView() {
 
     <section class="card">
       <p>${t('replay.intro')}</p>
-      <div class="date-range">
-        <label>
-          ${t('export.from')}
-          <input
-            type="date"
-            value=${from}
-            disabled=${running}
-            onInput=${(event) => setFrom(event.currentTarget.value)}
-          />
-        </label>
-        <label>
-          ${t('export.to')}
-          <input
-            type="date"
-            value=${to}
-            disabled=${running}
-            onInput=${(event) => setTo(event.currentTarget.value)}
-          />
-        </label>
-      </div>
-      ${invalid && html`<p class="notice notice-error">${t('export.invalidRange')}</p>`}
+      <${DateRangePicker}
+        from=${from}
+        to=${to}
+        label=${t('range.period')}
+        allowAny=${false}
+        disabled=${running}
+        onChange=${(range) => {
+          setFrom(range.from);
+          setTo(range.to);
+        }}
+      />
       ${
         notConfigured &&
         html`<p class="notice notice-error">
@@ -194,7 +184,7 @@ export function ReplayView() {
       <div class="replay-actions">
         <button
           type="button"
-          disabled=${!from || !to || invalid || starting || running}
+          disabled=${!from || !to || starting || running}
           onClick=${start}
         >
           ${t('replay.start')}

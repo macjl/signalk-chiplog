@@ -8,11 +8,15 @@ All notable changes to Chiplog are documented here. The format follows
 
 ### Added
 
-- **A Statistics page** sums the logbook up over a period picked as two dates or with a shortcut — all time, this month,
-  last month, the last 12 months, this year, last year: number of passages, first and last dates, total distance, time
-  under way, top speed, strongest wind, the longest passage without a stop (a passage is cut at its stopovers, each
+- **A Statistics page** sums the logbook up over a period: number of passages, first and last dates, total distance,
+  time under way, top speed, strongest wind, the longest passage without a stop (a passage is cut at its stopovers, each
   stretch measured on its own), the flags of the countries visited, and the top 5 passages by duration, distance,
-  average speed, top speed and wind. It reads `GET /statistics`.
+  average speed, top speed and wind. The period is a shortcut — all time, this month, last month, the last 12 months,
+  this year, last year — or a range picked in a calendar with two clicks, the first and the last day. It reads
+  `GET /statistics`.
+- **One range picker for every date range** in the webapp: the Animation, Export and Retrospective pages use the same
+  calendar — two clicks, the first and the last day — instead of a pair of date fields, so a range with its end before
+  its start can no longer be entered.
 - **Places now know their country** (`countryCode` on `GET /places`), from the same geocoding lookup that names them;
   places saved earlier, or added by hand, are asked about in the background once pending names are done. Database
   migration 16.

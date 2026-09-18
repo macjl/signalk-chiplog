@@ -9,6 +9,7 @@ import {
   RANGE_PRESETS,
   rangeQuery
 } from '../statistics.mjs';
+import { DateRangePicker } from './DateRangePicker.mjs';
 import { ErrorNotice, Loading, passageTitle } from './common.mjs';
 
 // The two years whose numbers label their own shortcuts; the months are words.
@@ -22,14 +23,14 @@ function presetLabel(preset, t, today) {
   return t(`statistics.range.${preset}`);
 }
 
-function PeriodPicker({ from, to, onChange, invalid }) {
+function PeriodPicker({ from, to, onChange }) {
   const { t } = useLocale();
   const today = new Date();
   const active = activePreset(from, to, today);
 
   return html`
-    <section class="card" aria-label=${t('statistics.period')}>
-      <div class="presets" role="group" aria-label=${t('statistics.period')}>
+    <section class="card" aria-label=${t('range.period')}>
+      <div class="presets" role="group" aria-label=${t('range.period')}>
         ${RANGE_PRESETS.map(
           (preset) => html`
             <button
@@ -44,25 +45,7 @@ function PeriodPicker({ from, to, onChange, invalid }) {
           `
         )}
       </div>
-      <div class="date-range">
-        <label>
-          ${t('statistics.from')}
-          <input
-            type="date"
-            value=${from}
-            onInput=${(event) => onChange({ from: event.currentTarget.value, to })}
-          />
-        </label>
-        <label>
-          ${t('statistics.to')}
-          <input
-            type="date"
-            value=${to}
-            onInput=${(event) => onChange({ from, to: event.currentTarget.value })}
-          />
-        </label>
-      </div>
-      ${invalid && html`<p class="notice notice-error">${t('statistics.invalidRange')}</p>`}
+      <${DateRangePicker} from=${from} to=${to} onChange=${onChange} label=${t('range.period')} />
     </section>
   `;
 }
@@ -219,12 +202,8 @@ export function StatisticsView() {
   const [attempt, setAttempt] = useState(0);
 
   const { from, to } = range;
-  const invalid = Boolean(from && to && to < from);
 
   useEffect(() => {
-    if (invalid) {
-      return undefined;
-    }
     let current = true;
     const query = rangeQuery(from, to);
     setLoading(true);
@@ -240,11 +219,11 @@ export function StatisticsView() {
     return () => {
       current = false;
     };
-  }, [from, to, invalid, attempt]);
+  }, [from, to, attempt]);
 
   return html`
     <h1 class="page-title">${t('statistics.title')}</h1>
-    <${PeriodPicker} from=${from} to=${to} invalid=${invalid} onChange=${setRange} />
+    <${PeriodPicker} from=${from} to=${to} onChange=${setRange} />
     <${ErrorNotice} error=${error} onRetry=${() => setAttempt(attempt + 1)} />
     ${!stats && !error && html`<${Loading} />`}
     ${
