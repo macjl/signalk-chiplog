@@ -491,9 +491,9 @@ boat already has in InfluxDB 1.x, written there by [signalk-to-influxdb](https:/
   replay from a different Signal K server than the one that wrote the history, e.g. development against a production
   database. Before fetching anything, the actual context values found in the database are checked against it: none
   matching fails with what was found instead of a replay that runs to completion and reconstructs nothing, silently.
-- **Every InfluxDB query is bounded to 30 s.** Node's `fetch` has no timeout of its own, so an unreachable or overloaded
-  database would otherwise hang far longer than that for an error no clearer once it arrived — a bare "fetch failed"
-  instead of the actual connection problem.
+- **Every InfluxDB query is bounded, 30 s by default (`influxQueryTimeoutSeconds`).** Node's `fetch` has no timeout of
+  its own, so an unreachable or overloaded database would otherwise hang far longer than that for an error no clearer
+  once it arrived — a bare "fetch failed" instead of the actual connection problem.
 - **One reconstruction at a time**, run in the background from the webapp: `POST /replay` starts it and returns
   immediately, `GET /replay` reports progress (including which phase is in flight), `POST /replay/cancel` stops one in
   flight, fetching or replaying (`lib/replay-job.js`).

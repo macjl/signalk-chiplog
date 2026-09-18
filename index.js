@@ -256,6 +256,14 @@ module.exports = function (app) {
         enum: ['http', 'https'],
         default: INFLUX_DEFAULTS.influxProtocol
       },
+      influxQueryTimeoutSeconds: {
+        type: 'number',
+        title: 'InfluxDB query timeout (seconds)',
+        description:
+          'Each retrospective query is given up on and reported as an error past this, rather than hanging indefinitely against an unreachable or overloaded database',
+        default: INFLUX_DEFAULTS.influxQueryTimeoutSeconds,
+        minimum: 1
+      },
       influxSelfContext: {
         type: 'string',
         title: 'InfluxDB vessel context',
@@ -384,6 +392,8 @@ module.exports = function (app) {
         influxUsername: config.influxUsername || null,
         influxPassword: config.influxPassword || null,
         influxProtocol: config.influxProtocol || INFLUX_DEFAULTS.influxProtocol,
+        influxQueryTimeoutSeconds:
+          config.influxQueryTimeoutSeconds ?? INFLUX_DEFAULTS.influxQueryTimeoutSeconds,
         influxSelfContext: config.influxSelfContext || null
       };
 

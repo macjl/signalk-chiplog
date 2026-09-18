@@ -348,6 +348,7 @@ In the Signal K admin, **Apps & Plugins → Configuration → Chiplog**.
 | InfluxDB database                                                | —                                             |                                                                                                                                                                                  |
 | InfluxDB username / password                                     | —                                             | Leave empty if the database needs none.                                                                                                                                          |
 | InfluxDB protocol                                                | http                                          | `http` or `https`.                                                                                                                                                               |
+| InfluxDB query timeout                                           | 30 s                                          | Each retrospective query gives up and reports an error past this, instead of hanging against an unreachable or overloaded database.                                              |
 | InfluxDB vessel context                                          | this server's own                             | Only needed running the replay from a different Signal K server than the one that wrote the history, e.g. development pointed at a production database.                          |
 
 ## Signal K data used 🔌
@@ -497,9 +498,10 @@ context** in the plugin configuration.
 ### A retrospective analysis takes minutes then fails with no clear reason
 
 The InfluxDB server did not answer — unreachable, overloaded, a firewall or a VPN not connected. Each query now gives up
-after 30 seconds with the connection problem it ran into, rather than hanging until some far longer, less informative
-failure; check that the server named in the plugin configuration is reachable from wherever Signal K runs, and that it
-is not overloaded.
+after **InfluxDB query timeout** (30 seconds by default) with the connection problem it ran into, rather than hanging
+until some far longer, less informative failure; check that the server named in the plugin configuration is reachable
+from wherever Signal K runs, and that it is not overloaded — or raise the timeout if it is simply slow to answer a
+six-hour chunk.
 
 ### A retrospective analysis over several days makes the InfluxDB server unresponsive
 

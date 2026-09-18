@@ -253,6 +253,23 @@ describe('InfluxDB history', () => {
     await assert.rejects(influx.preload(T0, T0 + MINUTE), /did not answer within 30s/);
   });
 
+  it('honours a configured query timeout', async () => {
+    const influx = createInfluxHistory({
+      host: 'unreachable.example.com',
+      port: 8086,
+      database: 'signalk',
+      selfContext: 'vessels.self',
+      queryTimeoutSeconds: 5,
+      fetch: async () => {
+        const err = new Error('The operation was aborted');
+        err.name = 'TimeoutError';
+        throw err;
+      }
+    });
+
+    await assert.rejects(influx.preload(T0, T0 + MINUTE), /did not answer within 5s/);
+  });
+
   it('surfaces the real cause of a connection failure, not just "fetch failed"', async () => {
     const influx = createInfluxHistory({
       host: 'unreachable.example.com',

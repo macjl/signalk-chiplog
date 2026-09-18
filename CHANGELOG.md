@@ -6,6 +6,12 @@ All notable changes to Chiplog are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **InfluxDB query timeout** setting (`influxQueryTimeoutSeconds`, 30 s by default): how long a retrospective replay
+  waits for the InfluxDB server to answer before giving up on it as unreachable or overloaded, now configurable instead
+  of a fixed 30 seconds — useful against a Raspberry Pi that is simply slow to answer a six-hour chunk.
+
 ### Fixed
 
 - **Retrospective replay backfilling a gap before passages already logged live** no longer dated every reconstructed
