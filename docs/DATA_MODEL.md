@@ -177,6 +177,13 @@ The gazetteer behind SPEC §4.8. `source` is `geocoding` (proposed by the online
 it, so it wins on subsequent passages). It doubles as the geocoding cache: a departure or arrival within the radius of
 any place, whatever its source, is named from it without a request.
 
+`country_code` (migration 16) is the country the place is in, an upper-case ISO 3166-1 alpha-2 code, for the statistics
+page's list of countries visited (SPEC §4.14). It is stored on the place and reached from an entry through
+`start_place_id` / `end_place_id`, not copied onto the entry as a name is: it is a fact about the place rather than part
+of the logbook's record, so deleting a place takes it away from the passages that used it. `country_checked` says the
+lookup has been made — a place with no country (open water) must not be asked about again, and a place saved before the
+migration, or added by hand, starts unchecked and is filled in by the background chain that names pending departures.
+
 On `log_entries`, `start_place_pending` and `end_place_pending` (migration 3) flag a name generated from coordinates
 that online geocoding has yet to answer for. They are cleared when the lookup resolves or finds nothing to name, and as
 soon as someone sets the name. A pending name follows a corrected position: the generated name is regenerated and the

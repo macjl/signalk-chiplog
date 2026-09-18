@@ -218,6 +218,12 @@ Open **Chiplog** from the Signal K webapps, or `/signalk-chiplog/`. Reading need
   - close a passage in progress, e.g. to confirm an arrival;
   - merge with the previous or next passage;
   - delete a passage (admin).
+- **Statistics** — the logbook summed up over a period, picked as two dates or with a shortcut (all time, this month,
+  last month, the last 12 months, this year, last year): number of passages, the dates of the first and the last, total
+  distance, time under way, top speed and strongest wind, the longest passage without a stop (a passage with a stopover
+  counts as its stretches between stops) with its distance and time, the flags of the countries visited, and the top 5
+  passages by duration, distance, average speed, top speed and wind. Countries come from the place names, so they need
+  geocoding enabled and the boat online now and then; places named before this existed fill in by themselves.
 - **Animation** — pick two dates and every passage between them replays on the map, one after another, the port time
   skipped. The map follows the boat at a scale chosen for each passage — a short hop kept readable rather than
   magnified, a long crossing allowed a wider view but never so wide the boat crawls across empty water — while a bubble
@@ -410,6 +416,8 @@ at the time.
 - **Place names.** With geocoding on, the position of each departure and arrival that matches no known place is sent to
   the geocoding service — OpenStreetMap's public Nominatim by default. Nothing else is sent, and nothing at all when it
   is off.
+- **Countries.** With geocoding on, a place whose country is not known yet has its position sent to the geocoding
+  service once, to ask which country it is in. Nothing at all when it is off.
 - **Landmarks.** With them on, the area a passage sailed through — a half-degree box, not its track — is sent to the
   Overpass service, OpenStreetMap's public instance by default, once per area ever. Nothing at all when it is off.
 - **Tide forecast.** With it on, the departure position of each passage is sent to the tide service — the public

@@ -6,6 +6,17 @@ All notable changes to Chiplog are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **A Statistics page** sums the logbook up over a period picked as two dates or with a shortcut — all time, this month,
+  last month, the last 12 months, this year, last year: number of passages, first and last dates, total distance, time
+  under way, top speed, strongest wind, the longest passage without a stop (a passage is cut at its stopovers, each
+  stretch measured on its own), the flags of the countries visited, and the top 5 passages by duration, distance,
+  average speed, top speed and wind. It reads `GET /statistics`.
+- **Places now know their country** (`countryCode` on `GET /places`), from the same geocoding lookup that names them;
+  places saved earlier, or added by hand, are asked about in the background once pending names are done. Database
+  migration 16.
+
 ## [2.3.1] - 2026-09-18
 
 ### Added

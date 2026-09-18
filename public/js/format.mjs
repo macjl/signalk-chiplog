@@ -33,6 +33,12 @@ export function createFormatter({ locale, units, timeZone }) {
     month: 'short',
     timeZone
   });
+  const dateFormat = new Intl.DateTimeFormat(locale, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone
+  });
   // Logbooks keep time on the 24-hour clock, whatever the language.
   const timeFormat = new Intl.DateTimeFormat(locale, {
     hour: '2-digit',
@@ -128,6 +134,8 @@ export function createFormatter({ locale, units, timeZone }) {
         : '',
     day: (date) => dayFormat.format(date),
     shortDate: (value) => shortDateFormat.format(new Date(value)),
+    // With the year, for figures that span seasons.
+    date: (value) => dateFormat.format(new Date(value)),
     time: (value) => timeFormat.format(new Date(value)),
     // The calendar day of an instant in the formatter's time zone.
     dayKey: (value) => dayKeyFormat.format(new Date(value)),

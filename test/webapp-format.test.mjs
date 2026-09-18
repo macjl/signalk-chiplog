@@ -14,6 +14,13 @@ describe('display formatting', () => {
     assert.equal(french.distance(1852 * 12.25), '12,3 M');
   });
 
+  it('writes a date with its year, in the locale', () => {
+    const utc = createFormatter({ locale: 'en', units: {}, timeZone: 'UTC' });
+    const paris = createFormatter({ locale: 'fr', units: {}, timeZone: 'UTC' });
+    assert.equal(utc.date('2026-09-13T08:00:00.000Z'), 'Sep 13, 2026');
+    assert.equal(paris.date('2026-09-13T08:00:00.000Z'), '13 sept. 2026');
+  });
+
   it('shows bearings on three digits and apparent angles signed', () => {
     assert.equal(english.bearing(Math.PI / 2), '090°');
     assert.equal(english.bearing(2 * Math.PI - 0.001), '000°');

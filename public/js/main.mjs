@@ -6,6 +6,7 @@ import { ExportView } from './components/ExportView.mjs';
 import { LogView } from './components/LogView.mjs';
 import { PassageView } from './components/PassageView.mjs';
 import { ReplayView } from './components/ReplayView.mjs';
+import { StatisticsView } from './components/StatisticsView.mjs';
 import { StatusBar } from './components/StatusBar.mjs';
 
 function Page({ route }) {
@@ -14,6 +15,9 @@ function Page({ route }) {
   }
   if (route.name === 'export') {
     return html`<${ExportView} />`;
+  }
+  if (route.name === 'statistics') {
+    return html`<${StatisticsView} />`;
   }
   if (route.name === 'animation') {
     // Keyed on the range, so arriving from a passage page with dates in the
@@ -36,6 +40,7 @@ function Shell() {
       </a>
       <nav>
         <a href="#/" aria-current=${current('log')}>${t('nav.log')}</a>
+        <a href="#/statistics" aria-current=${current('statistics')}>${t('nav.statistics')}</a>
         <a href="#/animation" aria-current=${current('animation')}>${t('nav.animation')}</a>
         <a href="#/export" aria-current=${current('export')}>${t('nav.export')}</a>
         <a href="#/replay" aria-current=${current('replay')}>${t('nav.replay')}</a>

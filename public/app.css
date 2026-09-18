@@ -821,6 +821,91 @@ main {
   gap: 0.25rem;
 }
 
+/* Statistics */
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+button.preset {
+  background: var(--surface);
+  color: var(--accent);
+}
+
+button.preset-on {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.statistics-loading {
+  opacity: 0.6;
+}
+
+.longest-facts {
+  margin: 0 0 0.4rem;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.countries {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1.2rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.countries li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.countries .flag {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.ranking {
+  margin: 0;
+  padding-left: 1.4rem;
+}
+
+.ranking li {
+  padding: 0.35rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.ranking li:first-child {
+  border-top: none;
+}
+
+.ranking a {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.ranking-what {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ranking-route {
+  overflow-wrap: anywhere;
+}
+
+.ranking-value {
+  white-space: nowrap;
+}
+
 .downloads {
   padding-left: 1.2rem;
 }

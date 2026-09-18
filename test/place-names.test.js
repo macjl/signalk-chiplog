@@ -27,7 +27,8 @@ const NEAR_MARINA = {
     city: 'La Rochelle',
     municipality: 'La Rochelle',
     county: 'Charente-Maritime',
-    country: 'France'
+    country: 'France',
+    country_code: 'fr'
   }
 };
 const OPEN_SEA = {
@@ -168,6 +169,8 @@ describe('online geocoding', () => {
     const [place] = places();
     assert.equal(place.name, 'La Rochelle (Les Minimes)');
     assert.equal(place.source, 'geocoding');
+    assert.equal(place.country_code, 'FR');
+    assert.equal(place.country_checked, 1);
     assert.equal(entry(id).start_place_id, place.id);
 
     const [{ url, options }] = requests;
@@ -204,6 +207,82 @@ describe('online geocoding', () => {
     assert.equal(entry(id).start_place_name, '46.0500N 1.6000W');
     assert.equal(entry(id).start_place_pending, 0);
     assert.equal(places().length, 0);
+  });
+
+  describe('countries of places', () => {
+    function place(fields = {}) {
+      const now = '2026-09-13T08:00:00.000Z';
+      const { lastInsertRowid } = db
+        .prepare(
+          `INSERT INTO places (name, lat, lon, source, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?)`
+        )
+        .run(
+          fields.name ?? 'Les Minimes',
+          MINIMES.lat,
+          MINIMES.lon,
+          fields.source ?? 'manual',
+          now,
+          now
+        );
+      return Number(lastInsertRowid);
+    }
+    const country = (id) =>
+      db.prepare('SELECT country_code, country_checked FROM places WHERE id = ?').get(id);
+
+    it('fills in a place saved without one, asking at country level', async () => {
+      const id = place();
+      answer = () => jsonResponse(OPEN_SEA);
+
+      const result = await namer().resolveNext();
+
+      assert.equal(result.outcome, 'country');
+      assert.equal(requests[0].url.searchParams.get('zoom'), '3');
+      assert.equal(requests[0].url.searchParams.get('lat'), String(MINIMES.lat));
+      assert.equal(country(id).country_code, 'FR');
+      assert.equal(country(id).country_checked, 1);
+      assert.equal((await namer().resolveNext()).outcome, 'idle');
+      assert.equal(requests.length, 1);
+    });
+
+    it('names pending departures before it looks up any country', async () => {
+      const id = place();
+      pendingDeparture({ lat: 45.9, lon: -1.3 });
+
+      assert.equal((await namer().resolveNext()).outcome, 'resolved');
+      assert.equal(country(id).country_checked, 0);
+      assert.equal((await namer().resolveNext()).outcome, 'country');
+    });
+
+    it('stops asking about a position that has no country', async () => {
+      const id = place();
+      answer = () => jsonResponse({}, 404);
+
+      assert.equal((await namer().resolveNext()).outcome, 'country');
+
+      assert.equal(country(id).country_code, null);
+      assert.equal(country(id).country_checked, 1);
+      assert.equal((await namer().resolveNext()).outcome, 'idle');
+    });
+
+    it('tries again later when the service cannot answer', async () => {
+      const id = place();
+      answer = () => jsonResponse({}, 429);
+
+      const result = await namer().resolveNext();
+
+      assert.equal(result.outcome, 'failed');
+      assert.equal(country(id).country_checked, 0);
+    });
+
+    it('does not ask while geocoding is switched off', async () => {
+      place();
+
+      const result = await namer({ geocodingEnabled: false }).resolveNext();
+
+      assert.equal(result.outcome, 'disabled');
+      assert.equal(requests.length, 0);
+    });
   });
 
   it('treats an unknown position as final, but rate limiting as worth retrying', async () => {

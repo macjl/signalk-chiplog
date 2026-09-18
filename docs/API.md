@@ -111,6 +111,66 @@ Totals across every entry the range matches, not just a loaded page: the number 
 (metres), and the summed elapsed time (seconds) — each entry's `endTime` minus `startTime`, `now` for one still open.
 For a summary line above the day-grouped list.
 
+### `GET /statistics` — `readonly`
+
+Query: `from`/`to`, filtering on `startTime` like `GET /entries`. The figures of the statistics page (SPEC §4.14):
+
+```json
+{
+  "count": 42,
+  "distance": 1234567,
+  "duration": 456789,
+  "firstTime": "2026-03-14T07:30:00.000Z",
+  "lastTime": "2026-09-13T15:47:30.000Z",
+  "maxSpeed": 5.2,
+  "maxWindSpeed": 14.5,
+  "maxWindApparent": false,
+  "longestNonStop": {
+    "entryId": 12,
+    "startTime": "2026-08-02T06:10:00.000Z",
+    "endTime": "2026-08-02T18:40:00.000Z",
+    "distance": 84500,
+    "duration": 45000,
+    "startPlaceName": "La Rochelle (Les Minimes)",
+    "endPlaceName": "Gijón"
+  },
+  "countries": [{ "code": "FR", "firstTime": "2026-03-14T07:30:00.000Z" }],
+  "top": { "duration": [], "distance": [], "averageSpeed": [], "maxSpeed": [], "maxWindSpeed": [] }
+}
+```
+
+- `count`, `distance` (metres) and `duration` (seconds) are those of `GET /entries/stats`; a passage in progress counts
+  up to now everywhere. `firstTime` is the earliest start and `lastTime` the latest end, or `null` when nothing matches.
+- `maxSpeed` and `maxWindSpeed` are in m/s, `null` when no passage has a reading. The wind is true wind, or apparent
+  where a passage had no true one; `maxWindApparent` says which it is for the strongest.
+- `longestNonStop` is the greatest distance of a stretch between two stops — a passage cut at each of its `stopover`
+  events, each stretch measured from its track — or of a whole passage that never stopped. `startTime` of a stretch that
+  follows a stop is the first track point after it. Its place names are those of the passage, or the stopover's. `null`
+  when there is no track distance at all.
+- `countries` lists the upper-case ISO 3166-1 alpha-2 code of every place a departure or arrival in the range was at,
+  each with the time of its first visit, in that order. A place whose country is not known is left out.
+- `top` holds up to five passages for each ranking, the highest first. Each has the same shape:
+
+  ```json
+  {
+    "id": 12,
+    "startTime": "2026-08-02T06:10:00.000Z",
+    "endTime": "2026-08-02T18:40:00.000Z",
+    "startPlaceName": "La Rochelle (Les Minimes)",
+    "endPlaceName": "Gijón",
+    "startPlacePending": false,
+    "endPlacePending": false,
+    "distance": 84500,
+    "duration": 45000,
+    "averageSpeed": 1.9,
+    "maxSpeed": 5.2,
+    "maxWindSpeed": 14.5,
+    "maxWindApparent": false
+  }
+  ```
+
+  `averageSpeed` is `distance` over `duration`. A passage with no value for a ranking's figure is left out of it.
+
 ### `GET /entries/:id` — `readonly`
 
 One entry, with the counts the detail view needs:
@@ -446,6 +506,10 @@ other with it; an escalation from `alarm` to `emergency` is not a pair (both are
 
 The gazetteer, for a management screen, sorted by name — accent- and case-insensitively, so "Île de Ré" sorts among the
 I's. Paginated.
+
+Each place carries `countryCode`, the upper-case ISO 3166-1 alpha-2 code of the country it is in, or `null` while it is
+not known — geocoding is off, or has not answered yet, or the position is not in any country. It is filled in by the
+same background lookup as pending names (SPEC §4.8) and is not editable.
 
 ### `PATCH /places/:id` — `readwrite`
 

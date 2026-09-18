@@ -53,9 +53,9 @@ implementing anything:
 
 `lib/api.js` is the only HTTP-aware module: it parses and validates requests (`lib/validation.js`), calls the resource
 modules, and maps errors to responses. The resource modules (`entries`, `events`, `places`, `propulsion`,
-`manoeuvre-types`, `track`, `landmarks`, `export`) take a `db` and plain values, run SQL, return `camelCase` objects,
-and throw `ApiError` (`lib/errors.js`) for not-found and conflict cases. Unit conversion to nautical units happens only
-in `lib/formats.js`, for human-facing exports.
+`manoeuvre-types`, `track`, `landmarks`, `statistics`, `export`) take a `db` and plain values, run SQL, return
+`camelCase` objects, and throw `ApiError` (`lib/errors.js`) for not-found and conflict cases. Unit conversion to
+nautical units happens only in `lib/formats.js`, for human-facing exports.
 
 `lib/detection.js` is the passage state machine; SPEC §4.2 describes its behaviour. `index.js` runs its `tick()` every
 15 seconds and reports the outcome as the plugin status. Within that tick and transaction, `lib/propulsion-detector.js`

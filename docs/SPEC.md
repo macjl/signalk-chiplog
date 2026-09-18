@@ -431,6 +431,11 @@ the name it recorded.
   wins from then on.
 - **A lookup never overrides the crew.** A result is written only if the name is still pending _for the position that
   was looked up_: a name typed or removed, or a position corrected, while the request was out stays as the crew left it.
+- **The country comes with the place** (§4.14). A geocoded name is stored with the country Nominatim reports for it, as
+  an ISO 3166-1 alpha-2 code. A place with none — added by hand, or saved before countries were recorded — is asked
+  about in the background once the pending names are done, at country level, and marked as checked whether or not there
+  was an answer, so open water is not asked about forever. A country belongs to the place, not to each passage: unlike a
+  name it is not copied onto the entry, and deleting a place takes it away from the passages that used it.
 - **Attribution.** Names from the public instance are OpenStreetMap data (© OpenStreetMap contributors, ODbL); a UI
   displaying them must say so.
 
@@ -615,6 +620,32 @@ coordinates themselves stay as they are.
 - **`landmarksEnabled` turns the whole thing off**, for privacy or to keep the boat off the network; the coordinates are
   then shown alone. Names are OpenStreetMap data (© OpenStreetMap contributors, ODbL) and the webapp says so.
 
+### 4.14 Statistics
+
+A page of its own (`#/statistics`, "Statistics" in the main menu) sums the logbook up over a period: `GET /statistics`.
+
+- **The period** is two dates, both days included — the passages are matched on their start time, like the log, the
+  export and the animation — with shortcuts for _all time_, _this month_, _last month_, _the last 12 months_, and this
+  year and last year, labelled by their number. Picking a shortcut fills the dates, and the dates being typed switch the
+  highlighted shortcut off. Local days, so the page and the log agree on where a night falls.
+- **The figures**: number of passages, the dates of the first and of the last, total distance, total time under way
+  (each passage's elapsed time, stops within it included), top speed and strongest wind. Speeds are the highest reading
+  in the passage's track and instrument snapshots; the wind is true wind, or apparent where a passage never had a true
+  one, and says so.
+- **Longest passage without a stop**, by distance, with the time it took. A passage is cut wherever it stopped over — a
+  lock or a lunch anchorage kept within one entry, or the stop a merge folded away (§3.1) — and each stretch is measured
+  on its own from the track, so a 60 nm passage with a night in the middle counts as its two halves. A passage that
+  never stopped is one stretch, with its own distance and times.
+- **Countries visited**, as flags with their names in the page's language: the countries of the departures and arrivals
+  in the period, in order of first visit (§4.8 says where a place's country comes from). A flag emoji is drawn as its
+  two letters on a platform without flag fonts, which is why the name stays beside it. Passages reaching places whose
+  country is unknown simply do not add one.
+- **Top 5 passages** by duration, distance, average speed (distance over elapsed time), top speed and strongest wind,
+  each linking to its passage page. A passage with no reading for a figure — no wind sensor — is left out of that
+  ranking.
+- **A passage in progress counts as it stands**, up to now, in every figure and ranking, as in the summary above the log
+  (§3.2).
+
 ## 5. Data model and API
 
 The data model has been refined into a precise schema: the authoritative DDL lives in
@@ -688,6 +719,7 @@ _(This MVP breakdown is a proposal — to be validated with you before committin
 | Place matching radius                              | A single global configurable radius (no per-place setting in V1)                                                                                                                                                                                                                                                                   |
 | Place not found (offline, first visit)             | Name generated from coordinates, manually correctable                                                                                                                                                                                                                                                                              |
 | Passage animation                                  | A page over a date range, all its passages in sequence with the port time skipped; a renderer of our own on a canvas rather than Leaflet, a zoom per passage at a ~32 km working scale widened by at most one level, time-driven interpolation, 1 h of sailing per second at x1 (x0.5–x4), 30 fps, entirely in the browser (§4.12) |
+| Statistics                                         | One page over a date range with period shortcuts; longest non-stop stretch measured between stopovers; countries taken from geocoded places, worked out in the background (§4.14)                                                                                                                                                  |
 | Landmark bearings                                  | Every journal position also read against the nearest amer, from OpenStreetMap through Overpass, fetched by half-degree cell and kept; the bearing computed at read time, the amer chosen by distance relative to its kind's range; shown in grey under the coordinates on the passage page and in the PDF (§4.13)                  |
 | MP4 export                                         | WebCodecs H.264 plus a vendored Mediabunny (one self-contained ES module covering encoder and container, MPL-2.0, imported lazily); five shapes up to 1920×1080; `mp4-muxer` was set aside as deprecated and muxer-only; hidden when the browser has no WebCodecs (§4.12)                                                          |
 

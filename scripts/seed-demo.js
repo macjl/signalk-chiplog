@@ -212,6 +212,8 @@ function seedDemoLogbook(db, { now = Date.now() } = {}) {
         lat: place.lat,
         lon: place.lon,
         source: place.source,
+        country_code: 'FR',
+        country_checked: 1,
         created_at: iso(at(10, 9)),
         updated_at: iso(at(10, 9))
       });

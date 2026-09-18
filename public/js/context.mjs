@@ -27,6 +27,9 @@ function parseRoute(hash) {
   if (hash === '#/export') {
     return { name: 'export' };
   }
+  if (hash === '#/statistics') {
+    return { name: 'statistics' };
+  }
   // The dates a passage page hands over travel in the hash; the playback state
   // does not, since every hash change scrolls the page back to the top.
   const animation = hash.match(/^#\/animation(?:\?(.*))?$/);

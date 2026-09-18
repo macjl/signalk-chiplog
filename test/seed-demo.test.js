@@ -118,6 +118,22 @@ describe('demo logbook', () => {
     );
   });
 
+  // The statistics page (SPEC §4.14) needs a country and a figure for every
+  // ranking.
+  it('covers what the statistics page shows', async () => {
+    const { body } = await ctx.request('GET', '/statistics');
+
+    assert.deepEqual(
+      body.countries.map((country) => country.code),
+      ['FR']
+    );
+    assert.equal(body.count, 4);
+    assert.ok(body.longestNonStop.distance > 0);
+    for (const [ranking, passages] of Object.entries(body.top)) {
+      assert.ok(passages.length > 0, ranking);
+    }
+  });
+
   // The animation (SPEC §4.12) strings the range's passages together, so the
   // demo has to offer passages of different sizes and a night in port.
   it('covers what the animation needs', async () => {
