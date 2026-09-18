@@ -274,6 +274,20 @@ module.exports = function (app) {
   };
 
   function runDetection() {
+    // A retrospective replay drives the same detector against a past window,
+    // holding its own passage 'active' in log_entries for as long as it takes
+    // to close it there — live detection, track sampling and event watching
+    // must not touch that row in the meantime, or a live tick would treat a
+    // reconstructed passage as the current one and close it early or splice
+    // live data into it.
+    if (replayJob?.status().running) {
+      const status = 'Retrospective replay in progress — live tracking paused';
+      if (status !== lastStatus) {
+        app.setPluginStatus(status);
+        lastStatus = status;
+      }
+      return;
+    }
     try {
       const outcome = detector.tick();
       usbExport.afterDetection(outcome);
@@ -471,11 +485,19 @@ module.exports = function (app) {
     timers = [
       setInterval(runDetection, TICK_INTERVAL_MS),
       setInterval(
-        guarded('Track recording', () => recorder.sample()),
+        guarded('Track recording', () => {
+          if (!replayJob?.status().running) {
+            recorder.sample();
+          }
+        }),
         SAMPLE_INTERVAL_MS
       ),
       setInterval(
-        guarded('Event watching', () => watcher.check()),
+        guarded('Event watching', () => {
+          if (!replayJob?.status().running) {
+            watcher.check();
+          }
+        }),
         CHECK_INTERVAL_MS
       ),
       setInterval(

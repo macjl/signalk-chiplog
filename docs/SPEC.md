@@ -501,7 +501,10 @@ boat already has in InfluxDB 1.x, written there by [signalk-to-influxdb](https:/
   reconstruction only ever adds passages, never merges into or edits an existing one.
 - **Refuses to run while a passage is under way**, whatever the requested range: the replay drives the same detector,
   track recorder and event watcher as live detection, against the same database, so the two touching the open passage's
-  row at once would corrupt it rather than merely disagree.
+  row at once would corrupt it rather than merely disagree. The same hazard runs the other way while a replay is in
+  progress — it holds its own reconstructed passage `active` in `log_entries` for however long the past window takes to
+  close — so live detection, track sampling and event watching pause for the run's duration rather than mistake that row
+  for the current passage and close it early or splice live data into it.
 - **Known gaps, by what a typical InfluxDB history holds:**
   - Weather thresholds (§4.5) crossed while the vessel lay still outside any window — strong wind or a falling barometer
     at anchor after arrival — are not logged, and each window starts with the barometer's three-hour reference empty, as

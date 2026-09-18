@@ -6,6 +6,13 @@ All notable changes to Chiplog are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- **A retrospective replay running alongside live tracking** could have a live detection tick, track sample or event
+  check land on the passage the replay was reconstructing — mistaking it for the current one, since both read the same
+  `active` row — and close it early or splice live position and instrument data into a past passage. Live detection,
+  track sampling and event watching now pause for as long as a replay is running.
+
 ## [2.3.0] - 2026-09-18
 
 ### Added
