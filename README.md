@@ -1,7 +1,7 @@
 # Chiplog
 
-An automated logbook for [Signal K](https://signalk.org). Chiplog writes the logbook from the data already on your
-boat's Signal K server — passages, track, engine and sail, instrument readings, alarms — and lets the crew add what
+An automated nautical logbook for [Signal K](https://signalk.org). Chiplog writes the logbook from the data already on
+your boat's Signal K server — passages, track, engine and sail, instrument readings, alarms — and lets the crew add what
 sensors cannot know from a tablet at the helm: manoeuvres, notes and handwriting.
 
 - **One entry per passage**, opened when the boat leaves and closed as soon as it arrives, carrying on after short stops
