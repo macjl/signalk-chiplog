@@ -36,7 +36,8 @@
       "./docs/screenshots/04-entry-app.png"
     ],
     "recommends": [
-      "signalk-to-influxdb"
+      "signalk-to-influxdb",
+      "signalk-autostate"
     ]
   },
   "author": "Cedric RICARD <ricard33@gmail.com>",
