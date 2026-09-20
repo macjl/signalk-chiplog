@@ -238,7 +238,7 @@ describe('boat sizes', () => {
     assert.equal(boatSizeById('large').factor, 1);
     assert.equal(boatSizeById('small').factor, 0.5);
     assert.ok(boatSizeById('medium').factor > 0.5 && boatSizeById('medium').factor < 1);
-    assert.equal(DEFAULT_BOAT_SIZE_ID, 'large');
-    assert.equal(boatSizeById('nope').id, 'large');
+    assert.equal(DEFAULT_BOAT_SIZE_ID, 'small');
+    assert.equal(boatSizeById('nope').id, 'small');
   });
 });

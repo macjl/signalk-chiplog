@@ -234,10 +234,10 @@ Open **Chiplog** from the Signal K webapps, or `/signalk-chiplog/`. Reading need
   ×1, ×2 or ×4. **Export MP4** saves it as a video in one of five shapes (Mobile 9:16, Portrait 3:4, Square 1:1,
   Landscape 4:3, Widescreen 16:9). Everything happens in the browser: nothing is rendered or encoded on the Signal K
   server, and the map tiles are the only thing downloaded. **View → 3D** shows the same film, at the map's own scale and
-  with north still at the top, as a camera tilted down onto a 3D sailboat that heels and trims its sails to the wind,
-  with the map laid flat under it; frame it closer or wider than the map and pick the boat's size if you like, and load
-  your own boat as a `.glb` file (bow towards +Z, y up) if you would rather see it. The MP4 export then films the 3D
-  view.
+  with north still at the top, as a camera tilted down onto a 3D sailboat that heels and trims its sails to the wind and
+  rides the waves, with the map laid flat under it; frame it closer or wider than the map and pick the boat's size if
+  you like, and load your own boat as a `.glb` file (bow towards +Z, y up) if you would rather see it. The MP4 export
+  then films the 3D view.
 - **Export** — download the whole logbook or a date range as a PDF logbook to print, JSON, CSV or GPX, and write the
   abandon-ship copy to the USB drive now (admin). The PDF is written in the webapp's language and the device's time
   zone.

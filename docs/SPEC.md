@@ -617,10 +617,14 @@ boat already has in InfluxDB 1.x, written there by [signalk-to-influxdb](https:/
   Both windows are lengths of film, so it smooths as much at x4 as at x0.5. Its position is not smoothed. Heel, pitch
   and sail trim are not in the track and are derived: heel from the apparent and true wind (none without a wind reading,
   at most 22°, greatest on the wind and fading to nothing downwind), the sails let out as the wind comes aft and set on
-  the side away from it, a gentle rocking as a function of film time so an export comes out the same however long it
-  took. The default boat is generated in code — no asset to ship or credit — and the reader may load a `.glb` of their
-  own (bow towards +z, y up, scaled to length from its bounds), kept in that browser's IndexedDB and never sent to the
-  logbook.
+  the side away from it, and a ride over waves — a pitch of a few degrees, a lighter roll either side of the heel and a
+  slight rise and fall, from two swells whose periods do not divide each other so it never quite repeats, bigger the
+  faster the boat goes and the windier it is, none at rest — made up, since the track knows nothing of the sea, as a
+  function of film time so an export comes out the same however long it took. There is no simulated water level: the
+  boat is drawn in a pass of its own after the map, with a fresh depth buffer, so the map can never hide any part of the
+  hull however it heels, pitches or rises — the boat is always whole. The default boat is generated in code — no asset
+  to ship or credit — and the reader may load a `.glb` of their own (bow towards +z, y up, scaled to length from its
+  bounds), kept in that browser's IndexedDB and never sent to the logbook.
 - **3D is loaded on demand and optional.** The engine is three.js, bundled at install time (`scripts/vendor.js`,
   esbuild) into one minified module of the few parts used and imported only when the 3D view is first asked for or
   exported. It needs WebGL 2; without it, or if the context is lost or fails to start, the page says so and returns to

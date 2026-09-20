@@ -15,11 +15,60 @@ export const MAX_HEEL = 22 * DEGREES;
 // True wind at which the heel is at its greatest (17 kn).
 export const FULL_HEEL_WIND = 9;
 
-// A gentle pitch and lift, in film units: one unit is a second of video at x1,
-// so the boat rocks at a pace the eye follows whatever the sailing speed was.
-export const BOB_PERIOD_UNITS = 2.6;
-export const MAX_PITCH = 1.6 * DEGREES;
-export const MAX_ROLL_SWAY = 1.1 * DEGREES;
+// The boat rides waves: it pitches (bow up and down), rolls a little either side of
+// its heel, and rises and falls. The track knows nothing of the sea, so the motion
+// is made up — a sum of two slow swells whose periods do not divide each other, so
+// it never quite repeats and does not read as a metronome — but it is a pure
+// function of the film's own time, in units (a second of video at x1). The pace is
+// then the eye's, whatever the sailing speed was, and an export is the same
+// however long it took to render.
+export const MAX_PITCH = 3.6 * DEGREES;
+export const MAX_ROLL_SWAY = 2.4 * DEGREES;
+// The boat's rise and fall, in boat lengths.
+export const MAX_HEAVE = 0.007;
+
+// Film units a swell takes to pass: the periods of the pitch, the roll and the
+// heave, each with a slower companion. The roll is slower than the pitch, as a
+// boat's is.
+export const WAVE_PERIODS = {
+  pitch: [2.4, 3.9],
+  roll: [3.3, 5.6]
+};
+
+// How much of the sea a swell shows in the pitch and how much its companion adds.
+const MAIN = 0.75;
+const COMPANION = 0.35;
+const NORMALISE = 1 / (MAIN + COMPANION);
+
+function swell([main, companion], at, phase) {
+  return (
+    (MAIN * Math.sin((2 * Math.PI * at) / main + phase) +
+      COMPANION * Math.sin((2 * Math.PI * at) / companion + phase * 2.3 + 1.3)) *
+    NORMALISE
+  );
+}
+
+// Each from -1 to 1.
+export function wavePitch(at) {
+  return swell(WAVE_PERIODS.pitch, at, 0);
+}
+
+export function waveRoll(at) {
+  return swell(WAVE_PERIODS.roll, at, 0.5);
+}
+
+// The boat rises as its bow comes up: a quarter of a swell ahead of the pitch.
+export function waveHeave(at) {
+  return swell(WAVE_PERIODS.pitch, at, Math.PI / 2);
+}
+
+// How much sea there is to ride: none for a boat at rest in port, more the
+// faster it goes, and more again in a breeze. From 0 to 1.
+export function seaState(state) {
+  const way = clamp01((state.sog ?? 0) / 1.5);
+  const breeze = 0.55 + 0.45 * clamp01((state.tws ?? 0) / 10);
+  return way * breeze;
+}
 
 function clamp01(value) {
   return Math.max(0, Math.min(1, value));
@@ -58,14 +107,12 @@ export function sailAngle(awa) {
 // `at` is the film's own time, in units: what the rocking is a function of.
 export function boatPose(state, at, fallbackBearing = 0) {
   const heading = state.heading ?? state.cog ?? fallbackBearing;
-  const phase = (2 * Math.PI * at) / BOB_PERIOD_UNITS;
-  // Only a moving boat rocks; one at rest in port is still.
-  const motion = clamp01((state.sog ?? 0) / 1.5);
+  const sea = seaState(state);
   return {
     heading,
-    heel: heelAngle(state.awa, state.tws) + MAX_ROLL_SWAY * motion * Math.sin(phase * 0.7 + 1),
-    pitch: MAX_PITCH * motion * Math.sin(phase) || 0,
-    lift: 0.004 * motion * Math.sin(phase + 0.6) || 0,
+    heel: heelAngle(state.awa, state.tws) + MAX_ROLL_SWAY * sea * waveRoll(at),
+    pitch: MAX_PITCH * sea * wavePitch(at) || 0,
+    lift: MAX_HEAVE * sea * waveHeave(at) || 0,
     sail: sailAngle(state.awa),
     sailed: Number.isFinite(state.awa)
   };

@@ -182,6 +182,9 @@ export function createRenderer3d(options = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
   renderer.setPixelRatio(1);
   renderer.setClearColor(new THREE.Color(SEA), 1);
+  // The sea and the boat are drawn one after the other, with the depth cleared in
+  // between (see `render`), so the map cannot hide any part of the boat.
+  renderer.autoClear = false;
   canvas.addEventListener?.('webglcontextlost', (event) => {
     event.preventDefault();
     onContextLost?.();
@@ -192,10 +195,17 @@ export function createRenderer3d(options = {}) {
   scene.fog = new THREE.Fog(SEA, 1, 2);
   const camera = new THREE.PerspectiveCamera((FIELD_OF_VIEW * 180) / Math.PI, 1, 1, 10);
 
-  scene.add(new THREE.HemisphereLight('#ffffff', '#7f9fb0', 1.7));
-  const sun = new THREE.DirectionalLight('#fff3e0', 2.6);
-  sun.position.set(-0.5, 1, 0.7);
-  scene.add(sun);
+  // The boat is a scene of its own, lit the same way: the map is a flat plane at
+  // the waterline, and a hull heeling or pitching would otherwise sink into it and
+  // lose parts to it. Drawn after the map with a fresh depth buffer, it is always
+  // whole, and the sea is only ever behind it.
+  const boatScene = new THREE.Scene();
+  for (const target of [scene, boatScene]) {
+    target.add(new THREE.HemisphereLight('#ffffff', '#7f9fb0', 1.7));
+    const sun = new THREE.DirectionalLight('#fff3e0', 2.6);
+    sun.position.set(-0.5, 1, 0.7);
+    target.add(sun);
+  }
 
   const anisotropy = renderer.capabilities.getMaxAnisotropy();
   const unitTile = tileGeometry();
@@ -223,10 +233,16 @@ export function createRenderer3d(options = {}) {
   );
   wake.renderOrder = 5;
 
+  // The wake belongs to the sea, under the track and the boat; it follows the boat
+  // without being part of it.
+  const wakeRoot = new THREE.Group();
+  wakeRoot.add(wake);
+  scene.add(wakeRoot);
+
   const boatRoot = new THREE.Group();
   const boatTilt = new THREE.Group();
-  boatRoot.add(wake, boatTilt);
-  scene.add(boatRoot);
+  boatRoot.add(boatTilt);
+  boatScene.add(boatRoot);
 
   let boat = null;
   let boatKey = null;
@@ -414,6 +430,7 @@ export function createRenderer3d(options = {}) {
 
     // The boat.
     boatRoot.visible = state.boatVisible;
+    wakeRoot.visible = state.boatVisible;
     if (state.boatVisible) {
       const at = toScene(origin, state.lat, state.lon);
       // Posed from the readings averaged over the leg, not the sampled ones: at
@@ -426,6 +443,9 @@ export function createRenderer3d(options = {}) {
       // The model's bow is +z; a compass bearing is clockwise from north, and
       // north is -z.
       boatRoot.rotation.y = Math.PI - posed.heading;
+      wakeRoot.position.set(at.x, 0, at.z);
+      wakeRoot.scale.setScalar(length);
+      wakeRoot.rotation.y = boatRoot.rotation.y;
       boatTilt.rotation.z = posed.heel;
       boatTilt.rotation.x = -posed.pitch;
       boatTilt.position.y = posed.lift;
@@ -501,7 +521,13 @@ export function createRenderer3d(options = {}) {
     scene.fog.far = pose.distance * GROUND_RANGE;
 
     place(sceneData, pose, wanted, origin, metresPerPixel);
+    renderer.setClearColor(SEA, 1);
+    renderer.clear();
     renderer.render(scene, camera);
+    // A fresh depth buffer for the boat: the map's plane at the waterline is not
+    // allowed to cut it.
+    renderer.clearDepth();
+    renderer.render(boatScene, camera);
 
     ctx.drawImage(canvas, 0, 0, width, height);
     const layout = overlayLayout(width, height);
