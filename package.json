@@ -29,7 +29,7 @@
   ],
   "signalk": {
     "displayName": "Chiplog",
-    "appIcon": "./public/icon.svg",
+    "appIcon": "./icon.svg",
     "screenshots": [
       "./docs/screenshots/01-logbook.png",
       "./docs/screenshots/02-passage-tide.png",

@@ -6,6 +6,12 @@ All notable changes to Chiplog are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- The webapp icon now shows on the Signal K Webapps page. `signalk.appIcon` was `./public/icon.svg`, but the server
+  builds the icon URL from the served `public/` folder (`/signalk-chiplog/public/icon.svg`, which does not exist); it is
+  now `./icon.svg`, which the Webapps page and the App Store both resolve.
+
 ## [2.5.0] - 2026-09-18
 
 ### Added
