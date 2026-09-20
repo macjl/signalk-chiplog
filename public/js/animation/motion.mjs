@@ -20,6 +20,7 @@
 // No vendor imports, no DOM: plain Node can test this.
 
 import { worldX, worldY } from './mercator.mjs';
+import { blendAngle } from './storyboard.mjs';
 
 const MS_PER_HOUR = 3_600_000;
 
@@ -168,5 +169,33 @@ export function smoothedMotion(timeline, timeMs, options = {}) {
     awa: smoothedAngle(samples, sigmaMs, (point) => point.awa),
     tws: smoothedValue(samples, sigmaMs, (point) => point.tws),
     sog: smoothedValue(samples, sigmaMs, (point) => point.sog)
+  };
+}
+
+function smoothstep(fraction) {
+  return fraction * fraction * (3 - 2 * fraction);
+}
+
+// The smoothed motion for a frame's state. While the boat is carried from the end
+// of one leg to the start of the next, where it has no track under it, so it turns from the way it was pointing
+// on its arrival to the way it will point on its departure, the wind and speed
+// changing over with it.
+export function motionForState(state, legs) {
+  const leg = legs[state.legIndex];
+  if (!state.carried) {
+    return smoothedMotion(leg.timeline, state.timeMs);
+  }
+  const next = legs[state.nextLegIndex];
+  const from = smoothedMotion(leg.timeline, leg.timeline.endMs);
+  const to = smoothedMotion(next.timeline, next.timeline.startMs);
+  const eased = smoothstep(state.transitionFraction ?? 0);
+  const between = (a, b) => (a === null ? b : b === null ? a : a + (b - a) * eased);
+  return {
+    heading: blendAngle(from.heading, to.heading, eased),
+    // The sails are set for one wind or the other; blending a starboard wind into a
+    // port one would sweep them through amidships.
+    awa: eased < 0.5 ? from.awa : to.awa,
+    tws: between(from.tws, to.tws),
+    sog: between(from.sog, to.sog)
   };
 }

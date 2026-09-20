@@ -8,10 +8,14 @@ All notable changes to Chiplog are documented here. The format follows
 
 ### Changed
 
+- **The boat no longer disappears when a passage leaves from where the last one arrived.** There is then no camera move
+  at all: the boat stays in the frame through the short rest and the next passage starts from it. It is still hidden
+  while the camera flies between two different places.
 - **The animation opens and closes on the whole navigation.** It starts on a view of everything that will be sailed,
   zooms down to the first position in two seconds, and after the last arrival pulls back out to the whole navigation in
-  two seconds. The rest at the end of each passage is shortened to a beat (0.3 s at ×1), so the boat no longer stands
-  still for a second or more between passages.
+  two seconds, the boat not drawn during either move: it appears where the sailing begins. The rest at the end of each
+  passage is shortened to a beat (0.3 s at ×1), so the boat no longer stands still for a second or more between
+  passages.
 
 ### Added
 

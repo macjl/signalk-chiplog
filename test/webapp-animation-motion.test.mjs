@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { SMOOTHING_SIGMA_MS, smoothedMotion } from '../public/js/animation/motion.mjs';
+import {
+  motionForState,
+  SMOOTHING_SIGMA_MS,
+  smoothedMotion
+} from '../public/js/animation/motion.mjs';
+import { buildLegs, buildStoryboard, stateAt } from '../public/js/animation/storyboard.mjs';
 import { createTimeline } from '../public/js/animation/timeline.mjs';
 
 const START = Date.UTC(2026, 8, 14, 6, 0, 0);
@@ -184,6 +189,60 @@ describe('smoothed wind', () => {
         Math.abs(smoothedMotion(timeline, ms).awa) > 0.3,
         `at ${(ms - turnMs) / 60_000} min`
       );
+    }
+  });
+});
+
+describe('motion between legs', () => {
+  const HOUR = 3_600_000;
+  // The second one leaves where the first arrived, and so the boat is carried.
+  const passage = (id, startMs, heading, awa) => {
+    const points = Array.from({ length: 481 }, (unused, i) => ({
+      time: new Date(startMs + i * STEP_MS).toISOString(),
+      lat: 46.15 + (id === 0 ? i : 480) * 0.0002,
+      lon: -1.15 + (id === 0 ? i : 480) * 0.0002,
+      heading,
+      awa,
+      tws: 6,
+      sog: 3
+    }));
+    return { entry: { id }, points };
+  };
+  const legs = buildLegs([passage(0, START, 0.5, 0.7), passage(1, START + 30 * HOUR, 2.5, -0.7)], {
+    width: 1920,
+    height: 1080
+  });
+  const board = buildStoryboard(legs);
+  const move = board.segments.find((segment) => segment.kind === 'hold' && segment.nextIndex === 1);
+
+  it('follows the leg’s own smoothing away from a transition', () => {
+    const state = stateAt(board, move.startUnits - 0.5);
+    assert.deepEqual(
+      motionForState(state, board.legs),
+      smoothedMotion(board.legs[0].timeline, state.timeMs)
+    );
+  });
+
+  it('turns from the arrival heading to the departure heading while carried', () => {
+    const start = motionForState(stateAt(board, move.startUnits), board.legs);
+    const end = motionForState(stateAt(board, move.endUnits - 1e-9), board.legs);
+    const middle = motionForState(
+      stateAt(board, (move.startUnits + move.endUnits) / 2),
+      board.legs
+    );
+    assert.ok(angularDistance(start.heading, 0.5) < 0.05);
+    assert.ok(angularDistance(end.heading, 2.5) < 0.05);
+    assert.ok(middle.heading > 0.5 && middle.heading < 2.5);
+  });
+
+  it('sets the sails for one wind or the other, never amidships between them', () => {
+    for (let step = 0; step <= 20; step += 1) {
+      const state = stateAt(
+        board,
+        move.startUnits + (step / 20) * (move.endUnits - move.startUnits)
+      );
+      const { awa } = motionForState(state, board.legs);
+      assert.ok(Math.abs(awa) > 0.5, `step ${step}: ${awa}`);
     }
   });
 });

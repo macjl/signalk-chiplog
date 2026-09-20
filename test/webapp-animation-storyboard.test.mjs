@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 import { worldScale, worldX, worldY } from '../public/js/animation/mercator.mjs';
 import {
   buildLegs,
+  blendAngle,
   buildStoryboard,
   HOLD_UNITS,
   INTRO_UNITS,
@@ -152,9 +153,9 @@ describe('animation state', () => {
       assert.equal(state.legIndex, 0);
       assert.equal(state.distance, 0);
       assert.equal(state.timeMs, legs[0].timeline.startMs);
-      assert.equal(state.boatVisible, true);
     }
     assert.equal(stateAt(board, legStart).phase, 'leg');
+    assert.equal(stateAt(board, legStart).boatVisible, true);
   });
 
   it('ends at the last arrival with everything covered', () => {
@@ -184,7 +185,7 @@ describe('animation state', () => {
     assert.equal(early.boatVisible, true);
   });
 
-  it('flies the camera between the two framings, without the boat', () => {
+  it('flies the camera between the two framings, the boat gone while it does', () => {
     const move = board.segments.find((segment) => segment.kind === 'transition');
     const middle = stateAt(board, (move.startUnits + move.endUnits) / 2);
     assert.equal(middle.phase, 'transition');
@@ -198,6 +199,14 @@ describe('animation state', () => {
     const arrival = legs[0].timeline.last;
     const departure = legs[1].timeline.first;
     assert.ok(Math.abs(middle.camera.centre.lat - (arrival.lat + departure.lat) / 2) < 1e-9);
+  });
+
+  it('shows the boat again at the next departure once the camera has flown', () => {
+    const move = board.segments.find((segment) => segment.kind === 'transition');
+    assert.equal(stateAt(board, move.startUnits - 1e-6).boatVisible, true);
+    assert.equal(stateAt(board, move.startUnits + 1e-6).boatVisible, false);
+    assert.equal(stateAt(board, move.endUnits + 1e-6).boatVisible, true);
+    assert.equal(stateAt(board, move.endUnits + 1e-6).phase, 'leg');
   });
 
   it('keeps the camera on the boat while sailing, at that passage zoom', () => {
@@ -282,11 +291,25 @@ describe('the opening and closing camera moves', () => {
     assert.ok(Math.abs(sailing.camera.centre.lat - end.camera.centre.lat) < 1e-6);
   });
 
-  it('show the boat at the departure, with nothing sailed, and the clock at the start', () => {
+  it('do not show the boat, which appears where the sailing begins', () => {
+    for (const fraction of [0, 0.5, 0.999]) {
+      const state = stateAt(board, intro.startUnits + fraction * INTRO_UNITS);
+      assert.equal(state.phase, 'intro');
+      assert.equal(state.boatVisible, false, `visible at ${fraction} of the intro`);
+    }
+    assert.equal(stateAt(board, intro.endUnits + 1e-6).boatVisible, true);
+    for (const fraction of [0, 0.5, 1]) {
+      const state = stateAt(board, outro.startUnits + fraction * OUTRO_UNITS);
+      assert.equal(state.phase, 'outro');
+      assert.equal(state.boatVisible, false, `visible at ${fraction} of the outro`);
+    }
+    // And the beat of rest just before it still has it.
+    assert.equal(stateAt(board, outro.startUnits - 1e-6).boatVisible, true);
+  });
+
+  it('start with nothing sailed, and the clock at the start', () => {
     for (const fraction of [0, 0.5, 1]) {
       const state = stateAt(board, intro.startUnits + fraction * INTRO_UNITS);
-      assert.equal(state.phase === 'intro' || fraction === 1, true);
-      assert.equal(state.boatVisible, true);
       assert.equal(state.distance, 0);
       assert.equal(state.timeMs, legs[0].timeline.startMs);
       assert.equal(state.lat, legs[0].timeline.first.lat);
@@ -322,8 +345,7 @@ describe('the opening and closing camera moves', () => {
     const end = stateAt(board, board.totalUnits);
     assert.equal(end.phase, 'outro');
     assert.deepEqual(end.camera, board.overview);
-    // The boat is still there, the clock and the distance say everything is done.
-    assert.equal(end.boatVisible, true);
+    // The clock and the distance say everything is done.
     assert.equal(end.timeMs, lastLeg.timeline.endMs);
     assert.ok(Math.abs(end.distance - board.totalDistance) < 1e-9);
     let previous = Infinity;
@@ -361,5 +383,100 @@ describe('resting between legs', () => {
     assert.ok(HOLD_UNITS < 0.5);
     assert.ok(OVERNIGHT_HOLD_UNITS < 1);
     assert.ok(OVERNIGHT_HOLD_UNITS >= HOLD_UNITS);
+  });
+});
+
+describe('blending headings', () => {
+  it('goes the short way round the circle', () => {
+    const half = blendAngle(0.1, 2 * Math.PI - 0.1, 0.5);
+    assert.ok(Math.min(half, 2 * Math.PI - half) < 1e-9, `${half}`);
+    assert.ok(Math.abs(blendAngle(0, 1, 0.25) - 0.25) < 1e-9);
+  });
+
+  it('keeps either end at its own value', () => {
+    assert.ok(Math.abs(blendAngle(1, 2, 0) - 1) < 1e-9);
+    assert.ok(Math.abs(blendAngle(1, 2, 1) - 2) < 1e-9);
+  });
+
+  it('makes do with whichever heading is known', () => {
+    assert.equal(blendAngle(null, 2, 0.5), 2);
+    assert.equal(blendAngle(1, undefined, 0.5), 1);
+    assert.equal(blendAngle(null, null, 0.5), null);
+  });
+});
+
+// The second passage leaves where the first arrived: the boat stays put.
+function sameHarbourBoard() {
+  const first = passage(1, DAY, 2, { lat: 46.15, lon: -1.15 });
+  const arrival = first.points[first.points.length - 1];
+  const second = passage(2, DAY + 30 * HOUR, 3, { lat: arrival.lat, lon: arrival.lon });
+  const legs = buildLegs([first, second], FRAME);
+  return { legs, board: buildStoryboard(legs, FRAME) };
+}
+
+describe('a stop where the boat leaves from where it arrived', () => {
+  const { legs, board } = sameHarbourBoard();
+  const hold = board.segments.find((segment) => segment.kind === 'hold');
+
+  it('has no camera move: the rest carries straight on to the next leg', () => {
+    assert.equal(board.segments.filter((segment) => segment.kind === 'transition').length, 0);
+    assert.equal(hold.nextIndex, 1);
+    assert.equal(hold.units, OVERNIGHT_HOLD_UNITS);
+  });
+
+  it('never takes the boat out of the frame between the two legs', () => {
+    const from = board.segments.find((segment) => segment.kind === 'leg').startUnits;
+    const to = board.segments.filter((segment) => segment.kind === 'leg').at(-1).endUnits;
+    for (let units = from; units <= to; units += 0.05) {
+      assert.equal(stateAt(board, units).boatVisible, true, `hidden at ${units}`);
+    }
+  });
+
+  it('carries the boat and the camera across to the next leg’s start, turning it', () => {
+    const departure = legs[1].timeline.sample(legs[1].timeline.startMs);
+    const arrival = legs[0].timeline.sample(legs[0].timeline.endMs);
+    const start = stateAt(board, hold.startUnits);
+    const end = stateAt(board, hold.endUnits);
+    assert.ok(Math.abs(start.lat - arrival.lat) < 1e-9);
+    assert.ok(Math.abs(end.lat - departure.lat) < 1e-9);
+    assert.ok(Math.abs(end.lon - departure.lon) < 1e-9);
+    assert.ok(Math.abs(start.heading - arrival.heading) < 1e-9);
+    assert.ok(Math.abs(end.heading - departure.heading) < 1e-9);
+    // The boat is at the middle of the frame, on the camera's own target.
+    for (const state of [start, stateAt(board, hold.startUnits + hold.units / 2), end]) {
+      assert.equal(state.lat, state.camera.centre.lat);
+      assert.equal(state.lon, state.camera.centre.lon);
+    }
+  });
+
+  it('eases the zoom to the next leg’s, so the leg starts without a jump', () => {
+    const end = stateAt(board, hold.endUnits);
+    assert.equal(end.camera.zoom, legs[1].frame.zoom);
+    const sailing = stateAt(board, hold.endUnits + 1e-6);
+    assert.equal(sailing.phase, 'leg');
+    assert.ok(Math.abs(sailing.camera.zoom - end.camera.zoom) < 1e-9);
+    assert.ok(Math.abs(sailing.camera.centre.lat - end.camera.centre.lat) < 1e-6);
+    assert.ok(Math.abs(sailing.camera.centre.lon - end.camera.centre.lon) < 1e-6);
+  });
+
+  it('is not sailing while it does: the clock and the trip meter stand still', () => {
+    const middle = stateAt(board, hold.startUnits + hold.units / 2);
+    assert.equal(middle.phase, 'hold');
+    assert.equal(middle.timeMs, legs[0].timeline.endMs);
+    assert.ok(Math.abs(middle.distance - legs[0].timeline.totalDistance) < 1e-9);
+  });
+
+  it('still flies, and hides the boat, between places more than a mile apart', () => {
+    const far = buildStoryboard(
+      buildLegs(
+        [
+          passage(1, DAY, 2, { lat: 46.15, lon: -1.15 }),
+          passage(2, DAY + 30 * HOUR, 2, { lat: 46.4, lon: -1.15 })
+        ],
+        FRAME
+      ),
+      FRAME
+    );
+    assert.equal(far.segments.filter((segment) => segment.kind === 'transition').length, 1);
   });
 });

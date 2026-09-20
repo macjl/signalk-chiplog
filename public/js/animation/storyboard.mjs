@@ -30,6 +30,21 @@ export const OVERNIGHT_GAP_MS = 8 * MS_PER_HOUR;
 // The camera move from one leg's framing to the next.
 export const TRANSITION_UNITS = 0.8;
 
+// Two positions this close are the same place: a boat that leaves where it arrived
+// has nowhere to travel to (SPEC §4.6 uses the same mile for "at the same place").
+export const SAME_PLACE_METRES = 1852;
+
+// Great-circle distance in metres, haversine — the same formula the timeline uses.
+function metresBetween(a, b) {
+  const radians = Math.PI / 180;
+  const dLat = (b.lat - a.lat) * radians;
+  const dLon = (b.lon - a.lon) * radians;
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(a.lat * radians) * Math.cos(b.lat * radians) * Math.sin(dLon / 2) ** 2;
+  return 2 * 6_371_008.8 * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
 // The camera move that opens the film — from the whole of the navigation down to
 // the first position — and the one that closes it, back out to the whole again.
 export const INTRO_UNITS = 2;
@@ -149,8 +164,20 @@ export function buildStoryboard(legs, frame = DEFAULT_FRAME) {
     const next = legs[index + 1];
     if (next) {
       const gap = next.timeline.startMs - leg.timeline.endMs;
-      push({ kind: 'hold', legIndex: index, units: holdUnitsFor(gap) });
-      push({ kind: 'transition', legIndex: index, nextIndex: index + 1, units: TRANSITION_UNITS });
+      if (metresBetween(leg.timeline.last, next.timeline.first) <= SAME_PLACE_METRES) {
+        // Leaving where it arrived: there is nowhere to fly to, so no move — the one
+        // beat of rest carries the boat and the camera across to the next leg's
+        // own framing, and the boat never leaves the frame.
+        push({ kind: 'hold', legIndex: index, nextIndex: index + 1, units: holdUnitsFor(gap) });
+      } else {
+        push({ kind: 'hold', legIndex: index, units: holdUnitsFor(gap) });
+        push({
+          kind: 'transition',
+          legIndex: index,
+          nextIndex: index + 1,
+          units: TRANSITION_UNITS
+        });
+      }
     } else {
       push({ kind: 'hold', legIndex: index, units: HOLD_UNITS });
     }
@@ -179,6 +206,20 @@ function segmentAt(segments, units) {
     }
   }
   return segments[low];
+}
+
+// Two headings blended the short way round the circle. Either may be missing, in
+// which case the other stands; both missing, there is none.
+export function blendAngle(from, to, fraction) {
+  const known = (angle) => angle !== null && angle !== undefined && Number.isFinite(angle);
+  if (!known(from)) {
+    return known(to) ? to : null;
+  }
+  if (!known(to)) {
+    return from;
+  }
+  const difference = ((((to - from) % (2 * Math.PI)) + 3 * Math.PI) % (2 * Math.PI)) - Math.PI;
+  return (((from + difference * fraction) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
 }
 
 // A camera flying from one framing to another, `fraction` of the way, eased.
@@ -230,7 +271,9 @@ export function stateAt(storyboard, units) {
       phase: 'intro',
       legIndex: 0,
       legFraction: 0,
-      boatVisible: true,
+      // A camera coming down from far above: at that scale the boat would be a
+      // dot, and it appears where the sailing begins.
+      boatVisible: false,
       distance: 0,
       camera: flyCamera(
         storyboard.overview,
@@ -270,7 +313,8 @@ export function stateAt(storyboard, units) {
     return {
       ...resting,
       phase: 'outro',
-      boatVisible: true,
+      // The sailing is over and the camera is drawing back from it.
+      boatVisible: false,
       camera: flyCamera(
         { centre: { lat: arrival.lat, lon: arrival.lon }, zoom: leg.frame.zoom },
         storyboard.overview,
@@ -279,7 +323,9 @@ export function stateAt(storyboard, units) {
     };
   }
 
-  if (segment.kind === 'hold') {
+  const next = segment.nextIndex === undefined ? null : legs[segment.nextIndex];
+
+  if (segment.kind === 'hold' && !next) {
     return {
       ...resting,
       phase: 'hold',
@@ -288,25 +334,52 @@ export function stateAt(storyboard, units) {
     };
   }
 
-  const next = legs[segment.nextIndex];
   const departure = next.timeline.sample(next.timeline.startMs);
   const eased = smoothstep(fraction);
   // The two legs were unwrapped from their own first point, so they can sit a
   // whole turn apart; keep the move on the short side of the seam.
   const targetLon = unwrapLongitude(arrival.lon, departure.lon);
+  const centre = {
+    lat: arrival.lat + (departure.lat - arrival.lat) * eased,
+    lon: arrival.lon + (targetLon - arrival.lon) * eased
+  };
+  const camera = {
+    centre,
+    zoom: leg.frame.zoom + (next.frame.zoom - leg.frame.zoom) * eased
+  };
+
+  if (segment.kind === 'hold') {
+    // The boat leaves where it arrived, so it stays: it goes with the camera over
+    // the few yards to where the next leg begins, turning to its heading, while
+    // the zoom eases to that leg's own. It is not sailing — the clock and the trip
+    // meter stand still.
+    return {
+      ...resting,
+      phase: 'hold',
+      boatVisible: true,
+      carried: true,
+      lat: centre.lat,
+      lon: centre.lon,
+      heading: blendAngle(
+        arrival.heading ?? arrival.cog,
+        departure.heading ?? departure.cog,
+        eased
+      ),
+      nextLegIndex: segment.nextIndex,
+      transitionFraction: fraction,
+      camera
+    };
+  }
+
   return {
     ...resting,
     phase: 'transition',
-    // The camera is travelling, not the boat: showing it skating across the
-    // chart would be a lie.
+    // The boat is somewhere else by the time the camera gets there, and skating
+    // it across the chart would be a lie: it goes, and reappears at the next
+    // departure.
     boatVisible: false,
     nextLegIndex: segment.nextIndex,
-    camera: {
-      centre: {
-        lat: arrival.lat + (departure.lat - arrival.lat) * eased,
-        lon: arrival.lon + (targetLon - arrival.lon) * eased
-      },
-      zoom: leg.frame.zoom + (next.frame.zoom - leg.frame.zoom) * eased
-    }
+    transitionFraction: fraction,
+    camera
   };
 }
