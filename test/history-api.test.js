@@ -19,6 +19,12 @@ function fakeProvider(records) {
     },
     async getValues(query) {
       requests.push(query);
+      if (
+        query.pathSpecs.some((spec) => spec.path === 'navigation.position') &&
+        query.pathSpecs.length > 1
+      ) {
+        throw new Error('Query result lengths do not match');
+      }
       const descriptors = [];
       for (const spec of query.pathSpecs) {
         const sources = new Set(
@@ -90,6 +96,13 @@ describe('Signal K History API history', () => {
     assert.equal(provider.requests[0].context, 'vessels.self');
     assert.equal(provider.requests[0].resolution, 15);
     assert.equal(provider.requests[0].sourcePolicy, undefined);
+    assert.ok(
+      provider.requests.every(
+        (query) =>
+          !query.pathSpecs.some((spec) => spec.path === 'navigation.position') ||
+          query.pathSpecs.length === 1
+      )
+    );
   });
 
   it('finds moving intervals from speed and navigation.state', async () => {
