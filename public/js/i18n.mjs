@@ -261,7 +261,12 @@ export const MESSAGES = {
     'animation.boatLoad': 'Use my own boat…',
     'animation.boatReset': 'Use the default boat',
     'animation.boatHint':
-      'A .glb file, bow towards +Z and y up. It stays in this browser and is never sent to the logbook.',
+      'A .glb file, bow towards +Z and y up; name the sails Mainsail and Jib, with their origin on the mast and the forestay, to have them trimmed to the wind. It stays in this browser and is never sent to the logbook.',
+    'animation.boatSailsFound': 'Sails trimmed to the wind: {sails}.',
+    'animation.boatSailsNone':
+      'No sail recognised, so the sails will not move: name them Mainsail and Jib.',
+    'animation.sail.main': 'mainsail',
+    'animation.sail.jib': 'jib',
     'animation.boatTooBig': 'That file is too large: {size} MB at most.',
     'animation.boatInvalid': 'That file could not be read as a 3D model: {message}',
     'animation.boatNotSaved': 'The model is used for now but could not be kept in this browser.',
@@ -767,7 +772,12 @@ export const MESSAGES = {
     'animation.boatLoad': 'Utiliser mon bateau…',
     'animation.boatReset': 'Reprendre le bateau par défaut',
     'animation.boatHint':
-      'Un fichier .glb, étrave vers +Z et y vers le haut. Il reste dans ce navigateur et n’est jamais envoyé au livre de bord.',
+      'Un fichier .glb, étrave vers +Z et y vers le haut ; nommez les voiles Mainsail et Jib (ou GrandVoile et Foc), avec leur origine sur le mât et sur l’étai, pour qu’elles soient réglées selon le vent. Il reste dans ce navigateur et n’est jamais envoyé au livre de bord.',
+    'animation.boatSailsFound': 'Voiles réglées selon le vent : {sails}.',
+    'animation.boatSailsNone':
+      'Aucune voile reconnue, elles ne bougeront pas : nommez-les Mainsail et Jib (ou GrandVoile et Foc).',
+    'animation.sail.main': 'grand-voile',
+    'animation.sail.jib': 'foc',
     'animation.boatTooBig': 'Ce fichier est trop gros : {size} Mo au plus.',
     'animation.boatInvalid': 'Ce fichier n’a pas pu être lu comme un modèle 3D : {message}',
     'animation.boatNotSaved':

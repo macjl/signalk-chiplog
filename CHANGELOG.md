@@ -25,10 +25,11 @@ All notable changes to Chiplog are documented here. The format follows
   with north at the top, seen by a camera tilted down onto a 3D sailboat, with the map laid flat under it. The boat
   follows the general direction of the track rather than every sampled heading, yet turns with it at a tack or a
   headland, heels and trims its sails to the wind, rides the waves with a pitch and a light roll, and you can frame it
-  closer or wider than the map and choose the boat's size. Load your own boat as a `.glb` file and it is used instead,
-  kept in that browser. **Export the video** films whichever view is showing (`-3d` in the file name). The 3D view needs
-  WebGL 2 and is loaded only when asked for; without it, the map view is used. It adds three.js to the vendored
-  libraries (about 600 KB, MIT).
+  closer or wider than the map and choose the boat's size. Load your own boat as a `.glb` file and it is used instead —
+  with its sails trimmed to the wind too, if their nodes are named `Mainsail` and `Jib` (the README has a guide to
+  preparing a model) — kept in that browser. **Export the video** films whichever view is showing (`-3d` in the file
+  name). The 3D view needs WebGL 2 and is loaded only when asked for; without it, the map view is used. It adds three.js
+  to the vendored libraries (about 600 KB, MIT).
 
 ## [2.5.1] - 2026-09-19
 

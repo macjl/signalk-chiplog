@@ -5,6 +5,7 @@
 // the default boat is generated, so there is no asset to ship or to credit.
 
 import * as THREE from '../../vendor/three.min.mjs';
+import { findSails, SAIL_ROLES } from './boat-parts.mjs';
 
 const HULL_STATIONS = [
   // u: along the hull from the stern; half beam; deck height above the water.
@@ -342,11 +343,28 @@ export function normaliseCustomModel(scene) {
   return wrapper;
 }
 
+// The sails a crew's model has, by the names of its nodes: what the boat will
+// trim, as `[{ node, role }]`.
+export function customSails(scene) {
+  return findSails(scene);
+}
+
 export function createCustomBoat(template) {
   const root = template.clone(true);
+  // Each sail turns about the vertical axis through its own origin, from where the
+  // model has it at rest: the crew put the origin on the mast (or the forestay).
+  const sails = customSails(root).map(({ node, role }) => ({
+    node,
+    factor: SAIL_ROLES[role].factor,
+    rest: node.rotation.y
+  }));
   return {
     root,
-    update() {},
+    update(pose) {
+      for (const { node, factor, rest } of sails) {
+        node.rotation.y = rest + pose.sail * factor;
+      }
+    },
     dispose() {}
   };
 }

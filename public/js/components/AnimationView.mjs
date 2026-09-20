@@ -87,7 +87,7 @@ export function AnimationView({ from: initialFrom, to: initialTo }) {
   // nobody who stays on the map ever downloads it.
   const [engine, setEngine] = useState(null);
   const [notice3d, setNotice3d] = useState(null);
-  const [boat, setBoat] = useState({ name: null, problem: null });
+  const [boat, setBoat] = useState({ name: null, sails: [], problem: null });
   const boatInput = useRef(null);
   const webgl = useMemo(() => isWebGL2Supported(), []);
   // Which canvas the 3D renderer is drawing on, so its WebGL context can be let
@@ -358,8 +358,8 @@ export function AnimationView({ from: initialFrom, to: initialTo }) {
         const stored = await loadBoat();
         if (stored && current) {
           try {
-            await loaded.setCustomBoat(stored.buffer.slice(0));
-            setBoat({ name: stored.name, problem: null });
+            const { sails } = await loaded.setCustomBoat(stored.buffer.slice(0));
+            setBoat({ name: stored.name, sails, problem: null });
           } catch {
             // A model that no longer parses is not worth keeping.
             await clearBoat();
@@ -450,9 +450,13 @@ export function AnimationView({ from: initialFrom, to: initialTo }) {
     }
     try {
       const buffer = await file.arrayBuffer();
-      await engine.setCustomBoat(buffer.slice(0));
+      const { sails } = await engine.setCustomBoat(buffer.slice(0));
       const kept = await saveBoat({ name: file.name, buffer });
-      setBoat({ name: file.name, problem: kept ? null : { key: 'animation.boatNotSaved' } });
+      setBoat({
+        name: file.name,
+        sails,
+        problem: kept ? null : { key: 'animation.boatNotSaved' }
+      });
     } catch (failure) {
       setBoat((previous) => ({
         ...previous,
@@ -467,7 +471,7 @@ export function AnimationView({ from: initialFrom, to: initialTo }) {
   const resetBoat = async () => {
     await engine?.setCustomBoat(null);
     await clearBoat();
-    setBoat({ name: null, problem: null });
+    setBoat({ name: null, sails: [], problem: null });
   };
   const state = storyboard ? stateAt(storyboard, units) : null;
   const clock = state ? `${format.shortDate(state.timeMs)} ${format.time(state.timeMs)}` : '';
@@ -671,6 +675,18 @@ export function AnimationView({ from: initialFrom, to: initialTo }) {
                 html`<button type="button" onClick=${resetBoat}>${t('animation.boatReset')}</button>`
               }
               <span class="muted">${t('animation.boatHint')}</span>
+              ${
+                boat.name &&
+                html`<span class="muted">
+                  ${
+                    boat.sails.length > 0
+                      ? t('animation.boatSailsFound', {
+                          sails: boat.sails.map((role) => t(`animation.sail.${role}`)).join(', ')
+                        })
+                      : t('animation.boatSailsNone')
+                  }
+                </span>`
+              }
               ${boat.problem && html`<span class="notice">${t(boat.problem.key, boat.problem.params)}</span>`}
             </div>`
           }

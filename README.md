@@ -238,7 +238,8 @@ Open **Chiplog** from the Signal K webapps, or `/signalk-chiplog/`. Reading need
   only thing downloaded. **View → 3D** shows the same film, at the map's own scale and with north still at the top, as a
   camera tilted down onto a 3D sailboat that heels and trims its sails to the wind and rides the waves, with the map
   laid flat under it; frame it closer or wider than the map and pick the boat's size if you like, and load your own boat
-  as a `.glb` file (bow towards +Z, y up) if you would rather see it. The MP4 export then films the 3D view.
+  as a `.glb` file — sails included — if you would rather see it (see
+  [Your own boat](#your-own-boat-in-the-3d-animation-)). The MP4 export then films the 3D view.
 - **Export** — download the whole logbook or a date range as a PDF logbook to print, JSON, CSV or GPX, and write the
   abandon-ship copy to the USB drive now (admin). The PDF is written in the webapp's language and the device's time
   zone.
@@ -250,6 +251,85 @@ showing the period, and a calendar under it where two clicks, the first and the 
 shortcuts beside it; where any date is allowed, the calendar has an _Any date_ button to clear the range.
 
 **Helm entry** in the top bar opens the tablet entry app.
+
+### Your own boat in the 3D animation ⛵
+
+The 3D view draws a generic sailboat. To see yours instead, use **Boat → Use my own boat…** under the animation and pick
+a `.glb` file. The model is kept in **that browser only** (it is never sent to the logbook or the Signal K server), so
+it has to be loaded again on another device; **Use the default boat** puts the generic one back.
+
+**The file**
+
+|               |                                                                                                                                   |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Format        | Binary glTF 2.0 (`.glb`), one self-contained file — textures embedded                                                             |
+| Size          | 30 MB at most (a few MB is plenty: the boat is small on the film)                                                                 |
+| Not supported | Draco, Meshopt or KTX2 compression. Animations, cameras and lights inside the file are ignored — the view lights the scene itself |
+| Materials     | Ordinary glTF materials. Make the sails **double-sided**, or one face vanishes as they swing                                      |
+
+**Orientation, size and waterline**
+
+- **Y is up and the bow points towards +Z** — the glTF convention. Nothing else says which end is the front, so a boat
+  that sails backwards needs a half turn about the vertical axis before it is exported.
+- **Any unit.** The model is scaled so that its longest horizontal extent — length, or width if that is larger,
+  including a boom or a bowsprit — is one boat length, and centred in plan. A stray helper object far from the boat (a
+  ground plane, a light) enlarges that box and shrinks the boat: delete them before exporting.
+- **The lowest point of the model is taken as the bottom of the keel** and placed a twentieth of the boat's length under
+  the waterline, everything else above. The sea is drawn behind the boat and never cuts into it, so the hull is always
+  whole.
+- **The whole boat turns, heels, pitches and rides the waves** with no work on your part. Its size on screen is set by
+  the _Boat size_ buttons, not by the model.
+
+**Sails that move to the wind**
+
+Name the sail nodes and the view trims them like the default boat's: let out as the wind comes aft, and on the side away
+from it.
+
+| Sail     | Names recognised                                                    | Origin of the node                   | Turns by            |
+| -------- | ------------------------------------------------------------------- | ------------------------------------ | ------------------- |
+| Mainsail | `Mainsail`, `Main`, `Sail_Main`, `GrandVoile`, `GV`                 | On the mast, at the foot of the sail | The full sail angle |
+| Headsail | `Jib`, `Genoa`, `Headsail`, `Foresail`, `Sail_Jib`, `Foc`, `Génois` | On the forestay, at the tack         | 0.8 of it           |
+
+Case, spaces, punctuation and the number a modelling tool adds to a copy (`Mainsail.001`) do not matter.
+
+- **The sail is rotated about the vertical axis through the origin of its node.** Put that origin where the sail should
+  pivot — the mast, or the bow fitting for a jib — not at the middle of the cloth, or it will swing sideways.
+- **Model it at rest on the centreline**, the boom pointing aft (−Z). The view adds the trim angle to whatever rotation
+  the node already has.
+- **The angle** is about half the apparent wind angle, at least 4° and at most 88°, smoothed like the boat's heading.
+  The wind on the starboard side puts the sail to port, and the other way round. Where the track has no wind reading the
+  sails stay on the centreline.
+- **Put the boom, the sail and its fittings inside the sail node** so they turn together. Only the outermost node with a
+  recognised name is turned; anything nested in it goes along.
+- **The cloth is rigid.** It does not billow, and a camber does not swap sides with the tack: model it flat or
+  symmetrical.
+- **Nothing else is animated** — no flag, rudder or propeller.
+
+**From Blender**
+
+1. Model the boat with its bow towards **−Y** and Z up — Blender's own front — so it comes out towards +Z with Y up.
+2. Name the sail objects `Mainsail` and `Jib`.
+3. For each sail, put the 3D cursor on the mast foot (or the tack) and use **Object ▸ Set Origin ▸ Origin to 3D
+   Cursor**. Apply rotation and scale (**Ctrl+A**).
+4. Set the sail material to double-sided (**Backface Culling** off).
+5. **File ▸ Export ▸ glTF 2.0**, format **glTF Binary (.glb)**, **+Y Up** ticked, compression off; lights and cameras
+   need not be included.
+6. Load the file in the animation. The line under the boat says which sails were found — _Sails trimmed to the wind:
+   mainsail, jib_ — or _No sail recognised_ if a name is off.
+
+**When something is wrong**
+
+| What you see                     | Why, and what to do                                                                                           |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| The boat sails backwards         | The bow points towards −Z. Turn the model 180° about the vertical axis and export again                       |
+| The boat lies on its side        | Exported with Z up. Export with **+Y Up**                                                                     |
+| The boat is tiny                 | Something far from it is in the file — a ground plane, a light. Remove it                                     |
+| _No sail recognised_             | The nodes are not named as in the table, or a wrapper node above them has a sail name and hides them          |
+| The sails do not move            | The track has no wind readings (there is no apparent wind angle), or the sail nodes are called something else |
+| A sail swings about an odd point | Its origin is not on the mast or the tack                                                                     |
+| One face of a sail disappears    | The material is single-sided                                                                                  |
+| _That file could not be read_    | It is not a `.glb`, or it uses Draco, Meshopt or KTX2 compression                                             |
+| The model is gone next time      | The browser's site data was cleared, or it is another browser or device. Load it again                        |
 
 ## The tablet entry app 📱
 

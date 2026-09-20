@@ -14,7 +14,12 @@
 // and it is only ever imported lazily.
 
 import * as THREE from '../../vendor/three.min.mjs';
-import { createCustomBoat, createProceduralBoat, normaliseCustomModel } from './boat-model.mjs';
+import {
+  createCustomBoat,
+  createProceduralBoat,
+  customSails,
+  normaliseCustomModel
+} from './boat-model.mjs';
 import { boatPose } from './boat-pose.mjs';
 import {
   BOAT_SHARE,
@@ -531,7 +536,9 @@ export function createRenderer3d(options = {}) {
 }
 
 // The crew's own model is shared by every renderer: parsed once, then cloned
-// into each. `null` puts the default boat back.
+// into each. `null` puts the default boat back. Resolves to what was found in it —
+// `{ sails }`, the kinds of sail (`main`, `jib`) it will trim — so the page can say
+// whether the sails were recognised.
 let customTemplate = null;
 const listeners = new Set();
 
@@ -548,6 +555,9 @@ export async function setCustomBoat(buffer) {
   for (const listener of listeners) {
     listener(customTemplate);
   }
+  return {
+    sails: customTemplate ? [...new Set(customSails(customTemplate).map(({ role }) => role))] : []
+  };
 }
 
 export function onBoatChange(listener) {
