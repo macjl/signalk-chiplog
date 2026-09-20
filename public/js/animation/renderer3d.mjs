@@ -28,6 +28,7 @@ import {
 } from './camera3d.mjs';
 import { drawAttribution, drawBubble, drawMarkerAt, overlayLayout, COLOURS } from './renderer.mjs';
 import { worldX } from './mercator.mjs';
+import { smoothedMotion } from './motion.mjs';
 
 const SEA = '#aad3df';
 
@@ -415,7 +416,10 @@ export function createRenderer3d(options = {}) {
     boatRoot.visible = state.boatVisible;
     if (state.boatVisible) {
       const at = toScene(origin, state.lat, state.lon);
-      const posed = boatPose(state, sceneData.at ?? 0, pose.bearing);
+      // Posed from the readings averaged over the leg, not the sampled ones: at
+      // playback speed the raw headings make the boat shiver.
+      const motion = smoothedMotion(legs[state.legIndex].timeline, state.timeMs);
+      const posed = boatPose({ ...state, ...motion }, sceneData.at ?? 0, pose.bearing);
       const length = pose.distance * BOAT_SHARE * (sceneData.boatSize ?? 1);
       boatRoot.position.set(at.x, 0, at.z);
       boatRoot.scale.setScalar(length);

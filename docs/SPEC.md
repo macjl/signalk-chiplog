@@ -607,12 +607,20 @@ boat already has in InfluxDB 1.x, written there by [signalk-to-influxdb](https:/
   plain sea and the track, as in the map view. The track is a ribbon of constant thickness on screen, finishing exactly
   at the boat rather than at the last recorded point.
 - **A frame is still a pure function of the film.** The camera is the map camera's, so between legs it flies as the map
-  does, with half the tile resolution while it does. Nothing reads a clock or a previous frame. Heel, pitch and sail
-  trim are not in the track and are derived: heel from the apparent and true wind (none without a wind reading, at most
-  22°, greatest on the wind and fading to nothing downwind), the sails let out as the wind comes aft and set on the side
-  away from it, a gentle rocking as a function of film time so an export comes out the same however long it took. The
-  default boat is generated in code — no asset to ship or credit — and the reader may load a `.glb` of their own (bow
-  towards +z, y up, scaled to length from its bounds), kept in that browser's IndexedDB and never sent to the logbook.
+  does, with half the tile resolution while it does. Nothing reads a clock or a previous frame. The boat is posed from
+  readings **smoothed over the leg**, **but not across a turn**: its heading and the wind angle (on the circle) are
+  averaged over about an hour of sailing around the instant, bell-shaped, counting only the readings that point within
+  about 25° of the direction the boat has now (found from a three-minute average and settled by repeating the average
+  around its own result). Wobbles of a few degrees are all alike and are averaged away, so at playback speed the boat
+  does not shiver; the far side of a tack or a headland is not alike, is left out, and the boat turns when the track
+  does, not before and not late, and is never dragged through the wind. Speed and wind strength get the plain average.
+  Both windows are lengths of film, so it smooths as much at x4 as at x0.5. Its position is not smoothed. Heel, pitch
+  and sail trim are not in the track and are derived: heel from the apparent and true wind (none without a wind reading,
+  at most 22°, greatest on the wind and fading to nothing downwind), the sails let out as the wind comes aft and set on
+  the side away from it, a gentle rocking as a function of film time so an export comes out the same however long it
+  took. The default boat is generated in code — no asset to ship or credit — and the reader may load a `.glb` of their
+  own (bow towards +z, y up, scaled to length from its bounds), kept in that browser's IndexedDB and never sent to the
+  logbook.
 - **3D is loaded on demand and optional.** The engine is three.js, bundled at install time (`scripts/vendor.js`,
   esbuild) into one minified module of the few parts used and imported only when the 3D view is first asked for or
   exported. It needs WebGL 2; without it, or if the context is lost or fails to start, the page says so and returns to
