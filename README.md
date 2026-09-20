@@ -227,18 +227,18 @@ Open **Chiplog** from the Signal K webapps, or `/signalk-chiplog/`. Reading need
   distance and time, the flags of the countries visited, and the top 5 passages by duration, distance, average speed,
   top speed and wind. Countries come from the place names, so they need geocoding enabled and the boat online now and
   then; places named before this existed fill in by themselves.
-- **Animation** — pick a period and every passage in it replays on the map, one after another, the port time skipped.
-  The film opens on the whole navigation and zooms down to the first position in two seconds, and pulls back out to the
-  whole navigation at the end. The map follows the boat at a scale chosen for each passage — a short hop kept readable
-  rather than magnified, a long crossing allowed a wider view but never so wide the boat crawls across empty water —
-  while a bubble shows the speed, the distance covered since the start and the date. Play, pause and a slider over the
-  animation's own time, at ×0,5, ×1, ×2 or ×4. **Export MP4** saves it as a video in one of five shapes (Mobile 9:16,
-  Portrait 3:4, Square 1:1, Landscape 4:3, Widescreen 16:9). Everything happens in the browser: nothing is rendered or
-  encoded on the Signal K server, and the map tiles are the only thing downloaded. **View → 3D** shows the same film, at
-  the map's own scale and with north still at the top, as a camera tilted down onto a 3D sailboat that heels and trims
-  its sails to the wind and rides the waves, with the map laid flat under it; frame it closer or wider than the map and
-  pick the boat's size if you like, and load your own boat as a `.glb` file (bow towards +Z, y up) if you would rather
-  see it. The MP4 export then films the 3D view.
+- **Animation** — pick a period (kept in the page's address, so a reload or a shared link keeps it) and every passage in
+  it replays on the map, one after another, the port time skipped. The film opens on the whole navigation and zooms down
+  to the first position in two seconds, and pulls back out to the whole navigation at the end. The map follows the boat
+  at a scale chosen for each passage — a short hop kept readable rather than magnified, a long crossing allowed a wider
+  view but never so wide the boat crawls across empty water — while a bubble shows the speed, the distance covered since
+  the start and the date. Play, pause and a slider over the animation's own time, at ×0,5, ×1, ×2 or ×4. **Export MP4**
+  saves it as a video in one of five shapes (Mobile 9:16, Portrait 3:4, Square 1:1, Landscape 4:3, Widescreen 16:9).
+  Everything happens in the browser: nothing is rendered or encoded on the Signal K server, and the map tiles are the
+  only thing downloaded. **View → 3D** shows the same film, at the map's own scale and with north still at the top, as a
+  camera tilted down onto a 3D sailboat that heels and trims its sails to the wind and rides the waves, with the map
+  laid flat under it; frame it closer or wider than the map and pick the boat's size if you like, and load your own boat
+  as a `.glb` file (bow towards +Z, y up) if you would rather see it. The MP4 export then films the 3D view.
 - **Export** — download the whole logbook or a date range as a PDF logbook to print, JSON, CSV or GPX, and write the
   abandon-ship copy to the USB drive now (admin). The PDF is written in the webapp's language and the device's time
   zone.

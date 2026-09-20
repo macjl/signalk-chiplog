@@ -21,6 +21,39 @@ export function dayKey(date) {
   return `${date.getFullYear()}-${month}-${day}`;
 }
 
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+// The animation page keeps its date range in the hash, so a reload — or a link —
+// lands on the same dates. Both ends are optional; an empty range is the bare
+// route. Playback state is not kept there: every hash change scrolls the page back
+// to the top.
+export function animationHash(from, to) {
+  const params = new URLSearchParams();
+  if (from) {
+    params.set('from', from);
+  }
+  if (to) {
+    params.set('to', to);
+  }
+  const query = params.toString();
+  return `#/animation${query ? `?${query}` : ''}`;
+}
+
+// The range a hash carries, or null when it is not the animation route. Anything
+// that is not a calendar day (a hand-edited link) is left out rather than trusted.
+export function parseAnimationHash(hash) {
+  const match = hash.match(/^#\/animation(?:\?(.*))?$/);
+  if (!match) {
+    return null;
+  }
+  const params = new URLSearchParams(match[1] ?? '');
+  const day = (name) => {
+    const value = params.get(name) ?? '';
+    return DAY.test(value) ? value : '';
+  };
+  return { from: day('from'), to: day('to') };
+}
+
 export function groupByDay(entries, now = Date.now()) {
   const days = new Map();
 

@@ -3,7 +3,7 @@ process.env.TZ = 'Europe/Paris';
 
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { dayKey, groupByDay } from '../public/js/days.mjs';
+import { animationHash, dayKey, groupByDay, parseAnimationHash } from '../public/js/days.mjs';
 
 const entry = (id, startTime, endTime, distance = 1000) => ({ id, startTime, endTime, distance });
 const summary = (days) =>
@@ -77,5 +77,47 @@ describe('grouping passages by day', () => {
 
   it('formats day keys from local dates', () => {
     assert.equal(dayKey(new Date(2026, 0, 5)), '2026-01-05');
+  });
+});
+
+describe('the animation page’s range in the address', () => {
+  it('writes both ends, either one, or nothing', () => {
+    assert.equal(
+      animationHash('2026-09-01', '2026-09-14'),
+      '#/animation?from=2026-09-01&to=2026-09-14'
+    );
+    assert.equal(animationHash('2026-09-01', ''), '#/animation?from=2026-09-01');
+    assert.equal(animationHash('', '2026-09-14'), '#/animation?to=2026-09-14');
+    assert.equal(animationHash('', ''), '#/animation');
+    assert.equal(animationHash(undefined, null), '#/animation');
+  });
+
+  it('reads back what it wrote, so a reload keeps the dates', () => {
+    for (const [from, to] of [
+      ['2026-09-01', '2026-09-14'],
+      ['2026-09-01', ''],
+      ['', '2026-09-14'],
+      ['', '']
+    ]) {
+      assert.deepEqual(parseAnimationHash(animationHash(from, to)), { from, to });
+    }
+  });
+
+  it('is not the animation route for any other hash', () => {
+    assert.equal(parseAnimationHash('#/statistics'), null);
+    assert.equal(parseAnimationHash('#/animations'), null);
+    assert.equal(parseAnimationHash(''), null);
+  });
+
+  it('leaves out anything that is not a calendar day, rather than trusting a hand-edited link', () => {
+    assert.deepEqual(parseAnimationHash('#/animation?from=yesterday&to=2026-09-14'), {
+      from: '',
+      to: '2026-09-14'
+    });
+    assert.deepEqual(parseAnimationHash('#/animation?from=2026-9-1&to=<script>'), {
+      from: '',
+      to: ''
+    });
+    assert.deepEqual(parseAnimationHash('#/animation?other=1'), { from: '', to: '' });
   });
 });

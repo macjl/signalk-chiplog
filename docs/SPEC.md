@@ -557,9 +557,11 @@ boat already has in InfluxDB 1.x, written there by [signalk-to-influxdb](https:/
 ### 4.12 Passage animation and video export
 
 - **A page of its own, over a date range** (`#/animation`), reached from the main menu, plus a link from a passage page
-  that arrives with that passage's days already filled in. A range is sized before anything is downloaded — the number
-  of passages, the distance and the elapsed time come from `GET /entries/stats` — and the tracks are only fetched when
-  the reader asks for them, a few at a time.
+  that arrives with that passage's days already filled in. **The range is kept in the address**
+  (`#/animation?from=…&to=…`, updated in place as it is picked, without a history entry), so reloading the page or
+  sharing the link lands on the same dates; playback is not, since every hash change scrolls the page to the top. A
+  range is sized before anything is downloaded — the number of passages, the distance and the elapsed time come from
+  `GET /entries/stats` — and the tracks are only fetched when the reader asks for them, a few at a time.
 - **Every passage in the range, strung together.** Each passage is a _leg_; the time the boat spent in port is **not**
   played, so three days at a pontoon cost nothing. A leg is followed by a beat on its arrival — 0.3 s at x1, 0.5 s when
   the crew stopped for the night, so the boat never stands still for no reason — and, when the next passage leaves from

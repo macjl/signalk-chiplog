@@ -1,7 +1,7 @@
 import { html, useEffect, useRef, useState } from '../../vendor/preact-htm.mjs';
 import { apiUrl, fetchAll, get, request } from '../api.mjs';
 import { useLocale, usePolling } from '../context.mjs';
-import { dayKey } from '../days.mjs';
+import { animationHash, dayKey } from '../days.mjs';
 import { batteryName, engineHours, engineName, tankName } from '../log-lines.mjs';
 import { elapsedSeconds, ErrorNotice, Loading, PlaceName, passageTitle } from './common.mjs';
 import { CrewCard } from './CrewCard.mjs';
@@ -19,11 +19,7 @@ const ACTIVE_REFRESH_MS = 60 * 1000;
 // The animation is a page of its own, over a date range; a passage links to it
 // with its own days already filled in.
 function animationLink(entry, format) {
-  const params = new URLSearchParams({
-    from: format.dayKey(entry.startTime),
-    to: format.dayKey(entry.endTime ?? Date.now())
-  });
-  return `#/animation?${params}`;
+  return animationHash(format.dayKey(entry.startTime), format.dayKey(entry.endTime ?? Date.now()));
 }
 
 async function findPrevious(entry) {

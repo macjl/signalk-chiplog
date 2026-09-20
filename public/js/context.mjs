@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from '../vendor/preact-htm.mjs';
+import { parseAnimationHash } from './days.mjs';
 import { createFormatter } from './format.mjs';
 import { createTranslator } from './i18n.mjs';
 
@@ -30,12 +31,11 @@ function parseRoute(hash) {
   if (hash === '#/statistics') {
     return { name: 'statistics' };
   }
-  // The dates a passage page hands over travel in the hash; the playback state
-  // does not, since every hash change scrolls the page back to the top.
-  const animation = hash.match(/^#\/animation(?:\?(.*))?$/);
+  // The dates travel in the hash (a passage page hands them over, and the page
+  // keeps them there as they change); the playback state does not.
+  const animation = parseAnimationHash(hash);
   if (animation) {
-    const params = new URLSearchParams(animation[1] ?? '');
-    return { name: 'animation', from: params.get('from') ?? '', to: params.get('to') ?? '' };
+    return { name: 'animation', ...animation };
   }
   return hash === '#/replay' ? { name: 'replay' } : { name: 'log' };
 }

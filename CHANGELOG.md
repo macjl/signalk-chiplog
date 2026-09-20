@@ -8,6 +8,8 @@ All notable changes to Chiplog are documented here. The format follows
 
 ### Changed
 
+- **The animation's date range is kept in the address.** Picking a period updates the page's URL, so reloading the page
+  or sharing the link keeps the same dates.
 - **The boat no longer disappears when a passage leaves from where the last one arrived.** There is then no camera move
   at all: the boat stays in the frame through the short rest and the next passage starts from it. It is still hidden
   while the camera flies between two different places.

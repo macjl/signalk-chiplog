@@ -1,7 +1,7 @@
 import { html, useEffect, useMemo, useRef, useState } from '../../vendor/preact-htm.mjs';
 import { fetchAll, get } from '../api.mjs';
 import { useLocale } from '../context.mjs';
-import { rangeBoundary } from '../days.mjs';
+import { animationHash, rangeBoundary } from '../days.mjs';
 import { trackPoints } from '../track.mjs';
 import { loadBoat, MAX_MODEL_BYTES, saveBoat, clearBoat } from '../animation/boat-store.mjs';
 import { createProjection, visibleTiles } from '../animation/camera.mjs';
@@ -125,6 +125,16 @@ export function AnimationView({ from: initialFrom, to: initialTo }) {
       ? buildStoryboard(legs, { width: videoFormat.width, height: videoFormat.height })
       : null;
   }, [passages, videoFormat.width, videoFormat.height]);
+
+  // Keep the range in the address, so a reload lands on the same dates. Replacing
+  // the entry leaves the back button alone, and sets no `hashchange`, so the page
+  // is neither remounted nor scrolled.
+  useEffect(() => {
+    const hash = animationHash(from, to);
+    if (location.hash !== hash) {
+      history.replaceState(history.state, '', hash);
+    }
+  }, [from, to]);
 
   useEffect(() => {
     let current = true;
