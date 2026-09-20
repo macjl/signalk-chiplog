@@ -179,6 +179,7 @@ describe('InfluxDB history', () => {
       timestamp: new Date(T0).toISOString()
     });
     assert.ok(requests.some((r) => r.q.includes('propulsion.port.revolutions')));
+    assert.deepEqual(influx.readSelfPath('propulsion', T0), { port: {} });
   });
 
   it('filters by the self context and sends basic auth when a username is given', async () => {
