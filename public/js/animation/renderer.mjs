@@ -132,7 +132,9 @@ function drawTracks(ctx, view, scene, layout) {
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
 
-  for (let index = 0; index <= state.legIndex; index += 1) {
+  // Nothing has been sailed yet while the camera is coming down on the start.
+  const drawn = state.phase === 'intro' ? -1 : state.legIndex;
+  for (let index = 0; index <= drawn; index += 1) {
     const leg = legs[index];
     const sailing = index === state.legIndex && state.phase === 'leg';
     ctx.strokeStyle = index === state.legIndex ? COLOURS.track : COLOURS.trackPast;
@@ -185,7 +187,7 @@ function drawPorts(ctx, view, scene, layout) {
     drawMarker(ctx, view, legs[index], 'arrival', layout, legs[index].entry?.endPlaceName);
   }
   // The leg being sailed only gets its arrival marker once it is reached.
-  if (state.phase !== 'leg') {
+  if (state.phase !== 'leg' && state.phase !== 'intro') {
     const leg = legs[state.legIndex];
     drawMarker(ctx, view, leg, 'arrival', layout, leg.entry?.endPlaceName);
   }

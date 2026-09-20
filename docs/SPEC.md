@@ -561,8 +561,16 @@ boat already has in InfluxDB 1.x, written there by [signalk-to-influxdb](https:/
   of passages, the distance and the elapsed time come from `GET /entries/stats` — and the tracks are only fetched when
   the reader asks for them, a few at a time.
 - **Every passage in the range, strung together.** Each passage is a _leg_; the time the boat spent in port is **not**
-  played, so three days at a pontoon cost nothing. A leg is followed by a short rest on its arrival (longer when the
-  crew stopped for the night) and an eased camera move into the next leg's framing.
+  played, so three days at a pontoon cost nothing. A leg is followed by a beat on its arrival — 0.3 s at x1, 0.5 s when
+  the crew stopped for the night, so the boat never stands still for no reason — and an eased camera move into the next
+  leg's framing.
+- **The film opens and closes on the whole navigation.** It starts with the camera framing every leg at once, fitted to
+  the frame, and takes **2 s** (at x1) to come down onto the first position and to the passage's own zoom, where the
+  sailing begins; when the last leg is done it takes another **2 s** to pull back out to the whole navigation, with
+  every track drawn. The zoom is what moves evenly, and the centre is carried along so the place being zoomed towards
+  stays in view as under a pinch instead of sliding across the frame. Nothing has been sailed during the opening, so no
+  track is drawn then. Either move is left out when the passage is already framed as wide as the whole navigation (a
+  single short hop), since it would only be a pause.
 - **A zoom per passage.** The camera follows the boat at a working scale — a reference box about 32 km across, fitted to
   82 % of the frame. A passage smaller than that is shown at the working scale rather than magnified, so a hop across a
   harbour does not dive to street level. A passage larger than it may pull the camera back towards framing the whole

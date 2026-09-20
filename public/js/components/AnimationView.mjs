@@ -121,7 +121,9 @@ export function AnimationView({ from: initialFrom, to: initialTo }) {
       return null;
     }
     const legs = buildLegs(passages, { width: videoFormat.width, height: videoFormat.height });
-    return legs.length > 0 ? buildStoryboard(legs) : null;
+    return legs.length > 0
+      ? buildStoryboard(legs, { width: videoFormat.width, height: videoFormat.height })
+      : null;
   }, [passages, videoFormat.width, videoFormat.height]);
 
   useEffect(() => {

@@ -97,7 +97,8 @@ describe('chase pose', () => {
   });
 
   it('follows the passage’s zoom while sailing', () => {
-    const first = stateAt(storyboard, 1);
+    const legStart = storyboard.segments.find((segment) => segment.kind === 'leg').startUnits;
+    const first = stateAt(storyboard, legStart + 1);
     const pose = chasePose(first, options);
     assert.equal(pose.distance, distanceForZoom(legs[0].frame.zoom, FRAME.height));
   });

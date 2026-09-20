@@ -211,34 +211,6 @@ export function createRenderer3d(options = {}) {
   const unitTile = tileGeometry();
   const tiles = new Map();
   const tracks = new Map();
-  const wakeGeometry = new THREE.BufferGeometry();
-  wakeGeometry.setAttribute(
-    'position',
-    new THREE.Float32BufferAttribute(
-      [-0.04, 0.004, -0.5, 0.04, 0.004, -0.5, 0.16, 0.004, -1.5, -0.16, 0.004, -1.5],
-      3
-    )
-  );
-  wakeGeometry.setIndex([0, 2, 1, 0, 3, 2]);
-  const wake = new THREE.Mesh(
-    wakeGeometry,
-    new THREE.MeshBasicMaterial({
-      color: '#ffffff',
-      transparent: true,
-      opacity: 0.5,
-      depthWrite: false,
-      side: THREE.DoubleSide,
-      fog: false
-    })
-  );
-  wake.renderOrder = 5;
-
-  // The wake belongs to the sea, under the track and the boat; it follows the boat
-  // without being part of it.
-  const wakeRoot = new THREE.Group();
-  wakeRoot.add(wake);
-  scene.add(wakeRoot);
-
   const boatRoot = new THREE.Group();
   const boatTilt = new THREE.Group();
   boatRoot.add(boatTilt);
@@ -366,7 +338,9 @@ export function createRenderer3d(options = {}) {
       track.group.visible = false;
     }
     const halfWidth = ((TRACK_PIXELS * Math.min(width, height)) / 1080) * metresPerPixel * 0.5;
-    for (let index = 0; index <= state.legIndex; index += 1) {
+    // Nothing has been sailed yet while the camera is coming down on the start.
+    const drawn = state.phase === 'intro' ? -1 : state.legIndex;
+    for (let index = 0; index <= drawn; index += 1) {
       const leg = legs[index];
       const track = trackFor(leg);
       const { ribbon } = track;
@@ -430,7 +404,6 @@ export function createRenderer3d(options = {}) {
 
     // The boat.
     boatRoot.visible = state.boatVisible;
-    wakeRoot.visible = state.boatVisible;
     if (state.boatVisible) {
       const at = toScene(origin, state.lat, state.lon);
       // Posed from the readings averaged over the leg, not the sampled ones: at
@@ -443,16 +416,10 @@ export function createRenderer3d(options = {}) {
       // The model's bow is +z; a compass bearing is clockwise from north, and
       // north is -z.
       boatRoot.rotation.y = Math.PI - posed.heading;
-      wakeRoot.position.set(at.x, 0, at.z);
-      wakeRoot.scale.setScalar(length);
-      wakeRoot.rotation.y = boatRoot.rotation.y;
       boatTilt.rotation.z = posed.heel;
       boatTilt.rotation.x = -posed.pitch;
       boatTilt.position.y = posed.lift;
       boat.update(posed);
-      const way = Math.max(0, Math.min(1, (state.sog ?? 0) / 2));
-      wake.visible = way > 0;
-      wake.material.opacity = 0.4 * way;
     }
   }
 
@@ -482,7 +449,7 @@ export function createRenderer3d(options = {}) {
     for (let index = 0; index < state.legIndex; index += 1) {
       mark(legs[index], 'arrival', legs[index].entry?.endPlaceName);
     }
-    if (state.phase !== 'leg') {
+    if (state.phase !== 'leg' && state.phase !== 'intro') {
       mark(legs[state.legIndex], 'arrival', legs[state.legIndex].entry?.endPlaceName);
     }
   }

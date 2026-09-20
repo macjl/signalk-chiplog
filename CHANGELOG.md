@@ -6,6 +6,13 @@ All notable changes to Chiplog are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- **The animation opens and closes on the whole navigation.** It starts on a view of everything that will be sailed,
+  zooms down to the first position in two seconds, and after the last arrival pulls back out to the whole navigation in
+  two seconds. The rest at the end of each passage is shortened to a beat (0.3 s at ×1), so the boat no longer stands
+  still for a second or more between passages.
+
 ### Added
 
 - **A 3D view of the animation.** The Animation page has a new _View_ switch: the same film, at the map's own scale and

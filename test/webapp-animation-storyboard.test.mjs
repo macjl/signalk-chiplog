@@ -1,10 +1,14 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
+import { worldScale, worldX, worldY } from '../public/js/animation/mercator.mjs';
 import {
   buildLegs,
   buildStoryboard,
   HOLD_UNITS,
+  INTRO_UNITS,
+  OUTRO_UNITS,
   OVERNIGHT_HOLD_UNITS,
+  overviewFrame,
   stateAt,
   TRANSITION_UNITS
 } from '../public/js/animation/storyboard.mjs';
@@ -138,13 +142,19 @@ describe('animation state', () => {
   const legs = buildLegs([passage(1, DAY, 2), passage(2, DAY + 30 * HOUR, 3)], FRAME);
   const board = buildStoryboard(legs);
 
+  const legStart = board.segments.find(
+    (segment) => segment.kind === 'leg' && segment.legIndex === 0
+  ).startUnits;
+
   it('starts at the first departure with nothing covered', () => {
-    const state = stateAt(board, 0);
-    assert.equal(state.phase, 'leg');
-    assert.equal(state.legIndex, 0);
-    assert.equal(state.distance, 0);
-    assert.equal(state.timeMs, legs[0].timeline.startMs);
-    assert.equal(state.boatVisible, true);
+    for (const units of [0, legStart]) {
+      const state = stateAt(board, units);
+      assert.equal(state.legIndex, 0);
+      assert.equal(state.distance, 0);
+      assert.equal(state.timeMs, legs[0].timeline.startMs);
+      assert.equal(state.boatVisible, true);
+    }
+    assert.equal(stateAt(board, legStart).phase, 'leg');
   });
 
   it('ends at the last arrival with everything covered', () => {
@@ -191,15 +201,15 @@ describe('animation state', () => {
   });
 
   it('keeps the camera on the boat while sailing, at that passage zoom', () => {
-    const state = stateAt(board, 1);
+    const state = stateAt(board, legStart + 1);
     assert.equal(state.camera.centre.lat, state.lat);
     assert.equal(state.camera.centre.lon, state.lon);
     assert.equal(state.camera.zoom, legs[0].frame.zoom);
   });
 
   it('runs the clock forward within a leg', () => {
-    const early = stateAt(board, 0.5);
-    const late = stateAt(board, 1.5);
+    const early = stateAt(board, legStart + 0.5);
+    const late = stateAt(board, legStart + 1.5);
     assert.ok(late.timeMs > early.timeMs);
     assert.ok(late.timeMs <= legs[0].timeline.endMs);
   });
@@ -207,5 +217,149 @@ describe('animation state', () => {
   it('clamps outside the film rather than running off it', () => {
     assert.deepEqual(stateAt(board, -10), stateAt(board, 0));
     assert.deepEqual(stateAt(board, board.totalUnits + 10), stateAt(board, board.totalUnits));
+  });
+});
+
+// A range wide enough that framing all of it is well beyond the working scale of
+// one passage.
+function wideBoard() {
+  const legs = buildLegs(
+    [
+      passage(1, DAY, 2, { lat: 46.15, lon: -1.15 }),
+      passage(2, DAY + 30 * HOUR, 2, { lat: 47.6, lon: -3.1 })
+    ],
+    FRAME
+  );
+  return { legs, board: buildStoryboard(legs, FRAME) };
+}
+
+describe('the opening and closing camera moves', () => {
+  const { legs, board } = wideBoard();
+  const intro = board.segments[0];
+  const outro = board.segments[board.segments.length - 1];
+
+  it('open with an intro of two seconds, and close with an outro of two', () => {
+    assert.equal(intro.kind, 'intro');
+    assert.equal(intro.units, INTRO_UNITS);
+    assert.equal(INTRO_UNITS, 2);
+    assert.equal(outro.kind, 'outro');
+    assert.equal(outro.units, OUTRO_UNITS);
+    assert.equal(OUTRO_UNITS, 2);
+    assert.equal(board.segments[1].kind, 'leg');
+    assert.equal(outro.endUnits, board.totalUnits);
+  });
+
+  it('start on the whole navigation: every leg is inside the frame', () => {
+    const state = stateAt(board, 0);
+    assert.equal(state.phase, 'intro');
+    assert.deepEqual(state.camera, board.overview);
+    const scale = worldScale(state.camera.zoom);
+    for (const leg of legs) {
+      for (const corner of [
+        [leg.bounds.minLat, leg.bounds.minLon],
+        [leg.bounds.maxLat, leg.bounds.maxLon]
+      ]) {
+        const dx = Math.abs(worldX(corner[1]) - worldX(state.camera.centre.lon)) * scale;
+        const dy = Math.abs(worldY(corner[0]) - worldY(state.camera.centre.lat)) * scale;
+        assert.ok(dx <= FRAME.width / 2 && dy <= FRAME.height / 2, 'a leg is out of the frame');
+      }
+    }
+  });
+
+  it('is wider than the passage framing it comes down to', () => {
+    assert.ok(board.overview.zoom < legs[0].frame.zoom);
+  });
+
+  it('come down onto the first position, at the zoom the leg is sailed at', () => {
+    const end = stateAt(board, intro.endUnits);
+    assert.equal(end.camera.zoom, legs[0].frame.zoom);
+    assert.ok(Math.abs(end.camera.centre.lat - legs[0].timeline.first.lat) < 1e-9);
+    assert.ok(Math.abs(end.camera.centre.lon - legs[0].timeline.first.lon) < 1e-9);
+    // No jump into the leg: the same framing a frame later.
+    const sailing = stateAt(board, intro.endUnits + 1e-6);
+    assert.equal(sailing.phase, 'leg');
+    assert.ok(Math.abs(sailing.camera.zoom - end.camera.zoom) < 1e-9);
+    assert.ok(Math.abs(sailing.camera.centre.lat - end.camera.centre.lat) < 1e-6);
+  });
+
+  it('show the boat at the departure, with nothing sailed, and the clock at the start', () => {
+    for (const fraction of [0, 0.5, 1]) {
+      const state = stateAt(board, intro.startUnits + fraction * INTRO_UNITS);
+      assert.equal(state.phase === 'intro' || fraction === 1, true);
+      assert.equal(state.boatVisible, true);
+      assert.equal(state.distance, 0);
+      assert.equal(state.timeMs, legs[0].timeline.startMs);
+      assert.equal(state.lat, legs[0].timeline.first.lat);
+    }
+  });
+
+  it('zoom in evenly, and keep the first position in view all the way down', () => {
+    const departure = legs[0].timeline.first;
+    let previousZoom = -Infinity;
+    let previousOffset = Infinity;
+    for (let step = 0; step <= 40; step += 1) {
+      const state = stateAt(board, intro.startUnits + (step / 40) * INTRO_UNITS);
+      assert.ok(state.camera.zoom >= previousZoom - 1e-9, 'zoom went back out');
+      previousZoom = state.camera.zoom;
+      // Where the departure lands, in pixels from the middle of the frame: it
+      // homes in on the middle and never wanders off.
+      const scale = worldScale(state.camera.zoom);
+      const offset = Math.hypot(
+        (worldX(departure.lon) - worldX(state.camera.centre.lon)) * scale,
+        (worldY(departure.lat) - worldY(state.camera.centre.lat)) * scale
+      );
+      assert.ok(offset <= previousOffset + 1e-6, `it moved away at step ${step}`);
+      previousOffset = offset;
+    }
+    assert.ok(previousOffset < 1e-3);
+  });
+
+  it('close by pulling back from the last position to the whole navigation', () => {
+    const start = stateAt(board, outro.startUnits);
+    const lastLeg = legs[legs.length - 1];
+    assert.equal(start.camera.zoom, lastLeg.frame.zoom);
+    assert.ok(Math.abs(start.camera.centre.lat - lastLeg.timeline.last.lat) < 1e-9);
+    const end = stateAt(board, board.totalUnits);
+    assert.equal(end.phase, 'outro');
+    assert.deepEqual(end.camera, board.overview);
+    // The boat is still there, the clock and the distance say everything is done.
+    assert.equal(end.boatVisible, true);
+    assert.equal(end.timeMs, lastLeg.timeline.endMs);
+    assert.ok(Math.abs(end.distance - board.totalDistance) < 1e-9);
+    let previous = Infinity;
+    for (let step = 0; step <= 40; step += 1) {
+      const state = stateAt(board, outro.startUnits + (step / 40) * OUTRO_UNITS);
+      assert.ok(state.camera.zoom <= previous + 1e-9, 'zoom went back in');
+      previous = state.camera.zoom;
+    }
+  });
+
+  it('are skipped when the passage is already framed as wide as the whole navigation', () => {
+    const single = buildStoryboard(buildLegs([passage(1, DAY, 2)], FRAME), FRAME);
+    assert.ok(single.segments.every((segment) => segment.kind !== 'intro'));
+    assert.ok(single.segments.every((segment) => segment.kind !== 'outro'));
+    assert.equal(stateAt(single, 0).phase, 'leg');
+  });
+
+  it('take the short way round the world across the antimeridian', () => {
+    const legs = buildLegs(
+      [
+        passage(1, DAY, 2, { lat: -17, lon: 179.4 }),
+        passage(2, DAY + 30 * HOUR, 2, { lat: -18, lon: -179.6 })
+      ],
+      FRAME
+    );
+    const frame = overviewFrame(legs, FRAME);
+    assert.ok(
+      Math.abs(frame.centre.lon) > 175 || frame.centre.lon > 175 || frame.centre.lon < -175
+    );
+  });
+});
+
+describe('resting between legs', () => {
+  it('is a beat, not a pause: well under a second at x1', () => {
+    assert.ok(HOLD_UNITS < 0.5);
+    assert.ok(OVERNIGHT_HOLD_UNITS < 1);
+    assert.ok(OVERNIGHT_HOLD_UNITS >= HOLD_UNITS);
   });
 });

@@ -12,21 +12,28 @@
 //
 // No vendor imports, no DOM: plain Node can test this.
 
-import { passageZoom, trackBounds } from './camera.mjs';
+import { fitZoom, passageZoom, trackBounds, ZOOM_STEP } from './camera.mjs';
 import { unwrapLongitude, worldX, worldY } from './mercator.mjs';
 import { createTimeline } from './timeline.mjs';
 
 const MS_PER_HOUR = 3_600_000;
 
-// How long the boat rests on its arrival before the camera moves on.
-export const HOLD_UNITS = 1.2;
+// How long the boat rests on its arrival before the camera moves on: a beat, not
+// a pause — at x1 an hour of sailing is a second, so a longer rest is a boat
+// standing still for no reason.
+export const HOLD_UNITS = 0.3;
 
-// Longer when the crew stopped for the night: the pause should read as one.
-export const OVERNIGHT_HOLD_UNITS = 2.5;
+// A little longer when the crew stopped for the night: the pause should read as one.
+export const OVERNIGHT_HOLD_UNITS = 0.5;
 export const OVERNIGHT_GAP_MS = 8 * MS_PER_HOUR;
 
 // The camera move from one leg's framing to the next.
 export const TRANSITION_UNITS = 0.8;
+
+// The camera move that opens the film — from the whole of the navigation down to
+// the first position — and the one that closes it, back out to the whole again.
+export const INTRO_UNITS = 2;
+export const OUTRO_UNITS = 2;
 
 function holdUnitsFor(gapMs) {
   return gapMs >= OVERNIGHT_GAP_MS ? OVERNIGHT_HOLD_UNITS : HOLD_UNITS;
@@ -81,7 +88,44 @@ export function buildLegs(passages, { width, height }) {
   return legs;
 }
 
-export function buildStoryboard(legs) {
+const DEFAULT_FRAME = { width: 1920, height: 1080 };
+
+// The framing that takes in every leg at once, or null when there is nothing to
+// take in. Legs were each unwrapped from their own first point, so the bounds of
+// one may sit a whole turn of longitude away from another's: bring them to the
+// side of the first before joining them.
+export function overviewFrame(legs, frame = DEFAULT_FRAME) {
+  if (legs.length === 0) {
+    return null;
+  }
+  const anchor = legs[0].bounds.centreLon;
+  let minLat = Infinity;
+  let maxLat = -Infinity;
+  let minLon = Infinity;
+  let maxLon = -Infinity;
+  for (const { bounds } of legs) {
+    const shift = unwrapLongitude(anchor, bounds.centreLon) - bounds.centreLon;
+    minLat = Math.min(minLat, bounds.minLat);
+    maxLat = Math.max(maxLat, bounds.maxLat);
+    minLon = Math.min(minLon, bounds.minLon + shift);
+    maxLon = Math.max(maxLon, bounds.maxLon + shift);
+  }
+  const bounds = {
+    minLat,
+    maxLat,
+    minLon,
+    maxLon,
+    centreLat: (minLat + maxLat) / 2,
+    centreLon: (minLon + maxLon) / 2
+  };
+  return {
+    zoom: fitZoom(bounds, { width: frame.width, height: frame.height }),
+    centre: { lat: bounds.centreLat, lon: bounds.centreLon }
+  };
+}
+
+// `frame` is the frame's size in pixels, which the overview's zoom depends on.
+export function buildStoryboard(legs, frame = DEFAULT_FRAME) {
   const segments = [];
   let units = 0;
   const push = (segment) => {
@@ -90,6 +134,16 @@ export function buildStoryboard(legs) {
     units += length;
   };
 
+  const overview = overviewFrame(legs, frame);
+  // The camera only pulls back when there is something to pull back to: a passage
+  // already framed as wide as the whole navigation would be a pause.
+  const opens = overview && overview.zoom <= legs[0].frame.zoom - ZOOM_STEP;
+  const last = legs[legs.length - 1];
+  const closes = overview && overview.zoom <= last.frame.zoom - ZOOM_STEP;
+
+  if (opens) {
+    push({ kind: 'intro', legIndex: 0, units: INTRO_UNITS });
+  }
   legs.forEach((leg, index) => {
     push({ kind: 'leg', legIndex: index, units: leg.timeline.durationMs / MS_PER_HOUR });
     const next = legs[index + 1];
@@ -101,8 +155,11 @@ export function buildStoryboard(legs) {
       push({ kind: 'hold', legIndex: index, units: HOLD_UNITS });
     }
   });
+  if (closes) {
+    push({ kind: 'outro', legIndex: legs.length - 1, units: OUTRO_UNITS });
+  }
 
-  return { legs, segments, totalUnits: units, totalDistance: distanceOf(legs) };
+  return { legs, segments, totalUnits: units, totalDistance: distanceOf(legs), overview };
 }
 
 function distanceOf(legs) {
@@ -124,6 +181,33 @@ function segmentAt(segments, units) {
   return segments[low];
 }
 
+// A camera flying from one framing to another, `fraction` of the way, eased.
+//
+// Zoom is what the eye follows, so it is what moves evenly; the centre is then
+// carried along so that the place being zoomed towards (or away from) stays put on
+// screen as it would under a pinch, rather than sliding across the frame — the
+// centre's share of the journey is the share of the distance across the map that
+// the change of scale has covered. The longitudes are brought to the same side of
+// the world first, so the move takes the short way.
+function flyCamera(from, to, fraction) {
+  const eased = smoothstep(fraction);
+  const zoom = from.zoom + (to.zoom - from.zoom) * eased;
+  const towards = to.zoom - from.zoom;
+  // Map distance is in world units per scale: 2^-zoom.
+  const share =
+    Math.abs(towards) < 1e-9
+      ? eased
+      : (2 ** -from.zoom - 2 ** -zoom) / (2 ** -from.zoom - 2 ** -to.zoom);
+  const targetLon = unwrapLongitude(from.centre.lon, to.centre.lon);
+  return {
+    zoom,
+    centre: {
+      lat: from.centre.lat + (to.centre.lat - from.centre.lat) * share,
+      lon: from.centre.lon + (targetLon - from.centre.lon) * share
+    }
+  };
+}
+
 // Where the boat is, what the camera is looking at, and how far the animation
 // has come, at a given instant of the film.
 export function stateAt(storyboard, units) {
@@ -136,6 +220,25 @@ export function stateAt(storyboard, units) {
   const span = segment.endUnits - segment.startUnits;
   const fraction = span > 0 ? (at - segment.startUnits) / span : 0;
   const leg = legs[segment.legIndex];
+
+  if (segment.kind === 'intro') {
+    // Nothing has been sailed yet: the whole navigation, and then the way down to
+    // where it begins.
+    const departure = leg.timeline.sample(leg.timeline.startMs);
+    return {
+      ...departure,
+      phase: 'intro',
+      legIndex: 0,
+      legFraction: 0,
+      boatVisible: true,
+      distance: 0,
+      camera: flyCamera(
+        storyboard.overview,
+        { centre: { lat: departure.lat, lon: departure.lon }, zoom: leg.frame.zoom },
+        fraction
+      )
+    };
+  }
 
   if (segment.kind === 'leg') {
     const point = leg.timeline.sample(leg.timeline.startMs + fraction * leg.timeline.durationMs);
@@ -161,6 +264,20 @@ export function stateAt(storyboard, units) {
     legFraction: 1,
     distance: leg.distanceOffset + leg.timeline.totalDistance
   };
+
+  if (segment.kind === 'outro') {
+    // Everything has been sailed: back out to the whole of it.
+    return {
+      ...resting,
+      phase: 'outro',
+      boatVisible: true,
+      camera: flyCamera(
+        { centre: { lat: arrival.lat, lon: arrival.lon }, zoom: leg.frame.zoom },
+        storyboard.overview,
+        fraction
+      )
+    };
+  }
 
   if (segment.kind === 'hold') {
     return {
