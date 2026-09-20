@@ -67,6 +67,55 @@ describe('replay job', () => {
     assert.throws(() => job.start(iso(T0), iso(T0 + MINUTE)), /InfluxDB/);
   });
 
+  it('uses the Signal K History API without an InfluxDB connection', async () => {
+    ({ db, dataDir } = openDb());
+    const requests = [];
+    const provider = {
+      getPaths: async () => [],
+      getValues: async (query) => {
+        requests.push(query);
+        return { values: query.pathSpecs, data: [] };
+      }
+    };
+    const job = createReplayJob({
+      db,
+      settings: {
+        retrospectiveHistorySource: 'signalk',
+        influxSelfContext: 'vessels.legacy'
+      },
+      app: {
+        selfContext: 'vessels.self',
+        getHistoryApi: async (...args) => {
+          assert.deepEqual(args, []);
+          return provider;
+        }
+      }
+    });
+
+    assert.equal(job.status().configured, true);
+    job.start(iso(T0), iso(T0 + MINUTE));
+    await waitUntilIdle(job);
+
+    assert.equal(job.status().lastError, null);
+    assert.ok(requests.length > 0, 'the provider receives the motion scan');
+    assert.equal(requests[0].context, 'vessels.self');
+    assert.equal(requests[0].sourcePolicy, undefined);
+  });
+
+  it('reports a missing History API instead of leaving the replay running', async () => {
+    ({ db, dataDir } = openDb());
+    const job = createReplayJob({
+      db,
+      settings: { retrospectiveHistorySource: 'signalk' },
+      app: { selfContext: 'vessels.self' }
+    });
+
+    job.start(iso(T0), iso(T0 + MINUTE));
+    await waitUntilIdle(job);
+
+    assert.match(job.status().lastError.message, /does not expose the History API/);
+  });
+
   it('refuses to start while a passage is under way, whatever the requested range', () => {
     ({ db, dataDir } = openDb());
     // Under way now, long after the range being replayed: the point isn't

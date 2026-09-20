@@ -449,7 +449,8 @@ In the Signal K admin, **Apps & Plugins → Configuration → Chiplog**.
 | Heading change hold time                                         | 60 s                                          | How long the new heading must hold before it is logged.                                                                                                                          |
 | Heading change minimum speed                                     | 2 kn                                          | Below this speed over ground, the course is too noisy to log a change.                                                                                                           |
 | Heading change cooldown                                          | 5 min                                         | A new change is logged only once the last one is at least this old.                                                                                                              |
-| InfluxDB host (retrospective analysis)                           | —                                             | Local or remote host of the InfluxDB 1.x database signalk-to-influxdb writes to. Empty turns the retrospective analysis page off.                                                |
+| History source (retrospective analysis)                          | InfluxDB 1.x                                  | Select Signal K History API to use the server's active history provider, such as signalk-to-influxdb2.                                                                           |
+| InfluxDB host (retrospective analysis)                           | —                                             | Shown only for the InfluxDB 1.x legacy source. Local or remote host of the database signalk-to-influxdb writes to. Empty turns the retrospective analysis page off.              |
 | InfluxDB port                                                    | 8086                                          |                                                                                                                                                                                  |
 | InfluxDB database                                                | —                                             |                                                                                                                                                                                  |
 | InfluxDB username / password                                     | —                                             | Leave empty if the database needs none.                                                                                                                                          |
@@ -493,9 +494,13 @@ stopped? The **Retrospective** page (admin access) reconstructs those passages f
 Chiplog runs live — the same thresholds, so a reconstructed passage is one Chiplog would have logged had it been running
 at the time.
 
-- **Requires [signalk-to-influxdb](https://github.com/tkurki/signalk-to-influxdb)** (a recommended companion plugin)
-  already having written the boat's data into an InfluxDB 1.x database — local or on another machine, set in **Apps &
-  Plugins → Configuration**: host, port, database, and a username/password if it needs one.
+- Choose a history source in **Apps & Plugins → Configuration**:
+  - **Signal K History API** (recommended) reads the server's active history provider, such as
+    [signalk-to-influxdb2](https://github.com/tkurki/signalk-to-influxdb2), without database credentials or storage
+    schema assumptions.
+  - **InfluxDB 1.x (legacy)** requires [signalk-to-influxdb](https://github.com/tkurki/signalk-to-influxdb) to have
+    written the boat's data into an InfluxDB 1.x database — local or on another machine — set with host, port, database,
+    and a username/password if it needs one.
 - Pick a **from** and **to** date on the Retrospective page and start it. It runs in the background — the page shows its
   progress — and can be cancelled at any point; a first quick pass finds when the boat moved, and only those stretches
   are then fetched and reconstructed, so weeks in port take next to no time. Once done, the page sums up what it added:
