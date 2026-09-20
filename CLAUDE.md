@@ -183,6 +183,12 @@ has **no build step**: native ES modules (`.mjs`, served as JavaScript) and Prea
   server, not with a DOM test framework.
 - Every user-facing string goes in **both** dictionaries of `public/js/i18n.mjs`; a test fails on a missing key or a
   mismatched `{placeholder}`.
+- The animation's 3D view brings **three.js**, and it cannot be copied like the rest: its add-ons import the bare
+  specifier `'three'`. `scripts/vendor.js` bundles `scripts/three-entry.mjs` with esbuild into one minified
+  `public/vendor/three.min.mjs`, which only `public/js/animation/renderer3d.mjs` and `boat-model.mjs` import — and only
+  `renderer3d.mjs` is ever `import()`ed, lazily, by the page. Add a name to the entry when those modules start using it
+  (`test/webapp-animation-3d-support.test.mjs` fails otherwise). A 3D frame must stay a pure function of the film's
+  state and time, like a 2D one: nothing may read a clock, or an export would differ from the preview.
 - User text is only ever rendered through htm, which escapes it. Leaflet renders string tooltips as HTML, so pass it DOM
   nodes for anything the crew typed (see `TrackMap.mjs`).
 - Prettier leaves `html` templates alone in `public/` (`embeddedLanguageFormatting: off`): htm drops whitespace that

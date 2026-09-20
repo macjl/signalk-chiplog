@@ -3,13 +3,24 @@ import { fetchAll, get } from '../api.mjs';
 import { useLocale } from '../context.mjs';
 import { rangeBoundary } from '../days.mjs';
 import { trackPoints } from '../track.mjs';
+import { loadBoat, MAX_MODEL_BYTES, saveBoat, clearBoat } from '../animation/boat-store.mjs';
 import { createProjection, visibleTiles } from '../animation/camera.mjs';
+import {
+  BOAT_SIZES,
+  boatSizeById,
+  CAMERA_FRAMINGS,
+  DEFAULT_BOAT_SIZE_ID,
+  DEFAULT_FRAMING_ID,
+  framingById,
+  framing3d
+} from '../animation/camera3d.mjs';
 import { DEFAULT_FORMAT_ID, formatById } from '../animation/formats.mjs';
 import { createPlayer } from '../animation/player.mjs';
 import { drawFrame } from '../animation/renderer.mjs';
 import { SPEEDS } from '../animation/schedule.mjs';
 import { buildLegs, buildStoryboard, stateAt } from '../animation/storyboard.mjs';
 import { createTileCache, TILE_LAYERS } from '../animation/tiles.mjs';
+import { isWebGL2Supported } from '../animation/webgl.mjs';
 import { AnimationExport } from './AnimationExport.mjs';
 import { DateRangePicker } from './DateRangePicker.mjs';
 import { ErrorNotice } from './common.mjs';
@@ -69,6 +80,21 @@ export function AnimationView({ from: initialFrom, to: initialTo }) {
   const [speed, setSpeed] = useState(1);
   const [playing, setPlaying] = useState(false);
   const [units, setUnits] = useState(0);
+  const [view, setView] = useState('map');
+  const [framingId, setFramingId] = useState(DEFAULT_FRAMING_ID);
+  const [boatSizeId, setBoatSizeId] = useState(DEFAULT_BOAT_SIZE_ID);
+  // The 3D renderer's module, once loaded: it carries the whole 3D library, so
+  // nobody who stays on the map ever downloads it.
+  const [engine, setEngine] = useState(null);
+  const [notice3d, setNotice3d] = useState(null);
+  const [boat, setBoat] = useState({ name: null, problem: null });
+  const boatInput = useRef(null);
+  const webgl = useMemo(() => isWebGL2Supported(), []);
+  // Which canvas the 3D renderer is drawing on, so its WebGL context can be let
+  // go of when the page is left rather than waiting for the garbage collector.
+  const drawnOn = useRef(null);
+  const engineRef = useRef(null);
+  engineRef.current = engine;
 
   const stage = useRef(null);
   const canvas = useRef(null);
@@ -80,6 +106,9 @@ export function AnimationView({ from: initialFrom, to: initialTo }) {
   }
 
   const videoFormat = formatById(formatId);
+  const mode3d = view === '3d' && engine !== null;
+  const framing = framingById(framingId).factor;
+  const boatSize = boatSizeById(boatSizeId).factor;
   const layers = useMemo(
     () => (seamarks ? TILE_LAYERS : TILE_LAYERS.filter((layer) => layer.id !== 'seamarks')),
     [seamarks]
@@ -136,6 +165,15 @@ export function AnimationView({ from: initialFrom, to: initialTo }) {
     if (!state) {
       return {};
     }
+    if (mode3d) {
+      return framing3d(state, {
+        aspect: videoFormat.width / videoFormat.height,
+        height: videoFormat.height,
+        frameHeight: videoFormat.height * renderScale,
+        layers,
+        factor: framing
+      }).tiles;
+    }
     const projection = createProjection({
       zoom: state.camera.zoom,
       bounds: { centreLat: state.camera.centre.lat, centreLon: state.camera.centre.lon }
@@ -176,7 +214,7 @@ export function AnimationView({ from: initialFrom, to: initialTo }) {
       return;
     }
     const clock = `${format.shortDate(state.timeMs)} ${format.time(state.timeMs)}`;
-    drawFrame(context, {
+    const scene = {
       state,
       legs: storyboard.legs,
       width: size.width,
@@ -184,6 +222,9 @@ export function AnimationView({ from: initialFrom, to: initialTo }) {
       renderScale: size.renderScale,
       cache: cache.current,
       layers,
+      at,
+      framing,
+      boatSize,
       overlay: {
         speedLabel: t('animation.speed'),
         speed: format.speed(state.sog) || '—',
@@ -192,8 +233,35 @@ export function AnimationView({ from: initialFrom, to: initialTo }) {
         clock,
         attribution: t('animation.attribution')
       }
-    });
+    };
+    if (mode3d) {
+      try {
+        if (context.canvas === canvas.current) {
+          drawnOn.current = context.canvas;
+        }
+        engine.renderScene3d(context, scene, { onContextLost: () => leave3d('view3dLost') });
+        return;
+      } catch (failure) {
+        // An export has to say so; the preview falls back to the map.
+        if (size.purpose === 'export') {
+          throw failure;
+        }
+        leave3d('view3dFailed', failure);
+      }
+    }
+    drawFrame(context, scene);
   };
+
+  // Back to the map, saying why. Called from inside a paint, so the state it
+  // sets is only picked up by the next one.
+  const leave3d = (key, failure) => {
+    setNotice3d({ key, message: failure?.message ?? String(failure ?? '') });
+    setView('map');
+  };
+
+  // Wherever a frame was drawn for an export, its 3D renderer holds a WebGL
+  // context; let it go when the export is over.
+  const releaseScene = (context) => engine?.releaseScene3d(context.canvas);
 
   // Drawn in the format's own coordinates and scaled down to the canvas, so
   // what is on screen and what is encoded are the same picture.
@@ -261,6 +329,55 @@ export function AnimationView({ from: initialFrom, to: initialTo }) {
 
   useEffect(() => player.current?.setSpeed(speed), [speed]);
 
+  // The 3D view brings its library the first time it is asked for, and then the
+  // boat the crew left in this browser, if any.
+  useEffect(() => {
+    if (view !== '3d' || engine) {
+      return undefined;
+    }
+    let current = true;
+    (async () => {
+      try {
+        const loaded = await import('../animation/renderer3d.mjs');
+        if (!current) {
+          return;
+        }
+        setEngine(loaded);
+        const stored = await loadBoat();
+        if (stored && current) {
+          try {
+            await loaded.setCustomBoat(stored.buffer.slice(0));
+            setBoat({ name: stored.name, problem: null });
+          } catch {
+            // A model that no longer parses is not worth keeping.
+            await clearBoat();
+          }
+        }
+      } catch (failure) {
+        if (current) {
+          leave3d('view3dFailed', failure);
+        }
+      }
+    })();
+    return () => {
+      current = false;
+    };
+  }, [view]);
+
+  useEffect(
+    () => () => {
+      if (drawnOn.current) {
+        engineRef.current?.releaseScene3d(drawnOn.current);
+      }
+    },
+    []
+  );
+
+  // What changes the picture without moving the film: repaint at the same place.
+  useEffect(() => {
+    latestPaint.current(player.current?.state().units ?? 0);
+  }, [mode3d, framing, boatSize, boat.name]);
+
   // The canvas takes the format's shape, fits the window, and is never given
   // more device pixels than the export itself has — otherwise a tall 9:16
   // preview would both run off the screen and pull finer tiles than the video
@@ -299,7 +416,47 @@ export function AnimationView({ from: initialFrom, to: initialTo }) {
     };
   }, [videoFormat, storyboard, layers]);
 
-  const fileName = `chiplog-${from || 'all'}_${to || 'all'}-${formatId}.mp4`;
+  const fileName = `chiplog-${from || 'all'}_${to || 'all'}-${formatId}${view === '3d' ? '-3d' : ''}.mp4`;
+
+  const chooseView = (next) => {
+    setNotice3d(null);
+    setView(next);
+  };
+
+  const chooseBoat = async (event) => {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = '';
+    if (!file || !engine) {
+      return;
+    }
+    if (file.size > MAX_MODEL_BYTES) {
+      setBoat((previous) => ({
+        ...previous,
+        problem: { key: 'animation.boatTooBig', params: { size: MAX_MODEL_BYTES / 1024 / 1024 } }
+      }));
+      return;
+    }
+    try {
+      const buffer = await file.arrayBuffer();
+      await engine.setCustomBoat(buffer.slice(0));
+      const kept = await saveBoat({ name: file.name, buffer });
+      setBoat({ name: file.name, problem: kept ? null : { key: 'animation.boatNotSaved' } });
+    } catch (failure) {
+      setBoat((previous) => ({
+        ...previous,
+        problem: {
+          key: 'animation.boatInvalid',
+          params: { message: (failure?.message ?? String(failure)).slice(0, 120) }
+        }
+      }));
+    }
+  };
+
+  const resetBoat = async () => {
+    await engine?.setCustomBoat(null);
+    await clearBoat();
+    setBoat({ name: null, problem: null });
+  };
   const state = storyboard ? stateAt(storyboard, units) : null;
   const clock = state ? `${format.shortDate(state.timeMs)} ${format.time(state.timeMs)}` : '';
 
@@ -346,6 +503,70 @@ export function AnimationView({ from: initialFrom, to: initialTo }) {
       storyboard &&
       html`
         <section class="card animation">
+          <div class="animation-modes">
+            <div class="animation-modes-group" role="group" aria-label=${t('animation.view')}>
+              <span class="animation-modes-label">${t('animation.view')}</span>
+              <button
+                type="button"
+                class="animation-mode"
+                aria-pressed=${view === 'map'}
+                onClick=${() => chooseView('map')}
+              >
+                ${t('animation.viewMap')}
+              </button>
+              <button
+                type="button"
+                class="animation-mode"
+                aria-pressed=${view === '3d'}
+                disabled=${!webgl}
+                onClick=${() => chooseView('3d')}
+              >
+                ${t('animation.view3d')}
+              </button>
+            </div>
+            ${
+              view === '3d' &&
+              html`<div class="animation-modes-group" role="group" aria-label=${t('animation.cameraDistance')}>
+                <span class="animation-modes-label">${t('animation.cameraDistance')}</span>
+                ${CAMERA_FRAMINGS.map(
+                  (option) =>
+                    html`<button
+                      key=${option.id}
+                      type="button"
+                      class="animation-mode"
+                      aria-pressed=${option.id === framingId}
+                      onClick=${() => setFramingId(option.id)}
+                    >
+                      ${t(option.labelKey)}
+                    </button>`
+                )}
+              </div>`
+            }
+            ${
+              view === '3d' &&
+              html`<div class="animation-modes-group" role="group" aria-label=${t('animation.boatSize')}>
+                <span class="animation-modes-label">${t('animation.boatSize')}</span>
+                ${BOAT_SIZES.map(
+                  (option) =>
+                    html`<button
+                      key=${option.id}
+                      type="button"
+                      class="animation-mode"
+                      aria-pressed=${option.id === boatSizeId}
+                      onClick=${() => setBoatSizeId(option.id)}
+                    >
+                      ${t(option.labelKey)}
+                    </button>`
+                )}
+              </div>`
+            }
+          </div>
+          ${!webgl && html`<p class="muted">${t('animation.view3dUnavailable')}</p>`}
+          ${view === '3d' && !engine && html`<p class="muted">${t('animation.view3dLoading')}</p>`}
+          ${
+            notice3d &&
+            html`<p class="notice">${t(`animation.${notice3d.key}`, { message: notice3d.message })}</p>`
+          }
           <div class="animation-stage" ref=${stage}>
             <canvas
               class="animation-canvas"
@@ -416,6 +637,31 @@ export function AnimationView({ from: initialFrom, to: initialTo }) {
             />
             ${t('animation.seamarks')}
           </label>
+          ${
+            view === '3d' &&
+            html`<div class="animation-boat">
+              <span class="animation-modes-label">${t('animation.boat')}</span>
+              <span>${boat.name ? t('animation.boatCustom', { name: boat.name }) : t('animation.boatDefault')}</span>
+              <input
+                type="file"
+                class="animation-boat-file"
+                accept=".glb,model/gltf-binary"
+                ref=${boatInput}
+                tabindex="-1"
+                aria-hidden="true"
+                onChange=${chooseBoat}
+              />
+              <button type="button" disabled=${!engine} onClick=${() => boatInput.current?.click()}>
+                ${t('animation.boatLoad')}
+              </button>
+              ${
+                boat.name &&
+                html`<button type="button" onClick=${resetBoat}>${t('animation.boatReset')}</button>`
+              }
+              <span class="muted">${t('animation.boatHint')}</span>
+              ${boat.problem && html`<span class="notice">${t(boat.problem.key, boat.problem.params)}</span>`}
+            </div>`
+          }
           ${cache.current.offline && html`<p class="notice">${t('animation.offline')}</p>`}
         </section>
 
@@ -427,6 +673,7 @@ export function AnimationView({ from: initialFrom, to: initialTo }) {
           videoFormat=${videoFormat}
           fileName=${fileName}
           renderScene=${renderScene}
+          releaseScene=${releaseScene}
           loadTiles=${loadTiles}
           requestTiles=${requestTiles}
         />

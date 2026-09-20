@@ -20,7 +20,9 @@ const files = [
   ['node_modules/leaflet/dist/leaflet.js', 'leaflet/leaflet.js'],
   ['node_modules/leaflet/dist/leaflet.css', 'leaflet/leaflet.css'],
   ['node_modules/leaflet/dist/images', 'leaflet/images'],
-  ['node_modules/leaflet/LICENSE', 'leaflet/LICENSE']
+  ['node_modules/leaflet/LICENSE', 'leaflet/LICENSE'],
+  // The 3D animation's engine is bundled below; its licence travels with it.
+  ['node_modules/three/LICENSE', 'three-LICENSE']
 ];
 
 fs.rmSync(vendor, { recursive: true, force: true });
@@ -29,3 +31,15 @@ for (const [source, target] of files) {
   fs.mkdirSync(path.dirname(destination), { recursive: true });
   fs.cpSync(path.join(root, source), destination, { recursive: true });
 }
+
+// three.js ships as a split build with add-ons that import the bare specifier
+// 'three', so it cannot be copied as it is. Bundle the few parts the 3D
+// animation uses into one minified ES module, loaded only when that view is.
+require('esbuild').buildSync({
+  entryPoints: [path.join(root, 'scripts', 'three-entry.mjs')],
+  bundle: true,
+  format: 'esm',
+  minify: true,
+  legalComments: 'none',
+  outfile: path.join(vendor, 'three.min.mjs')
+});

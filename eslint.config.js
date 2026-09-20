@@ -27,6 +27,10 @@ module.exports = [
     }
   },
   {
+    files: ['scripts/**/*.mjs'],
+    languageOptions: { sourceType: 'module' }
+  },
+  {
     files: ['public/**/sw.js'],
     languageOptions: {
       sourceType: 'script',

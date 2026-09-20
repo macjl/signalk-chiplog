@@ -142,10 +142,9 @@ function drawTracks(ctx, view, scene, layout) {
   }
 }
 
-function drawMarker(ctx, view, leg, which, layout, label) {
-  const index = which === 'departure' ? 0 : leg.timeline.count - 1;
-  const x = view.x(leg.worldXs[index]);
-  const y = view.y(leg.worldYs[index]);
+// A departure or arrival dot at a screen position, with the crew's name for the
+// place above it. Shared with the 3D view, which projects its own positions.
+export function drawMarkerAt(ctx, x, y, which, layout, label) {
   ctx.beginPath();
   ctx.arc(x, y, layout.markerRadius, 0, Math.PI * 2);
   ctx.fillStyle = which === 'departure' ? COLOURS.departure : COLOURS.arrival;
@@ -169,6 +168,11 @@ function drawMarker(ctx, view, leg, which, layout, label) {
   ctx.strokeText(label, x, y - offset);
   ctx.fillStyle = COLOURS.text;
   ctx.fillText(label, x, y - offset);
+}
+
+function drawMarker(ctx, view, leg, which, layout, label) {
+  const index = which === 'departure' ? 0 : leg.timeline.count - 1;
+  drawMarkerAt(ctx, view.x(leg.worldXs[index]), view.y(leg.worldYs[index]), which, layout, label);
 }
 
 function drawPorts(ctx, view, scene, layout) {
@@ -228,7 +232,7 @@ function roundedRect(ctx, x, y, width, height, radius) {
 
 // Speed, distance covered since the film began, and when — the readout the
 // whole animation is for.
-function drawBubble(ctx, scene, layout) {
+export function drawBubble(ctx, scene, layout) {
   const { overlay } = scene;
   const rows = [
     [overlay.speedLabel, overlay.speed],
@@ -277,7 +281,7 @@ function drawBubble(ctx, scene, layout) {
 }
 
 // Once the frames leave the page, the map credit has to travel with them.
-function drawAttribution(ctx, scene, layout) {
+export function drawAttribution(ctx, scene, layout) {
   const { width, height, overlay } = scene;
   ctx.font = font(LABEL_FONT, layout.attributionSize);
   ctx.textAlign = 'right';

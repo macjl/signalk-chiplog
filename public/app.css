@@ -1171,6 +1171,56 @@ button.preset-on {
   color: var(--accent-contrast);
 }
 
+.animation-modes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1.2rem;
+  margin-bottom: 0.75rem;
+}
+
+.animation-modes-group {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.animation-modes-label {
+  color: var(--muted);
+  margin-right: 0.2rem;
+}
+
+.animation-mode {
+  padding: 0.35rem 0.6rem;
+  background: none;
+  color: var(--accent);
+}
+
+.animation-mode[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.animation-mode:disabled {
+  opacity: 0.5;
+}
+
+.animation-boat {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.8rem;
+  margin-top: 0.75rem;
+}
+
+.animation-boat-file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+}
+
 .animation-facts {
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   margin: 0.75rem 0 0;

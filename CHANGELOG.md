@@ -6,6 +6,15 @@ All notable changes to Chiplog are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **A 3D view of the animation.** The Animation page has a new _View_ switch: the same film, at the map's own scale and
+  with north at the top, seen by a camera tilted down onto a 3D sailboat, with the map laid flat under it. The boat
+  heels and trims its sails to the wind, and you can frame it closer or wider than the map and choose the boat's size.
+  Load your own boat as a `.glb` file and it is used instead, kept in that browser. **Export the video** films whichever
+  view is showing (`-3d` in the file name). The 3D view needs WebGL 2 and is loaded only when asked for; without it, the
+  map view is used. It adds three.js to the vendored libraries (about 600 KB, MIT).
+
 ## [2.5.1] - 2026-09-19
 
 ### Fixed

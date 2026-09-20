@@ -596,6 +596,27 @@ boat already has in InfluxDB 1.x, written there by [signalk-to-influxdb](https:/
   again, since treating those as final would leave permanent holes no amount of scrubbing back would fill. Offline, the
   tracks are drawn on a blank sea, the same promise the Leaflet map already makes.
 - **The map credit is burnt into every frame**, since the images leave the page.
+- **A 3D view of the same film.** A switch on the page changes the renderer and nothing else: same date range, same
+  player, same five formats, same MP4 export, the file name gaining `-3d`. **It frames the sea exactly as the map view
+  does**: the camera has the map camera's target and zoom — the ground under the boat is at the same scale, worked out
+  from the passage's zoom and the frame's height — and **north stays at the top**, whichever way the boat heads. It is
+  simply tilted, 50° down, to look at the boat, which is a model drawn larger than life so it holds the same share of
+  the frame at every zoom, in three sizes — large, medium and small, the smallest half the largest. Three camera
+  settings: closer (half the distance), like the map (the default) and wider (twice). The ground is the same
+  OpenStreetMap and OpenSeaMap tiles, from the same cache, as textures on the sea, faded into it by fog; offline it is a
+  plain sea and the track, as in the map view. The track is a ribbon of constant thickness on screen, finishing exactly
+  at the boat rather than at the last recorded point.
+- **A frame is still a pure function of the film.** The camera is the map camera's, so between legs it flies as the map
+  does, with half the tile resolution while it does. Nothing reads a clock or a previous frame. Heel, pitch and sail
+  trim are not in the track and are derived: heel from the apparent and true wind (none without a wind reading, at most
+  22°, greatest on the wind and fading to nothing downwind), the sails let out as the wind comes aft and set on the side
+  away from it, a gentle rocking as a function of film time so an export comes out the same however long it took. The
+  default boat is generated in code — no asset to ship or credit — and the reader may load a `.glb` of their own (bow
+  towards +z, y up, scaled to length from its bounds), kept in that browser's IndexedDB and never sent to the logbook.
+- **3D is loaded on demand and optional.** The engine is three.js, bundled at install time (`scripts/vendor.js`,
+  esbuild) into one minified module of the few parts used and imported only when the 3D view is first asked for or
+  exported. It needs WebGL 2; without it, or if the context is lost or fails to start, the page says so and returns to
+  the map view.
 
 ### 4.13 Landmark bearings (amers)
 
@@ -768,6 +789,7 @@ _(This MVP breakdown is a proposal — to be validated with you before committin
 | Landmark bearings                                  | Every journal position also read against the nearest amer, from OpenStreetMap through Overpass, fetched by half-degree cell and kept; the bearing computed at read time, the amer chosen by distance relative to its kind's range; shown in grey under the coordinates on the passage page and in the PDF (§4.13)                  |
 | Import from PostgSail                              | A script over the REST API (`POST /entries`, admin), a passage per trip, refused when it overlaps one on record so it can be run again; fuel level and house battery kept as the boat's state at departure (§4.15)                                                                                                                 |
 | MP4 export                                         | WebCodecs H.264 plus a vendored Mediabunny (one self-contained ES module covering encoder and container, MPL-2.0, imported lazily); five shapes up to 1920×1080; `mp4-muxer` was set aside as deprecated and muxer-only; hidden when the browser has no WebCodecs (§4.12)                                                          |
+| 3D animation view                                  | A switch between the map and a 3D view of the same film: three.js bundled at install time and loaded on demand, tiles as textures on a flat sea, a procedural sailboat or the reader's own `.glb`, heel and sail trim derived from the wind; needs WebGL 2 and falls back to the map (§4.12)                                       |
 
 ### Remaining minor points (non-blocking for starting)
 

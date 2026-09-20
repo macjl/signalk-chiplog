@@ -27,6 +27,7 @@ export function AnimationExport({
   videoFormat,
   fileName,
   renderScene,
+  releaseScene,
   loadTiles,
   requestTiles
 }) {
@@ -46,6 +47,7 @@ export function AnimationExport({
     abort.current = controller;
     setOutcome(null);
     setProgress({ done: 0, total: frames });
+    let drawn = null;
     try {
       const { canEncodeThisVideo, encodeAnimation } = await import('../animation/mp4.mjs');
       if (!(await canEncodeThisVideo(videoFormat.width, videoFormat.height))) {
@@ -71,10 +73,12 @@ export function AnimationExport({
           ) {
             requestTiles(at(ahead), controller.signal);
           }
+          drawn = context;
           renderScene(context, at(index), {
             width: videoFormat.width,
             height: videoFormat.height,
-            renderScale: 1
+            renderScale: 1,
+            purpose: 'export'
           });
         }
       });
@@ -87,6 +91,9 @@ export function AnimationExport({
           : { kind: 'failed', message: error?.message ?? String(error) }
       );
     } finally {
+      if (drawn) {
+        releaseScene?.(drawn);
+      }
       abort.current = null;
       setProgress(null);
     }

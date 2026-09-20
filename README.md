@@ -233,7 +233,11 @@ Open **Chiplog** from the Signal K webapps, or `/signalk-chiplog/`. Reading need
   the distance covered since the start and the date. Play, pause and a slider over the animation's own time, at ×0,5,
   ×1, ×2 or ×4. **Export MP4** saves it as a video in one of five shapes (Mobile 9:16, Portrait 3:4, Square 1:1,
   Landscape 4:3, Widescreen 16:9). Everything happens in the browser: nothing is rendered or encoded on the Signal K
-  server, and the map tiles are the only thing downloaded.
+  server, and the map tiles are the only thing downloaded. **View → 3D** shows the same film, at the map's own scale and
+  with north still at the top, as a camera tilted down onto a 3D sailboat that heels and trims its sails to the wind,
+  with the map laid flat under it; frame it closer or wider than the map and pick the boat's size if you like, and load
+  your own boat as a `.glb` file (bow towards +Z, y up) if you would rather see it. The MP4 export then films the 3D
+  view.
 - **Export** — download the whole logbook or a date range as a PDF logbook to print, JSON, CSV or GPX, and write the
   abandon-ship copy to the USB drive now (admin). The PDF is written in the webapp's language and the device's time
   zone.
@@ -565,6 +569,9 @@ between attempts; nothing is lost, it just takes longer to resolve.
 - **Offline charts** are not provided; the animation draws the tracks on a blank sea when there is no connection.
 - **The MP4 export needs a browser with WebCodecs** — Chrome, Edge, Safari 17 or Firefox 130 and later. Without it the
   animation still plays on screen, and the export button is simply not offered.
+- **The 3D view needs WebGL 2.** Without it the switch is greyed out and the map view is used. Heel, pitch and sail trim
+  are estimated from the wind — the logbook records none of them — and a boat model you load stays in that browser only,
+  so it has to be loaded again on another device.
 - **A long animation takes a while to export**: every frame waits for its map before it is drawn, so the video is the
   same whatever the connection was doing, but a long range means a lot of tiles. Turning the seamarks off halves them.
 - **One vessel per Signal K server**, and no per-crew-member authorship.
