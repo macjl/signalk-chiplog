@@ -100,7 +100,7 @@ describe('waves', () => {
   });
 
   it('rock the bow up and down a few degrees, and the roll less than the pitch', () => {
-    assert.ok(MAX_PITCH > 2 * (Math.PI / 180) && MAX_PITCH < 6 * (Math.PI / 180));
+    assert.ok(MAX_PITCH > 2 * (Math.PI / 180) && MAX_PITCH < 10 * (Math.PI / 180));
     assert.ok(MAX_ROLL_SWAY < MAX_PITCH);
     const moving = { sog: 3, tws: 8 };
     const poses = samples.map((at) => boatPose(moving, at));

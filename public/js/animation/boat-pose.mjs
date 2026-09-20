@@ -22,7 +22,7 @@ export const FULL_HEEL_WIND = 9;
 // function of the film's own time, in units (a second of video at x1). The pace is
 // then the eye's, whatever the sailing speed was, and an export is the same
 // however long it took to render.
-export const MAX_PITCH = 3.6 * DEGREES;
+export const MAX_PITCH = 9.6 * DEGREES;
 export const MAX_ROLL_SWAY = 2.4 * DEGREES;
 // The boat's rise and fall, in boat lengths.
 export const MAX_HEAVE = 0.007;
@@ -31,8 +31,8 @@ export const MAX_HEAVE = 0.007;
 // heave, each with a slower companion. The roll is slower than the pitch, as a
 // boat's is.
 export const WAVE_PERIODS = {
-  pitch: [2.4, 3.9],
-  roll: [3.3, 5.6]
+  pitch: [1.0, 3.9],
+  roll: [1.3, 5.6]
 };
 
 // How much of the sea a swell shows in the pitch and how much its companion adds.
