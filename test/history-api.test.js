@@ -46,6 +46,9 @@ function fakeProvider(records, { contexts = ['vessels.self'], fail } = {}) {
       ) {
         throw new Error('Query result lengths do not match');
       }
+      if (new Set(query.pathSpecs.map((spec) => spec.aggregate)).size > 1) {
+        throw new Error('Incompatible aggregate functions in one InfluxDB query');
+      }
       const from = query.from.epochMilliseconds;
       const to = query.to.epochMilliseconds;
       const bucketMs = query.resolution * 1000;
@@ -176,6 +179,32 @@ describe('Signal K History API history', () => {
     assert.equal(
       scan.pathSpecs.find((spec) => spec.path === 'navigation.speedOverGround').aggregate,
       'max'
+    );
+  });
+
+  it('keeps numeric max and string last in separate requests', async () => {
+    const provider = fakeProvider({
+      'navigation.speedOverGround': [{ time: T0 + 1000, value: 2 }],
+      'navigation.state': [{ time: T0 + 1000, value: 'motoring' }]
+    });
+
+    await historyOf(provider).scanMotion(T0, T0 + 2 * MINUTE, { stoppedSpeed: 1 });
+
+    assert.ok(
+      provider.requests.some(
+        (query) =>
+          query.pathSpecs.length === 1 &&
+          query.pathSpecs[0].path === 'navigation.speedOverGround' &&
+          query.pathSpecs[0].aggregate === 'max'
+      )
+    );
+    assert.ok(
+      provider.requests.some(
+        (query) =>
+          query.pathSpecs.length === 1 &&
+          query.pathSpecs[0].path === 'navigation.state' &&
+          query.pathSpecs[0].aggregate === 'last'
+      )
     );
   });
 
