@@ -71,6 +71,7 @@ describe('replay job', () => {
     ({ db, dataDir } = openDb());
     const requests = [];
     const provider = {
+      getContexts: async () => ['vessels.legacy'],
       getPaths: async () => [],
       getValues: async (query) => {
         requests.push(query);
@@ -81,6 +82,8 @@ describe('replay job', () => {
       db,
       settings: {
         retrospectiveHistorySource: 'signalk',
+        // The vessel context applies to either history source: replaying from
+        // a development server against a boat's own history needs it here too.
         influxSelfContext: 'vessels.legacy'
       },
       app: {
@@ -98,8 +101,7 @@ describe('replay job', () => {
 
     assert.equal(job.status().lastError, null);
     assert.ok(requests.length > 0, 'the provider receives the motion scan');
-    assert.equal(requests[0].context, 'vessels.self');
-    assert.equal(requests[0].sourcePolicy, undefined);
+    assert.equal(requests[0].context, 'vessels.legacy');
   });
 
   it('reports a missing History API instead of leaving the replay running', async () => {

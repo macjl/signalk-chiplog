@@ -272,10 +272,24 @@ module.exports = function (app) {
         type: 'string',
         title: 'History source for retrospective analysis',
         description:
-          'Signal K uses the server’s selected History API provider (for example signalk-to-influxdb2). InfluxDB 1.x keeps the legacy direct database reader.',
+          'Signal K reads the server’s own History API provider (signalk-to-influxdb2, for example), needing no database connection of its own — the better choice on a new installation. InfluxDB 1.x keeps the legacy direct database reader, and stays the default so installations already set up that way go on working untouched.',
         enum: ['influxdb1', 'signalk'],
         enumNames: ['InfluxDB 1.x (legacy)', 'Signal K History API'],
         default: 'influxdb1'
+      },
+      influxQueryTimeoutSeconds: {
+        type: 'number',
+        title: 'Retrospective query timeout (seconds)',
+        description:
+          'Each retrospective query is given up on and reported as an error past this, rather than hanging indefinitely against an unreachable or overloaded history. Applies to either history source',
+        default: INFLUX_DEFAULTS.influxQueryTimeoutSeconds,
+        minimum: 1
+      },
+      influxSelfContext: {
+        type: 'string',
+        title: 'Vessel context (retrospective analysis)',
+        description:
+          'Only needed running the replay from a different Signal K server than the one that wrote the history — e.g. a development instance pointed at a boat’s production database. The vessel context the data was tagged with, such as "vessels.urn:mrn:imo:mmsi:123456789"; a failed replay names the contexts actually found. Leave empty to use this server’s own (Signal K → Server → Vessel Identity). Applies to either history source'
       }
     },
     // RJSF evaluates dependencies each time the selector changes. Keeping the
@@ -317,20 +331,6 @@ module.exports = function (app) {
                 title: 'InfluxDB protocol',
                 enum: ['http', 'https'],
                 default: INFLUX_DEFAULTS.influxProtocol
-              },
-              influxQueryTimeoutSeconds: {
-                type: 'number',
-                title: 'InfluxDB query timeout (seconds)',
-                description:
-                  'Each retrospective query is given up on and reported as an error past this, rather than hanging indefinitely against an unreachable or overloaded database',
-                default: INFLUX_DEFAULTS.influxQueryTimeoutSeconds,
-                minimum: 1
-              },
-              influxSelfContext: {
-                type: 'string',
-                title: 'InfluxDB vessel context',
-                description:
-                  'Only needed running the replay from a different Signal K server than the one that wrote the history — e.g. a development instance pointed at a boat’s production database. The vessel context the data was tagged with, such as "vessels.urn:mrn:imo:mmsi:123456789"; a failed replay names the contexts actually found. Leave empty to use this server’s own (Signal K → Server → Vessel Identity)'
               }
             }
           },
