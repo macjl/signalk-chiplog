@@ -11,6 +11,13 @@ All notable changes to Chiplog are documented here. The format follows
 - **Heading changes are logged automatically.** A turn of 30° or more (configurable), held steady for a minute above 2
   knots, is added to the timeline as the average heading it settled on. Can be turned off in settings.
 
+### Changed
+
+- **`navigation.state` is followed whatever its source.** Chiplog no longer prefers signalk-autostate's value over
+  another source of the same path: it uses the one Signal K resolves the path to. On a boat where the AIS transponder
+  and signalk-autostate both publish it, which one wins is settled in the server's source priorities — that is also
+  where a transponder left at "under way using engine" while moored is corrected.
+
 ## [2.6.0] - 2026-09-20
 
 ### Changed

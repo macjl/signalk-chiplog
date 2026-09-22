@@ -166,19 +166,30 @@ describe('passage detection', () => {
       );
     });
 
-    it("follows signalk-autostate when the boat's own AIS also reports a state", () => {
-      // An AIS transponder left at "under way using engine", updating more often.
+    it('follows the source the server resolved navigation.state to', () => {
+      // signalk-autostate and the boat's own AIS transponder both publish the
+      // path. Which one wins is the server's answer -- its source priorities --
+      // not a preference of Chiplog's: here signalk-autostate published last.
       boat = createBoat()
         .start()
         .sail(10, {
           sog: 0,
-          stateSources: { 'signalk-autostate.XX': 'moored', 'nmea0183.AI': 'motoring' }
+          stateSources: { 'nmea0183.AI': 'motoring', 'signalk-autostate.XX': 'moored' }
         });
 
       assert.equal(boat.detector.mode(), 'autostate');
       assert.equal(boat.detector.motion(), 'stopped');
       assert.equal(boat.detector.stateIssue(), null);
       assert.equal(boat.entries().length, 0);
+
+      // The other way round, a transponder left at "under way using engine"
+      // is followed just the same: correcting that is the server's business.
+      boat.sail(10, {
+        sog: 0,
+        stateSources: { 'signalk-autostate.XX': 'moored', 'nmea0183.AI': 'motoring' }
+      });
+
+      assert.equal(boat.detector.motion(), 'underway');
     });
 
     it('uses the only source there is, whatever it is', () => {

@@ -602,7 +602,10 @@ describe('InfluxDB history', () => {
       assert.match(scan.q, /GROUP BY time\(60000ms\) fill\(none\)/);
     });
 
-    it('follows signalk-autostate until its next state, ignoring other sources', async () => {
+    it('follows navigation.state until the next one, whatever the source', async () => {
+      // The server resolves the path to whichever source published last, so
+      // the scan does the same rather than favouring one of them: the
+      // transponder's state counts until signalk-autostate's replaces it.
       const { influx } = history({
         'navigation.state': [
           { time: T0, stringValue: 'motoring', source: 'ais.1' },
@@ -615,6 +618,7 @@ describe('InfluxDB history', () => {
       const intervals = await influx.scanMotion(T0, T0 + HOUR, { stoppedSpeed: KNOT });
 
       assert.deepEqual(intervals, [
+        { from: T0, to: T0 + MINUTE },
         { from: T0 + MINUTE, to: T0 + 6 * MINUTE },
         { from: T0 + 6 * MINUTE, to: T0 + 10 * MINUTE }
       ]);

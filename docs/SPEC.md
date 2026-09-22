@@ -162,9 +162,11 @@ Per-event authorship and skipper/crew permissions remain deferred to a V2 if the
   passage; the gap between the two thresholds keeps it from flickering.
 - **Several sources of navigation.state.** An AIS class A transponder also reports the boat's own navigational status —
   often left undefined (`default`), or at "under way using engine" while moored — and Signal K shows whichever source
-  updated last. When signalk-autostate is one of the sources, its value is the one used. When detection falls back to
-  speed, the apps say why: no `navigation.state`, signalk-autostate not decided yet, a value not updated for 20 minutes
-  (with its source and time), or a value Chiplog does not use (with its source).
+  updated last. Chiplog follows that answer whatever the source. Settling which source wins is the server's business,
+  through its source priorities: that is where a transponder left at "under way using engine" is corrected, by giving
+  signalk-autostate priority over it, rather than through a preference wired into the plugin. When detection falls back
+  to speed, the apps say why: no `navigation.state`, a source that has not decided yet, a value not updated for 20
+  minutes (with its source and time), or a value Chiplog does not use (with its source).
 - **Dating and placing transitions.** signalk-autostate works from distance covered over a window, so it announces a
   departure several minutes late, when the boat has already left the harbour. Whatever decided, the departure is dated
   when raw speed first left standstill and placed where the vessel was last still; an arrival is dated when raw speed
@@ -479,14 +481,14 @@ boat already has in InfluxDB 1.x, written there by [signalk-to-influxdb](https:/
   the server's current ones. A passage it produces is one Chiplog would have logged had it been running at the time —
   the same thresholds, the same freshness rules, no separate "historical" logic to keep in sync.
 - **Only where the vessel moved.** A light first pass (`"scanning"` in `GET /replay`) reads the whole range as one mean
-  speed over ground per minute, plus signalk-autostate's `navigation.state`, and keeps the stretches where the vessel
+  speed over ground per minute, plus `navigation.state` whatever its source, and keeps the stretches where the vessel
   may have been under way: a minute whose mean speed reaches half the fallback under-way speed (deliberately generous —
-  replaying too much only costs time), or an under-way autostate state, until the next state or until it would have gone
-  stale (20 min). Each stretch is widened by 30 minutes before (detection dates a departure from up to 20 minutes of raw
-  speeds) and by the stop-closure delay plus 25 minutes after (a waiting cast-off passage's closure and its late margin,
-  autostate's lag); overlapping ones merge into a window. Only windows are loaded and replayed (`"replaying"`), each as
-  if the plugin had been started at its beginning; a passage still open when its window ends is followed six hours
-  further at a time until it closes. Weeks in port therefore cost next to nothing — the approach
+  replaying too much only costs time), or an under-way `navigation.state`, until the next state from any source or until
+  it would have gone stale (20 min). Each stretch is widened by 30 minutes before (detection dates a departure from up
+  to 20 minutes of raw speeds) and by the stop-closure delay plus 25 minutes after (a waiting cast-off passage's closure
+  and its late margin, autostate's lag); overlapping ones merge into a window. Only windows are loaded and replayed
+  (`"replaying"`), each as if the plugin had been started at its beginning; a passage still open when its window ends is
+  followed six hours further at a time until it closes. Weeks in port therefore cost next to nothing — the approach
   [signalk-sailing-logbook](https://github.com/johansolve/signalk-sailing-logbook) takes, without its separate detector.
   Stepping every second through the whole range, loading every raw reading, made a month take the best part of an hour
   and more memory than a Raspberry Pi has.
@@ -544,8 +546,10 @@ boat already has in InfluxDB 1.x, written there by [signalk-to-influxdb](https:/
     critical-notification events are not reconstructed.
   - True wind angle is derived from true wind direction and heading rather than read as its own path, since it needs no
     sensor of its own — the same as live.
-  - A boat with more than one active source for a path Chiplog does not explicitly tag-disambiguate falls back to
-    whichever the history holds, same as detection's own fallback when a source is unrecognised (§4.2).
+  - The server's source priorities cannot be replayed: the history holds one row per source, not the value the server
+    resolved, so a path published by several sources is replayed as whichever row came last — the server's own behaviour
+    when no priority is configured (§4.2). A boat that set a priority to settle `navigation.state` will therefore see
+    live detection and a reconstruction disagree.
 
 ### 4.11 Crew list
 
