@@ -381,6 +381,13 @@ As implemented (`lib/event-watcher.js`, checked every second):
 - **Barometric drop.** A fall of `pressureDropThreshold` (4 hPa by default, 0 to disable) over three hours, logged once,
   and again only after the fall has eased to half that. The three hours of history are held in memory, so the check
   needs three hours after a restart.
+- **Heading changes**, toggled by `headingChangeEnabled` (on by default). A change of at least `headingChangeThreshold`
+  (30° by default) from the last logged heading, held within `headingChangeTolerance` (10°) of its own average for at
+  least `headingChangeHoldSeconds` (60 s), is logged with that average as the new heading; below `headingChangeMinSpeed`
+  (2 kn) course over ground is too noisy to start or continue building one. A change confirmed less than
+  `headingChangeCooldownMinutes` (5 min) after the last one logged still moves the reference heading forward, so the
+  next change is measured from it, but is not itself written to the log. True heading, or magnetic corrected by
+  `navigation.magneticVariation` without it.
 
 **Which passage an event belongs to.** The open one. Between passages, alarms and weather events go to the last passage
 if the vessel is still within a nautical mile of where it ended: an anchor dragging overnight belongs to the passage

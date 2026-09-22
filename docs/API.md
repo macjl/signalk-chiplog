@@ -486,9 +486,9 @@ or none is available for the position.
 Optional `type` filter. Oldest first. Paginated.
 
 Besides what clients post, the timeline holds events the plugin logs itself — `sk_alarm`, `autopilot`,
-`weather_threshold`, `manual_correction`, `propulsion_change` and `stopover`, with `source: "auto"`; their subtypes and
-payloads are listed in the [data model](DATA_MODEL.md#events). An alarm raised at anchor between passages belongs to the
-passage that ended there, so its time can be later than that entry's `endTime`.
+`weather_threshold`, `manual_correction`, `propulsion_change`, `stopover` and `heading_change`, with `source: "auto"`;
+their subtypes and payloads are listed in the [data model](DATA_MODEL.md#events). An alarm raised at anchor between
+passages belongs to the passage that ended there, so its time can be later than that entry's `endTime`.
 
 ### `POST /events` — `readwrite`
 
@@ -552,8 +552,8 @@ The same as [`POST /events`](#post-events--readwrite), for a given entry — ope
 ### `PATCH /events/:id` — `readwrite`
 
 Accepts `time`, `comment`, `subtype`, `payload`, and validates the result by the same rules as creation. On an event the
-plugin produced (`sk_alarm`, `autopilot`, `weather_threshold`, `manual_correction`, `propulsion_change`, `stopover`),
-only `comment` may change — annotating an alarm is fine, rewriting it is not.
+plugin produced (`sk_alarm`, `autopilot`, `weather_threshold`, `manual_correction`, `propulsion_change`, `stopover`,
+`heading_change`), only `comment` may change — annotating an alarm is fine, rewriting it is not.
 
 ### `DELETE /events/:id` — `readwrite`
 

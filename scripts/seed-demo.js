@@ -9,10 +9,10 @@
 //
 // Times are relative to now, so the log always reads as recent. The data covers
 // what the webapp shows: tracks, engine and sail segments, instrument snapshots,
-// manoeuvres, automatic events, a handwritten note, a passage across midnight,
-// a place name pending geocoding, marine weather forecasts (one passage has
-// none), the landmarks each position is read against, and a passage still in
-// progress.
+// manoeuvres, automatic events (including a held heading change), a handwritten
+// note, a passage across midnight, a place name pending geocoding, marine
+// weather forecasts (one passage has none), the landmarks each position is read
+// against, and a passage still in progress.
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -276,6 +276,11 @@ function seedDemoLogbook(db, { now = Date.now() } = {}) {
       });
       observe(id, 'periodic', at(3, 11), points, { tws: 9.8, aws: 12.4, pressure: 101600 });
       log(id, at(3, 11), 'manoeuvre', { subtype: 'tack', points });
+      log(id, at(3, 11, 1), 'heading_change', {
+        source: 'auto',
+        payload: { heading: 3.49, previousHeading: 2.97 },
+        points
+      });
       log(id, at(3, 11, 35), 'weather_threshold', {
         subtype: 'wind_above',
         source: 'auto',

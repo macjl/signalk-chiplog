@@ -135,6 +135,11 @@ export function describeEvent(event, { t, format, manoeuvreLabels = {} }) {
               })
             : t('event.windBelow', { threshold: format.speed(payload.threshold) })
       };
+    case 'heading_change':
+      return {
+        ...line,
+        detail: t('event.headingChange', { heading: format.bearing(payload.heading) })
+      };
     case 'manual_correction':
       return {
         ...line,

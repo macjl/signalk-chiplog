@@ -225,6 +225,49 @@ module.exports = function (app) {
         default: EVENT_DEFAULTS.pressureDropThreshold,
         minimum: 0
       },
+      headingChangeEnabled: {
+        type: 'boolean',
+        title: 'Log heading changes',
+        description:
+          'Records a course change once it is held; turn off to leave heading changes out of the log',
+        default: EVENT_DEFAULTS.headingChangeEnabled
+      },
+      headingChangeThreshold: {
+        type: 'number',
+        title: 'Heading change threshold (degrees)',
+        description: 'A change must be at least this large to be logged',
+        default: EVENT_DEFAULTS.headingChangeThreshold,
+        minimum: 1,
+        maximum: 180
+      },
+      headingChangeTolerance: {
+        type: 'number',
+        title: 'Heading change tolerance (degrees)',
+        description: 'How much the new heading may wander while holding and still count as steady',
+        default: EVENT_DEFAULTS.headingChangeTolerance,
+        minimum: 0
+      },
+      headingChangeHoldSeconds: {
+        type: 'number',
+        title: 'Heading change hold time (seconds)',
+        description: 'How long the new heading must hold before it is logged',
+        default: EVENT_DEFAULTS.headingChangeHoldSeconds,
+        minimum: 1
+      },
+      headingChangeMinSpeed: {
+        type: 'number',
+        title: 'Heading change minimum speed (knots)',
+        description: 'Below this speed over ground, the course is too noisy to log a change',
+        default: EVENT_DEFAULTS.headingChangeMinSpeed,
+        minimum: 0
+      },
+      headingChangeCooldownMinutes: {
+        type: 'number',
+        title: 'Heading change cooldown (minutes)',
+        description: 'A new change is logged only once the last one is at least this old',
+        default: EVENT_DEFAULTS.headingChangeCooldownMinutes,
+        minimum: 0
+      },
       influxHost: {
         type: 'string',
         title: 'InfluxDB host (retrospective analysis)',
@@ -400,6 +443,16 @@ module.exports = function (app) {
         logbookTimeZone: config.logbookTimeZone || null,
         windSpeedThresholds: config.windSpeedThresholds ?? EVENT_DEFAULTS.windSpeedThresholds,
         pressureDropThreshold: config.pressureDropThreshold ?? EVENT_DEFAULTS.pressureDropThreshold,
+        headingChangeEnabled: config.headingChangeEnabled ?? EVENT_DEFAULTS.headingChangeEnabled,
+        headingChangeThreshold:
+          config.headingChangeThreshold ?? EVENT_DEFAULTS.headingChangeThreshold,
+        headingChangeTolerance:
+          config.headingChangeTolerance ?? EVENT_DEFAULTS.headingChangeTolerance,
+        headingChangeHoldSeconds:
+          config.headingChangeHoldSeconds ?? EVENT_DEFAULTS.headingChangeHoldSeconds,
+        headingChangeMinSpeed: config.headingChangeMinSpeed ?? EVENT_DEFAULTS.headingChangeMinSpeed,
+        headingChangeCooldownMinutes:
+          config.headingChangeCooldownMinutes ?? EVENT_DEFAULTS.headingChangeCooldownMinutes,
         influxHost: config.influxHost || null,
         influxPort: config.influxPort ?? INFLUX_DEFAULTS.influxPort,
         influxDatabase: config.influxDatabase || null,

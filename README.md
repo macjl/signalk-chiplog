@@ -8,7 +8,7 @@ sensors cannot know from a tablet at the helm: manoeuvres, notes and handwriting
   such as a lock or a lunch anchorage.
 - **GPS track**, distance, time under engine and under sail.
 - **Hourly instrument readings**, as on a paper log, plus readings at departure, arrival and each manoeuvre.
-- **Automatic events**: alarms, autopilot changes, strong wind, falling barometer.
+- **Automatic events**: alarms, autopilot changes, strong wind, falling barometer, held heading changes.
 - **Departure and arrival names**, looked up online and corrected once for good.
 - **Consultation webapp**: logbook by day, map, timeline, corrections, export.
 - **Replay a range of passages** on the map — an hour of sailing per second — and save it as an MP4 for a phone, a
@@ -131,6 +131,8 @@ Added to the timeline without anyone touching anything:
 - **Wind** — true wind, averaged over 2 minutes, rising above 20 and 30 knots and falling back below them
   (configurable).
 - **Barometer** — a fall of 4 hPa or more over 3 hours (configurable).
+- **Heading changes** — a turn of 30° or more, held steady for a minute, above 2 knots (configurable, and can be turned
+  off).
 
 An alarm at anchor between two passages goes to the passage that ended there, as long as the boat is within 1 nautical
 mile of that arrival.
@@ -441,6 +443,12 @@ In the Signal K admin, **Apps & Plugins → Configuration → Chiplog**.
 | Ship's time zone (PDF)                                           | the server's                                  | Time zone of the PDF logbooks on the USB drive, e.g. `Europe/Paris`.                                                                                                             |
 | Wind speed thresholds                                            | 20, 30 kn                                     | Logged when the 2-minute average true wind crosses them.                                                                                                                         |
 | Barometric drop warning                                          | 4 hPa / 3 h                                   | 0 turns it off.                                                                                                                                                                  |
+| Log heading changes                                              | on                                            | Turn off to leave heading changes out of the log.                                                                                                                                |
+| Heading change threshold                                         | 30°                                           | A change must be at least this large to be logged.                                                                                                                               |
+| Heading change tolerance                                         | 10°                                           | How much the new heading may wander while holding and still count as steady.                                                                                                     |
+| Heading change hold time                                         | 60 s                                          | How long the new heading must hold before it is logged.                                                                                                                          |
+| Heading change minimum speed                                     | 2 kn                                          | Below this speed over ground, the course is too noisy to log a change.                                                                                                           |
+| Heading change cooldown                                          | 5 min                                         | A new change is logged only once the last one is at least this old.                                                                                                              |
 | InfluxDB host (retrospective analysis)                           | —                                             | Local or remote host of the InfluxDB 1.x database signalk-to-influxdb writes to. Empty turns the retrospective analysis page off.                                                |
 | InfluxDB port                                                    | 8086                                          |                                                                                                                                                                                  |
 | InfluxDB database                                                | —                                             |                                                                                                                                                                                  |
@@ -459,7 +467,7 @@ None of these is required except position and speed over ground; each feature us
 | Engine or sail            | `propulsion.*.revolutions`, `propulsion.*.state`, `navigation.state`                                                                                                                                                                                                                                                               |
 | Readings                  | `navigation.headingTrue` (or `headingMagnetic` + `magneticVariation`), `navigation.speedThroughWater`, `environment.wind.*`, `environment.depth.belowSurface` (or `belowTransducer`), `environment.outside.pressure`, `environment.outside.temperature`, `environment.water.temperature`, `navigation.log`, `propulsion.*.runTime` |
 | Boat status               | `tanks.*.*.currentLevel`, `.currentVolume`, `.capacity`, `.name`, `electrical.batteries.*.voltage`, `.current`, `.capacity.stateOfCharge`, `.temperature`, `.name`                                                                                                                                                                 |
-| Events                    | `notifications.*`, `steering.autopilot.state`, `.mode`, `.engaged`, `.target`, `environment.wind.speedTrue`, `environment.outside.pressure`                                                                                                                                                                                        |
+| Events                    | `notifications.*`, `steering.autopilot.state`, `.mode`, `.engaged`, `.target`, `environment.wind.speedTrue`, `environment.outside.pressure`, `navigation.headingTrue` (or `headingMagnetic` + `magneticVariation`)                                                                                                                 |
 
 ## Backups and abandon ship 🛟
 

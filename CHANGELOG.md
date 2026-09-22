@@ -6,6 +6,11 @@ All notable changes to Chiplog are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Heading changes are logged automatically.** A turn of 30° or more (configurable), held steady for a minute above 2
+  knots, is added to the timeline as the average heading it settled on. Can be turned off in settings.
+
 ## [2.6.0] - 2026-09-20
 
 ### Changed

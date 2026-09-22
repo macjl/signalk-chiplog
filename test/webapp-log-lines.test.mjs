@@ -119,6 +119,16 @@ describe('logbook lines', () => {
     );
   });
 
+  it('describes a heading change', () => {
+    assert.equal(
+      describe_({
+        type: 'heading_change',
+        payload: { heading: Math.PI / 2, previousHeading: 0 }
+      }).detail,
+      'Heading changed to 090°'
+    );
+  });
+
   it('describes a stop uncovered by merging two entries', () => {
     const stopover = describe_({
       type: 'stopover',

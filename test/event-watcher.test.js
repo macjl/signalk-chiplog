@@ -431,4 +431,106 @@ describe('automatic events', () => {
       assert.equal(vessel.events('weather_threshold').length, 0);
     });
   });
+
+  describe('heading changes', () => {
+    const DEG = Math.PI / 180;
+    const heading = (degrees, knots = 5) => ({
+      values: {
+        'navigation.headingTrue': (((degrees % 360) + 360) % 360) * DEG,
+        'navigation.speedOverGround': knots * KNOT
+      }
+    });
+    const settings = {
+      headingChangeThreshold: 30,
+      headingChangeTolerance: 10,
+      headingChangeHoldSeconds: 60,
+      headingChangeMinSpeed: 2,
+      headingChangeCooldownMinutes: 5
+    };
+
+    it('logs the average heading once a change holds for the configured time', () => {
+      vessel = createVessel({ settings }).start();
+      vessel.openEntry();
+
+      vessel.run(5, heading(0));
+      vessel.run(65, heading(40));
+
+      const events = vessel.events('heading_change');
+      assert.equal(events.length, 1);
+      assert.equal(events[0].subtype, null);
+      assert.ok(Math.abs(events[0].payload.heading - 40 * DEG) < 0.01);
+      assert.ok(Math.abs(events[0].payload.previousHeading) < 0.01);
+      assert.equal(vessel.snapshots.length, 1, 'a snapshot with the change');
+    });
+
+    it('ignores a change under the threshold', () => {
+      vessel = createVessel({ settings }).start();
+      vessel.openEntry();
+
+      vessel.run(5, heading(0));
+      vessel.run(65, heading(20));
+
+      assert.equal(vessel.events('heading_change').length, 0);
+    });
+
+    it('ignores a swing that does not hold', () => {
+      vessel = createVessel({ settings }).start();
+      vessel.openEntry();
+
+      vessel.run(5, heading(0));
+      vessel.run(30, heading(40));
+      vessel.run(30, heading(0));
+
+      assert.equal(vessel.events('heading_change').length, 0);
+    });
+
+    it('needs at least the configured speed', () => {
+      vessel = createVessel({ settings }).start();
+      vessel.openEntry();
+
+      vessel.run(5, heading(0));
+      vessel.run(65, heading(40, 1));
+
+      assert.equal(vessel.events('heading_change').length, 0);
+    });
+
+    it('keeps the reference heading moving during the cooldown, without logging twice', () => {
+      vessel = createVessel({ settings }).start();
+      vessel.openEntry();
+
+      vessel.run(5, heading(0));
+      vessel.run(65, heading(40));
+      vessel.run(65, heading(80));
+
+      let events = vessel.events('heading_change');
+      assert.equal(events.length, 1, 'the second change is within the cooldown');
+      assert.ok(Math.abs(events[0].payload.heading - 40 * DEG) < 0.01);
+
+      vessel.run(5 * 60, heading(80));
+      vessel.run(65, heading(120));
+
+      events = vessel.events('heading_change');
+      assert.equal(events.length, 2);
+      assert.ok(Math.abs(events[1].payload.previousHeading - 80 * DEG) < 0.01);
+    });
+
+    it('can be disabled', () => {
+      vessel = createVessel({ settings: { ...settings, headingChangeEnabled: false } }).start();
+      vessel.openEntry();
+
+      vessel.run(5, heading(0));
+      vessel.run(65, heading(90));
+
+      assert.equal(vessel.events('heading_change').length, 0);
+    });
+
+    it('logs nothing outside a passage', () => {
+      vessel = createVessel({ settings }).start();
+
+      vessel.run(5, heading(0));
+      vessel.run(65, heading(40));
+
+      assert.equal(vessel.events('heading_change').length, 0);
+    });
+  });
 });

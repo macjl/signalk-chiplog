@@ -323,6 +323,7 @@ export const MESSAGES = {
     'event.pressureDrop': 'Barometer down {drop} over 3 h',
     'event.correction': 'Corrected: {before} → {after}',
     'event.stopover': 'Stopped at {place}',
+    'event.headingChange': 'Heading changed to {heading}',
 
     'type.engine': 'engine',
     'type.sail': 'sail',
@@ -836,6 +837,7 @@ export const MESSAGES = {
     'event.pressureDrop': 'Baromètre en baisse de {drop} en 3 h',
     'event.correction': 'Corrigé : {before} → {after}',
     'event.stopover': 'Arrêt à {place}',
+    'event.headingChange': 'Cap changé à {heading}',
 
     'type.engine': 'moteur',
     'type.sail': 'voile',

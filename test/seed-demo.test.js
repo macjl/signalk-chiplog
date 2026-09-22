@@ -63,6 +63,7 @@ describe('demo logbook', () => {
     assert.deepEqual([...types].sort(), [
       'autopilot',
       'handwritten_annotation',
+      'heading_change',
       'manoeuvre',
       'manual_correction',
       'propulsion_change',
