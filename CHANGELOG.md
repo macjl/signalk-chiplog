@@ -9,7 +9,7 @@ All notable changes to Chiplog are documented here. The format follows
 ### Added
 
 - **Online backup.** Turn **Back the logbook up online** on, paste the service address and the device token it gave your
-  boat, and Chiplog sends each passage — track, events, handwriting, readings, crew and forecasts — to the Miles Astern
+  boat, and Chiplog sends each passage — track, events, handwriting, readings, crew and forecasts — to the Ti Bord
   service whenever there is a connection: every 15 minutes, at each departure and arrival, newest passage first. Only
   what changed goes out, compressed, and a track that grew only sends its new points. Passages deleted or merged on
   board are removed from the service too, and the places go with their position and country, which is how the service

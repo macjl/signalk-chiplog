@@ -817,8 +817,8 @@ the day's run without opening the webapp.
 
 ### 4.17 Online backup
 
-Pushes the logbook to the Miles Astern online service, which keeps a copy off the boat and builds statistics, digests
-and sharing on it. This is the "publication to a remote server" left open in §4.5, with one target rather than a generic
+Pushes the logbook to the Ti Bord online service, which keeps a copy off the boat and builds statistics, digests and
+sharing on it. This is the "publication to a remote server" left open in §4.5, with one target rather than a generic
 webhook.
 
 - **The boat always asks.** The plugin calls out over HTTPS; the service never calls the boat, and nothing comes back

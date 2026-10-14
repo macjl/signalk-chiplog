@@ -28,7 +28,7 @@ function read(rows, { margin = 4, scale = 6 } = {}) {
 
 describe('QR code', () => {
   it('encodes a claim link a reader gets back', () => {
-    const link = 'https://milesastern.example/pair?code=K7QF-3MXB';
+    const link = 'https://tibord.example/pair?code=K7QF-3MXB';
 
     const rows = qrCode(link);
 

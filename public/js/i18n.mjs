@@ -421,7 +421,7 @@ export const MESSAGES = {
     'export.usbNextCopy': 'Next automatic copy around {time}.',
     'cloud.title': 'Online backup',
     'cloud.intro':
-      'Keep a copy of the logbook off the boat, on the Miles Astern service: each passage is sent whenever there is a connection, newest first.',
+      'Keep a copy of the logbook off the boat, on the Ti Bord service: each passage is sent whenever there is a connection, newest first.',
     'cloud.backingUpTo': 'Backed up to {url}.',
     'cloud.inProgress': 'Sending: {done} of {total} passages done.',
     'cloud.lastSuccess': 'Last backup {time}: {sent} passages sent, {held} on board.',
@@ -990,7 +990,7 @@ export const MESSAGES = {
     'export.usbNextCopy': 'Prochaine copie automatique vers {time}.',
     'cloud.title': 'Sauvegarde en ligne',
     'cloud.intro':
-      'Gardez une copie du journal hors du bateau, sur le service Miles Astern : chaque navigation est envoyée dès qu’une connexion le permet, la plus récente d’abord.',
+      'Gardez une copie du journal hors du bateau, sur le service Ti Bord : chaque navigation est envoyée dès qu’une connexion le permet, la plus récente d’abord.',
     'cloud.backingUpTo': 'Sauvegardé sur {url}.',
     'cloud.inProgress': 'Envoi en cours : {done} navigations sur {total}.',
     'cloud.lastSuccess': 'Dernière sauvegarde {time} : {sent} navigations envoyées, {held} à bord.',

@@ -277,7 +277,7 @@ module.exports = function (app) {
       cloudSyncUrl: {
         type: 'string',
         title: 'Online service address',
-        description: 'The address of the Miles Astern service, e.g. https://api.example.org'
+        description: 'The address of the Ti Bord service: https://tibord.com'
       },
       cloudSyncToken: {
         type: 'string',

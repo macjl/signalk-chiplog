@@ -508,7 +508,7 @@ None of these is required except position and speed over ground; each feature us
 
 ## Online backup 🌐
 
-Keep a copy of the logbook off the boat, on the Miles Astern online service.
+Keep a copy of the logbook off the boat, on the Ti Bord online service.
 
 1. On the **Export** page, under **Online backup**, enter the service address and choose **Get a pairing code**.
 2. On the service, signed in to your account, enter the code shown (e.g. `K7QF-3MXB`) and choose your boat — or scan the
