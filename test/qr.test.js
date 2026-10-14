@@ -28,12 +28,12 @@ function read(rows, { margin = 4, scale = 6 } = {}) {
 
 describe('QR code', () => {
   it('encodes a claim link a reader gets back', () => {
-    const link = 'https://tibord.example/pair?code=K7QF-3MXB';
+    const link = 'https://tibord.com/pair?code=K7QF-3MXB';
 
     const rows = qrCode(link);
 
-    assert.equal(rows.length, 33, 'version 4');
-    assert.ok(rows.every((row) => /^[01]{33}$/.test(row)));
+    assert.equal(rows.length, 29, 'version 3');
+    assert.ok(rows.every((row) => /^[01]{29}$/.test(row)));
     assert.equal(read(rows), link);
   });
 
