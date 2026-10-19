@@ -5,6 +5,8 @@ import { randomId } from '../../js/ids.mjs';
 import { pickLanguage } from '../../js/i18n.mjs';
 import { createServerClock } from './clock.mjs';
 import { createJournal } from './journal.mjs';
+import { confirmAction } from './confirm.mjs';
+import { connectPlotter, isPlotterExtension } from './plotter.mjs';
 import { AccessGate } from './components/AccessGate.mjs';
 import { EventDialog, Toast } from './components/Dialogs.mjs';
 import { CrewDialog } from './components/CrewDialog.mjs';
@@ -101,6 +103,7 @@ function App({ journal }) {
   const [managingCrew, setManagingCrew] = useState(false);
   const [tab, setTab] = useState('note');
   const [night, setNight] = useState(readSetting(NIGHT_KEY) === 'on');
+  const [plotter, setPlotter] = useState(null);
   const [version, setVersion] = useState(0);
   const [busy, setBusy] = useState(false);
 
@@ -124,6 +127,43 @@ function App({ journal }) {
     document.documentElement.dataset.theme = night ? 'night' : '';
     writeSetting(NIGHT_KEY, night ? 'on' : 'off');
   }, [night]);
+
+  useEffect(() => {
+    if (!isPlotterExtension) {
+      return undefined;
+    }
+    let active = true;
+    let connection;
+    connectPlotter((enabled) => active && setNight(enabled))
+      .then((client) => {
+        if (!active) {
+          client.close();
+          return;
+        }
+        connection = client;
+        setPlotter(client);
+      })
+      // The tablet remains usable if the host cannot complete the handshake.
+      .catch(() => {});
+    return () => {
+      active = false;
+      connection?.close();
+    };
+  }, []);
+
+  const toggleNight = async () => {
+    const enabled = !night;
+    if (plotter?.hasCapability('nightMode')) {
+      try {
+        await plotter.call('nightMode.set', { enabled, auto: false });
+        setNight(enabled);
+        return;
+      } catch {
+        // Keep the local night switch usable if the host stops answering.
+      }
+    }
+    setNight(enabled);
+  };
 
   useEffect(() => {
     if (!toast || toast.kind === 'error') {
@@ -272,7 +312,7 @@ function App({ journal }) {
   };
 
   const deleteEvent = async (event) => {
-    if (!confirm(t('entry.deleteConfirm'))) {
+    if (!(await confirmAction(t('entry.deleteConfirm'), t))) {
       return;
     }
     try {
@@ -344,7 +384,7 @@ function App({ journal }) {
       online=${online}
       queued=${queue.pending.length}
       night=${night}
-      onToggleNight=${() => setNight((value) => !value)}
+      onToggleNight=${toggleNight}
     />
     <main class="entry-main">
       ${
@@ -464,6 +504,7 @@ if ('serviceWorker' in navigator && window.isSecureContext) {
 }
 
 const locale = createLocale(pickLanguage(navigator.languages, location.search));
+document.documentElement.dataset.plotterExtension = String(isPlotterExtension);
 document.documentElement.lang = locale.language;
 document.title = locale.t('entry.title');
 

@@ -62,7 +62,7 @@ export function StatusHeader({ state, entry, online, queued, night, onToggleNigh
         >
           ${t('entry.night')}
         </button>
-        <a class="tool-button" href="../">${t('entry.logbook')}</a>
+        <a class="tool-button" data-standalone-link href="../">${t('entry.logbook')}</a>
       </div>
     </header>
   `;

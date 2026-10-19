@@ -476,6 +476,14 @@ the name it recorded.
   SSL setting provides HTTPS.
 - The list of manoeuvre shortcuts is remembered on the tablet, so an app started offline has its buttons.
 
+The entry app is also offered as a Plotter Extension: a `mapToolbar` button toggles an iframe panel, reusing
+`/signalk-chiplog/entry/?plotterExtension=1`. Its `keepAlive` lifecycle preserves unsent drafts when hidden, but does
+not persist drafts across a plotter reload. The manifest is a read-only `plotterExtensions` resource, available only
+while Chiplog runs. Required host capabilities are `panels.iframe` and `buttons`; `nightMode` is optional and
+synchronises in both directions when present. Logging still uses Chiplog's REST API with the user's session or approved
+device token. Deletion confirmations use HTML dialogs, compatible with the host's sandbox. Journal and login navigation
+remain standalone-only. Servers without resource-provider support keep the standalone entry app.
+
 ### 4.10 Retrospective analysis
 
 Reconstructs passages Chiplog never saw live — installed after the fact, or stopped for a while — from a history the

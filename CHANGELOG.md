@@ -19,6 +19,10 @@ All notable changes to Chiplog are documented here. The format follows
 
 ### Added
 
+- **Helm entry beside the chart.** Chartplotters supporting the Plotter Extensions API can open Chiplog from a toolbar
+  button. The iframe panel keeps drafts while hidden and follows the plotter's night mode when available. The standalone
+  tablet app and its offline queue remain available.
+
 - **A summary of each passage, by email.** Turn it on, give it your SMTP relay and a few addresses, and Chiplog mails
   the day's run once the passage is over for good — once it has stayed closed past the delay within which leaving again
   would have carried it on, so a lock or a lunch anchorage never sets one off. The mail opens on the map of the track,
@@ -29,6 +33,10 @@ All notable changes to Chiplog are documented here. The format follows
   again, less and less often, then the backlog goes out oldest first on the next connection, with anything older than a
   week dropped. Switching the option on sends nothing retroactively, and `POST /entries/:id/summary-mail` sends one
   passage's summary straight away to try the settings out.
+
+### Fixed
+
+- Event and crew deletion confirmations work inside sandboxed plotter panels.
 
 ## [2.8.0] - 2026-10-01
 
