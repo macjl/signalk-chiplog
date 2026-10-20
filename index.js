@@ -277,7 +277,7 @@ module.exports = function (app) {
       cloudSyncUrl: {
         type: 'string',
         title: 'Online service address',
-        description: 'The address of the Ti Bord service: https://tibord.com'
+        description: 'The address of the Ti Bord service: https://app.tibord.com'
       },
       cloudSyncToken: {
         type: 'string',
