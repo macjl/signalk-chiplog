@@ -206,6 +206,11 @@ has **no build step**: native ES modules (`.mjs`, served as JavaScript) and Prea
 - Prettier leaves `html` templates alone in `public/` (`embeddedLanguageFormatting: off`): htm drops whitespace that
   contains a newline, so reflowing a template changes what is displayed. Build text such as `start – end` as one string.
 - The API returns SI units; conversion for display happens only in `format.mjs`.
+- Two app icons, and they are not interchangeable. `public/icon.svg` is the icon proper, a plotter at the chart table,
+  and is what `package.json`'s `signalk.appIcon`, the PWA manifest and `public/entry/icons/*.png` come from.
+  `public/icon-small.svg` is the same chart and route with the case, grid, depth contours and compass taken out, for the
+  two favicons and the logbook's header: below about 48 px the detail of the first one is mush. Change one and look at
+  the other.
 - Going back to a view lands where the reader left it: `public/js/view-memory.mjs` holds, per view, what it wants to
   find again. `useRoute` in `context.mjs` saves the outgoing view's scroll on a hash change and scrolls to the top only
   for a view with nothing remembered; `LogView.mjs` is the one that remembers — the passages it had loaded and the
@@ -228,6 +233,12 @@ server-side — see docs/API.md and SPEC §4.3.
   `SHELL` list. Service workers need HTTPS or localhost, so the app must keep working without one. The Browser pane
   cannot register service workers at all — verify offline start-up in a real Chrome.
 - `crypto.randomUUID` is unavailable over plain HTTP, the usual boat set-up: use `randomId()` from `public/js/ids.mjs`.
+- `public/entry/icons/*.png` are renderings of `public/icon.svg` and have to be redone when it changes. They are not the
+  artwork as drawn: the manifest declares them `maskable`, which means no transparency and nothing of consequence
+  outside a circle of 80% of the width, so they are rendered from a variant whose case bleeds to the edges, centred on
+  the plotter's screen rather than on the case and scaled to 0.84 — the largest scale that keeps the screen's corners
+  and the outer buttons inside that circle. Save them without an alpha channel (`lib/png.js` re-encodes a decoded PNG to
+  RGB): it halves them, and the service worker precaches all three.
 - `public/js/api.mjs` sends the device token (`public/js/auth.mjs`) when one is stored, for both apps.
 
 ## Code style

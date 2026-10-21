@@ -1,7 +1,83 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="14" fill="#0b4f8a"/>
-  <path d="M18 14h24a4 4 0 0 1 4 4v30a4 4 0 0 1-4 4H18z" fill="#f8f4e8"/>
-  <path d="M18 14v38" stroke="#c9a227" stroke-width="4"/>
-  <path d="M26 24h14M26 31h14M26 38h9" stroke="#0b4f8a" stroke-width="2.5" stroke-linecap="round"/>
-  <path d="M40 46c2-5 6-8 10-8-1 4-4 8-10 8z" fill="#e8590c"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="bezel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#34475c"/>
+      <stop offset="1" stop-color="#141e2a"/>
+    </linearGradient>
+    <linearGradient id="sea" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1c6fb0"/>
+      <stop offset="1" stop-color="#0b3a66"/>
+    </linearGradient>
+    <linearGradient id="land" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f2d68a"/>
+      <stop offset="1" stop-color="#d9b25c"/>
+    </linearGradient>
+    <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <clipPath id="screen">
+      <rect x="30" y="30" width="196" height="160" rx="14"/>
+    </clipPath>
+  </defs>
+
+  <!-- case -->
+  <rect x="12" y="12" width="232" height="232" rx="44" fill="url(#bezel)"/>
+  <rect x="12.5" y="12.5" width="231" height="231" rx="43.5" fill="none" stroke="#5b7189" stroke-opacity="0.6"/>
+
+  <!-- screen -->
+  <g clip-path="url(#screen)">
+    <rect x="30" y="30" width="196" height="160" fill="url(#sea)"/>
+
+    <!-- lat/lon grid -->
+    <g stroke="#ffffff" stroke-opacity="0.10" stroke-width="1">
+      <line x1="30" y1="70" x2="226" y2="70"/>
+      <line x1="30" y1="110" x2="226" y2="110"/>
+      <line x1="30" y1="150" x2="226" y2="150"/>
+      <line x1="80" y1="30" x2="80" y2="190"/>
+      <line x1="130" y1="30" x2="130" y2="190"/>
+      <line x1="180" y1="30" x2="180" y2="190"/>
+    </g>
+
+    <!-- depth contours -->
+    <g fill="none" stroke="#8fd3ff" stroke-width="2">
+      <path d="M150 30 C150 58 170 78 200 86 C215 90 226 98 226 110" stroke-opacity="0.35"/>
+      <path d="M132 30 C132 68 158 96 196 104 C212 108 226 118 226 130" stroke-opacity="0.22"/>
+    </g>
+
+    <!-- island / coast -->
+    <path d="M168 30 C168 50 184 66 204 70 C216 72 226 78 226 86 L226 30 Z" fill="url(#land)"/>
+    <path d="M168 30 C168 50 184 66 204 70 C216 72 226 78 226 86" fill="none" stroke="#b8923f" stroke-width="2"/>
+
+    <!-- route -->
+    <path d="M62 168 L112 128 L160 118" fill="none" stroke="#ff9f1c" stroke-width="4" stroke-linecap="round" stroke-dasharray="9 7"/>
+    <circle cx="112" cy="128" r="5.5" fill="#0b3a66" stroke="#ff9f1c" stroke-width="3"/>
+    <circle cx="160" cy="118" r="7" fill="#ff9f1c"/>
+    <circle cx="160" cy="118" r="2.5" fill="#0b3a66"/>
+
+    <!-- wake and vessel -->
+    <path d="M44 184 L62 168" stroke="#ffffff" stroke-opacity="0.45" stroke-width="3" stroke-linecap="round"/>
+    <g transform="translate(62 168) rotate(51)">
+      <path d="M0 -15 L9 11 L0 6 L-9 11 Z" fill="#ffffff" stroke="#0b2540" stroke-width="1.5" stroke-linejoin="round"/>
+    </g>
+
+    <!-- north -->
+    <g transform="translate(52 54)">
+      <circle r="14" fill="#0b2540" fill-opacity="0.55" stroke="#ffffff" stroke-opacity="0.5"/>
+      <path d="M0 -10 L4 2 L0 0 L-4 2 Z" fill="#ff5a5f"/>
+      <path d="M0 10 L4 -2 L0 0 L-4 -2 Z" fill="#ffffff" fill-opacity="0.8"/>
+    </g>
+
+    <!-- glass -->
+    <path d="M30 30 H226 V78 C170 92 90 70 30 96 Z" fill="url(#gloss)"/>
+  </g>
+  <rect x="30" y="30" width="196" height="160" rx="14" fill="none" stroke="#070d14" stroke-width="2"/>
+
+  <!-- buttons -->
+  <g fill="#5b7189">
+    <circle cx="92" cy="216" r="7"/>
+    <circle cx="128" cy="216" r="7"/>
+    <circle cx="164" cy="216" r="7"/>
+  </g>
+  <circle cx="128" cy="216" r="3" fill="#8fd3ff"/>
 </svg>

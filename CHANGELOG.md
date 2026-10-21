@@ -6,6 +6,14 @@ All notable changes to Chiplog are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- **A new app icon:** a chartplotter at the chart table, its screen showing a route plotted across a chart, in place of
+  the open book. It is what the Signal K admin shows and what the tablet app installs on a home screen. The browser tab
+  and the logbook's own header get a simplified version of it — the chart, a stretch of coast and the route — because at
+  that size the plotter's case, grid and compass turn to mush. The tablet app's colour in the phone's task switcher
+  follows the icon's case rather than the old blue.
+
 ### Added
 
 - **Online backup.** Turn **Back the logbook up online** on, paste the service address and the device token it gave your

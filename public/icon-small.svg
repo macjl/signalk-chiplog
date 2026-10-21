@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- The app icon reduced to what still reads at 16 px: the chart, a stretch
+       of coast and the route across it. icon.svg, the plotter at the chart
+       table, is the icon proper and is what the Signal K admin and an
+       installed tablet app show; below about 48 px its case, grid, depth
+       contours and compass turn to mush, so the favicons and the logbook's
+       own header use this instead. Same palette, same idea. -->
+  <defs>
+    <linearGradient id="sea" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1c6fb0"/>
+      <stop offset="1" stop-color="#0b3a66"/>
+    </linearGradient>
+    <linearGradient id="land" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f2d68a"/>
+      <stop offset="1" stop-color="#d9b25c"/>
+    </linearGradient>
+    <clipPath id="chart">
+      <rect width="256" height="256" rx="56"/>
+    </clipPath>
+  </defs>
+
+  <!-- chart -->
+  <rect width="256" height="256" rx="56" fill="url(#sea)"/>
+
+  <!-- coast -->
+  <g clip-path="url(#chart)">
+    <path d="M146 0 C146 38 180 66 214 74 C238 80 256 94 256 110 L256 0 Z" fill="url(#land)"/>
+  </g>
+
+  <!-- route: two legs, thick enough to survive a 16 px favicon -->
+  <path d="M66 196 L132 150 L196 86" fill="none" stroke="#ff9f1c" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- vessel, heading up the first leg -->
+  <g transform="translate(66 196) rotate(55)">
+    <path d="M0 -38 L23 27 L0 14 L-23 27 Z" fill="#ffffff" stroke="#0b2540" stroke-width="7" stroke-linejoin="round"/>
+  </g>
+</svg>
