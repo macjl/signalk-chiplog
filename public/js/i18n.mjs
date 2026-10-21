@@ -446,6 +446,7 @@ export const MESSAGES = {
     'cloud.pairAgain': 'Pair with another account or service',
     'cloud.pairIntro':
       'Enter the service address and ask for a code, then enter the code on the service, signed in to your account. The backup turns on as soon as it is claimed.',
+    'cloud.learnMore': 'More about the backups, and about sharing your passages and voyages:',
     'cloud.serviceUrl': 'Service address',
     'cloud.pair': 'Get a pairing code',
     'cloud.enterCode': 'Enter this code on the service:',
@@ -1016,6 +1017,8 @@ export const MESSAGES = {
     'cloud.pairAgain': 'Appairer avec un autre compte ou service',
     'cloud.pairIntro':
       'Indiquez l’adresse du service et demandez un code, puis saisissez ce code sur le service, connecté à votre compte. La sauvegarde s’active dès qu’il est utilisé.',
+    'cloud.learnMore':
+      'Plus d’informations sur les sauvegardes et sur le partage de vos navigations et de vos voyages :',
     'cloud.serviceUrl': 'Adresse du service',
     'cloud.pair': 'Obtenir un code d’appairage',
     'cloud.enterCode': 'Saisissez ce code sur le service :',

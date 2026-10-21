@@ -6,6 +6,12 @@ All notable changes to Chiplog are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **The online backup card points at the service's own site.** Under its opening lines, a link to
+  [tibord.com](https://tibord.com) for what the backups are for and what sharing your passages and voyages from them
+  looks like — worth knowing before deciding to pair.
+
 ## [2.9.0] - 2026-10-20
 
 ### Added

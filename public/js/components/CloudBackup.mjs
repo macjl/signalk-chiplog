@@ -3,6 +3,11 @@ import { get, request } from '../api.mjs';
 import { useLocale, usePolling } from '../context.mjs';
 import { ErrorNotice } from './common.mjs';
 
+// The service's own site, not the API the boat talks to: what the backups are
+// for, and what sharing a passage or a voyage from them looks like.
+const SERVICE_SITE = 'https://tibord.com';
+const SERVICE_SITE_LABEL = 'tibord.com';
+
 const STATUS_REFRESH_MS = 30 * 1000;
 // While a code waits to be claimed, so the page says "paired" soon after it is.
 const PAIRING_REFRESH_MS = 3 * 1000;
@@ -238,6 +243,10 @@ export function CloudBackup() {
     <section class="card">
       <h2>${t('cloud.title')}</h2>
       <p>${t('cloud.intro')}</p>
+      <p class="muted">
+        ${t('cloud.learnMore')}${' '}
+        <a href=${SERVICE_SITE} target="_blank" rel="noopener">${SERVICE_SITE_LABEL}</a>
+      </p>
       ${ready && html`<${BackupStatus} status=${status} />`}
       ${
         ready &&
