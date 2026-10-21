@@ -6,6 +6,8 @@ All notable changes to Chiplog are documented here. The format follows
 
 ## [Unreleased]
 
+## [2.10.0] - 2026-10-20
+
 ### Added
 
 - **The online backup card points at the service's own site.** Under its opening lines, a link to
@@ -460,7 +462,8 @@ First release.
 - REST API under `/plugins/signalk-chiplog/api`, documented in [docs/API.md](docs/API.md).
 - Single SQLite database through Node's built-in `node:sqlite`: no native module to build.
 
-[Unreleased]: https://github.com/ricard33/signalk-chiplog/compare/v2.9.0...HEAD
+[Unreleased]: https://github.com/ricard33/signalk-chiplog/compare/v2.10.0...HEAD
+[2.10.0]: https://github.com/ricard33/signalk-chiplog/compare/v2.9.0...v2.10.0
 [2.9.0]: https://github.com/ricard33/signalk-chiplog/compare/v2.8.0...v2.9.0
 [2.8.0]: https://github.com/ricard33/signalk-chiplog/compare/v2.7.0...v2.8.0
 [2.7.0]: https://github.com/ricard33/signalk-chiplog/compare/v2.6.0...v2.7.0
