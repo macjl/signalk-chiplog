@@ -28,6 +28,7 @@ const SHELL = [
   'js/components/SketchPanel.mjs',
   'js/components/StatusHeader.mjs',
   '../icon.svg',
+  '../icon-small.svg',
   '../js/api.mjs',
   '../js/auth.mjs',
   '../js/context.mjs',

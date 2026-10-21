@@ -93,16 +93,17 @@ keep those modules free of browser APIs and vendor imports. Characters outside W
 pages, render them to PNG (macOS: PDFKit via a short Swift script).
 
 `lib/place-names.js`, `lib/tide-forecaster.js`, `lib/weather-forecaster.js`, `lib/landmark-finder.js`,
-`lib/passage-map.js` (map tiles) and `lib/smtp.js` (the mail relay) are the only network access. Detection names places
-synchronously (known place, or coordinates marked pending); `index.js` runs the online lookups as a chain of
-`setTimeout`s, each `resolveNext()` saying when the next is due. `lib/tide-forecaster.js` and
+`lib/passage-map.js` (map tiles), `lib/smtp.js` (the mail relay), `lib/cloud-sync.js` (the online backup) and
+`lib/cloud-restore.js` (reading an earlier logbook back from it, into an empty one) are the only network access.
+Detection names places synchronously (known place, or coordinates marked pending); `index.js` runs the online lookups as
+a chain of `setTimeout`s, each `resolveNext()` saying when the next is due. `lib/tide-forecaster.js` and
 `lib/weather-forecaster.js` follow the same shape — `resolveNext()` on the shared engine `lib/departure-forecast.js`,
 each run by its own `lib/background-schedule.js` chain, which `index.js` nudges when detection reports a newly opened
 passage — to fetch the tide and weather forecasts near a passage's departure (SPEC §4.5.2, §4.5.3), one entry at a time,
 giving up (recording an empty result rather than retrying forever) once the departure is too long past for the fetch
 window to still mean anything. Tests inject `fetch` and never reach the network — `test/helpers.js` also starts the
 plugin with `geocodingEnabled: false`, `landmarksEnabled: false`, `tidesEnabled: false`, `weatherEnabled: false` and
-`summaryMailEnabled: false`; keep it that way.
+`summaryMailEnabled: false` and `cloudSyncEnabled: false`; keep it that way.
 
 `lib/landmark-finder.js` fills the gazetteer of amers (SPEC §4.13) from Overpass on the same `resolveNext()` shape, one
 half-degree cell per request, with `lib/landmarks.js` deciding which cell is wanted (`nextPendingArea`, driven by
@@ -205,6 +206,11 @@ has **no build step**: native ES modules (`.mjs`, served as JavaScript) and Prea
 - Prettier leaves `html` templates alone in `public/` (`embeddedLanguageFormatting: off`): htm drops whitespace that
   contains a newline, so reflowing a template changes what is displayed. Build text such as `start – end` as one string.
 - The API returns SI units; conversion for display happens only in `format.mjs`.
+- Two app icons, and they are not interchangeable. `public/icon.svg` is the icon proper, a plotter at the chart table,
+  and is what `package.json`'s `signalk.appIcon`, the PWA manifest and `public/entry/icons/*.png` come from.
+  `public/icon-small.svg` is the same chart and route with the case, grid, depth contours and compass taken out, for the
+  two favicons and the logbook's header: below about 48 px the detail of the first one is mush. Change one and look at
+  the other.
 - Going back to a view lands where the reader left it: `public/js/view-memory.mjs` holds, per view, what it wants to
   find again. `useRoute` in `context.mjs` saves the outgoing view's scroll on a hash change and scrolls to the top only
   for a view with nothing remembered; `LogView.mjs` is the one that remembers — the passages it had loaded and the
@@ -227,6 +233,12 @@ server-side — see docs/API.md and SPEC §4.3.
   `SHELL` list. Service workers need HTTPS or localhost, so the app must keep working without one. The Browser pane
   cannot register service workers at all — verify offline start-up in a real Chrome.
 - `crypto.randomUUID` is unavailable over plain HTTP, the usual boat set-up: use `randomId()` from `public/js/ids.mjs`.
+- `public/entry/icons/*.png` are renderings of `public/icon.svg` and have to be redone when it changes. They are not the
+  artwork as drawn: the manifest declares them `maskable`, which means no transparency and nothing of consequence
+  outside a circle of 80% of the width, so they are rendered from a variant whose case bleeds to the edges, centred on
+  the plotter's screen rather than on the case and scaled to 0.84 — the largest scale that keeps the screen's corners
+  and the outer buttons inside that circle. Save them without an alpha channel (`lib/png.js` re-encodes a decoded PNG to
+  RGB): it halves them, and the service worker precaches all three.
 - `public/js/api.mjs` sends the device token (`public/js/auth.mjs`) when one is stored, for both apps.
 
 ## Code style
@@ -244,3 +256,16 @@ Signal K callbacks are expected.
 - Keep README files highly scannable: use clean tables, bullet points starting with bold text, and visual anchors
   (emojis).
 - Ensure a blank line exists before and after every header, list, and code block to avoid rendering bugs on GitHub.
+
+## Restoring from the online service
+
+`lib/cloud-restore.js` writes an earlier logbook back into an empty database (SPEC §4.17). It takes that logbook's
+identity and writes every row under the id it had, so each passage hashes as it did when sent and the backup has nothing
+to send again — `test/cloud-restore.test.js` checks the round trip to the letter. A column added to a table a passage
+carries (`log_entries`, `events`, `observations`, `propulsion_segments`, `log_entry_crew`, the forecasts) must be added
+to `restorePassage` as well as to the serialiser that sends it, or it is lost on the way back. `jsonHash` sorts keys:
+the service's database does not keep their order.
+
+`lib/qr.js` makes the QR code of the pairing link itself (byte mode, level M, versions 1 to 6, so no version blocks and
+one alignment pattern). `test/qr.test.js` reads every length back with `jsqr`, a development dependency: change the
+encoder only with that test green.
