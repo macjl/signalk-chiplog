@@ -6,13 +6,7 @@ All notable changes to Chiplog are documented here. The format follows
 
 ## [Unreleased]
 
-### Changed
-
-- **A new app icon:** a chartplotter at the chart table, its screen showing a route plotted across a chart, in place of
-  the open book. It is what the Signal K admin shows and what the tablet app installs on a home screen. The browser tab
-  and the logbook's own header get a simplified version of it — the chart, a stretch of coast and the route — because at
-  that size the plotter's case, grid and compass turn to mush. The tablet app's colour in the phone's task switcher
-  follows the icon's case rather than the old blue.
+## [2.9.0] - 2026-10-20
 
 ### Added
 
@@ -36,20 +30,6 @@ All notable changes to Chiplog are documented here. The format follows
 - **Pairing with the online service by a short code.** On the Export page, ask the service for a code, enter it on the
   service signed in to your account, and the backup turns on by itself: no token to copy. The same card shows the last
   backup and a **Back up now** button.
-
-### Changed
-
-- **Coming back from a passage lands where you left the logbook.** Going back — with the browser's back button, with
-  "Back to the logbook" or from the nav bar — reopened the logbook at the top of the page, with only the first page of
-  passages: whatever had been loaded with "Load older passages" was gone, and so was the place you had scrolled to. The
-  logbook is now put back as it was, the older pages included, and rendered from what it was showing rather than from an
-  empty page, so it comes back at its old height and the scroll goes straight back where it was instead of jumping once
-  the passages arrive. Every other page still opens at the top.
-- **A button takes you back to the top of the logbook.** Once you have scrolled a way down — further still with the
-  older pages loaded — a round button in the corner brings you back up, rather than scrolling back through a season.
-
-### Added
-
 - **A summary of each passage, by email.** Turn it on, give it your SMTP relay and a few addresses, and Chiplog mails
   the day's run once the passage is over for good — once it has stayed closed past the delay within which leaving again
   would have carried it on, so a lock or a lunch anchorage never sets one off. The mail opens on the map of the track,
@@ -60,6 +40,22 @@ All notable changes to Chiplog are documented here. The format follows
   again, less and less often, then the backlog goes out oldest first on the next connection, with anything older than a
   week dropped. Switching the option on sends nothing retroactively, and `POST /entries/:id/summary-mail` sends one
   passage's summary straight away to try the settings out.
+
+### Changed
+
+- **A new app icon:** a chartplotter at the chart table, its screen showing a route plotted across a chart, in place of
+  the open book. It is what the Signal K admin shows and what the tablet app installs on a home screen. The browser tab
+  and the logbook's own header get a simplified version of it — the chart, a stretch of coast and the route — because at
+  that size the plotter's case, grid and compass turn to mush. The tablet app's colour in the phone's task switcher
+  follows the icon's case rather than the old blue.
+- **Coming back from a passage lands where you left the logbook.** Going back — with the browser's back button, with
+  "Back to the logbook" or from the nav bar — reopened the logbook at the top of the page, with only the first page of
+  passages: whatever had been loaded with "Load older passages" was gone, and so was the place you had scrolled to. The
+  logbook is now put back as it was, the older pages included, and rendered from what it was showing rather than from an
+  empty page, so it comes back at its old height and the scroll goes straight back where it was instead of jumping once
+  the passages arrive. Every other page still opens at the top.
+- **A button takes you back to the top of the logbook.** Once you have scrolled a way down — further still with the
+  older pages loaded — a round button in the corner brings you back up, rather than scrolling back through a season.
 
 ## [2.8.0] - 2026-10-01
 
@@ -458,7 +454,8 @@ First release.
 - REST API under `/plugins/signalk-chiplog/api`, documented in [docs/API.md](docs/API.md).
 - Single SQLite database through Node's built-in `node:sqlite`: no native module to build.
 
-[Unreleased]: https://github.com/ricard33/signalk-chiplog/compare/v2.8.0...HEAD
+[Unreleased]: https://github.com/ricard33/signalk-chiplog/compare/v2.9.0...HEAD
+[2.9.0]: https://github.com/ricard33/signalk-chiplog/compare/v2.8.0...v2.9.0
 [2.8.0]: https://github.com/ricard33/signalk-chiplog/compare/v2.7.0...v2.8.0
 [2.7.0]: https://github.com/ricard33/signalk-chiplog/compare/v2.6.0...v2.7.0
 [2.6.0]: https://github.com/ricard33/signalk-chiplog/compare/v2.5.1...v2.6.0
