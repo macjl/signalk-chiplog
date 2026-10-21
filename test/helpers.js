@@ -34,13 +34,18 @@ async function startServer({ config = {}, self = {}, resourceProviders = true } 
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'chiplog-test-'));
   const errors = [];
   const providers = new Map();
+  const savedOptions = [];
   const app = {
     getDataDirPath: () => dataDir,
     getSelfPath: (selfPath) => selfPath.split('.').reduce((node, key) => node?.[key], self),
     debug: () => {},
     error: (message) => errors.push(message),
     setPluginStatus: () => {},
-    setPluginError: () => {}
+    setPluginError: () => {},
+    savePluginOptions: (options, callback) => {
+      savedOptions.push(options);
+      callback(null);
+    }
   };
 
   if (resourceProviders) {
@@ -50,7 +55,7 @@ async function startServer({ config = {}, self = {}, resourceProviders = true } 
   const { router, permissions } = createPluginRouter();
   plugin.registerWithRouter(router);
   // Tests must never reach the public geocoding, landmark, tide or weather
-  // service, a tile server or a mail relay.
+  // service, a tile server, a mail relay or the online backup service.
   plugin.start(
     {
       geocodingEnabled: false,
@@ -58,6 +63,7 @@ async function startServer({ config = {}, self = {}, resourceProviders = true } 
       tidesEnabled: false,
       weatherEnabled: false,
       summaryMailEnabled: false,
+      cloudSyncEnabled: false,
       ...config
     },
     () => {}
@@ -106,6 +112,7 @@ async function startServer({ config = {}, self = {}, resourceProviders = true } 
     permissions,
     providers,
     errors,
+    savedOptions,
     self,
     dataDir,
     request,

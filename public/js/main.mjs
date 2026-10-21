@@ -35,7 +35,7 @@ function Shell() {
   return html`
     <header class="topbar">
       <a class="brand" href="#/">
-        <img src="icon.svg" alt="" width="28" height="28" />
+        <img src="icon-small.svg" alt="" width="28" height="28" />
         ${t('app.title')}
       </a>
       <nav>
