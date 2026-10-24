@@ -6,6 +6,18 @@ All notable changes to Chiplog are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Alarms can be left out of the log.** **Log Signal K alarms** turns them off altogether, and **Alarms left out of the
+  log** lists the ones never to record, `*` standing for any characters: `notifications.chartplotter.unknown*` silences
+  a chart plotter raising `unknown114`, `unknown115` and so on. An alarm already in the log is still closed when it
+  clears.
+- **Reconnecting after the server drops out.** When the Signal K server stops answering, or your login expires, the
+  webapp says which in a banner at the bottom of the screen, seen wherever you are on the page, and offers **Reconnect**
+  (with **Sign in** for an expired login, in another tab); once the server answers, pages reload on their own and the
+  banner says when a failed correction can be done again. On the tablet, **Not connected** gets a **Reconnect** button
+  that sends waiting entries at once, and corrections or crew changes that fail offline say so with the same button.
+
 ### Changed
 
 - **The online backup sends only what the boat's plan keeps.** When the service says its plan keeps the passages from a

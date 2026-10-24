@@ -128,7 +128,8 @@ an old value.
 Added to the timeline without anyone touching anything:
 
 - **Alarms** — any Signal K notification reaching `alarm` or `emergency` (man overboard, engine alarm, anchor watch…),
-  and when it clears.
+  and when it clears. They can be turned off altogether, or some left out by name: `notifications.chartplotter.unknown*`
+  skips `unknown114`, `unknown115` and every other path starting that way.
 - **Autopilot** — engaged, disengaged, mode changes.
 - **Wind** — true wind, averaged over 2 minutes, rising above 20 and 30 knots and falling back below them
   (configurable).
@@ -259,6 +260,12 @@ showing the period, and a calendar under it where two clicks, the first and the 
 shortcuts beside it; where any date is allowed, the calendar has an _Any date_ button to clear the range.
 
 **Helm entry** in the top bar opens the tablet entry app.
+
+**When the server drops out** — Wi-Fi gone, Signal K restarting — a banner at the bottom of the screen says the server
+does not answer and offers **Reconnect**, wherever you are on the page. Once it answers again, pages reload what they
+were showing, and the banner says when a correction that failed can be done again. If your Signal K login has expired
+instead, the message says so, with **Sign in** opening the admin in another tab: sign in there, come back, and the page
+picks up where you left it.
 
 ### Your own boat in the 3D animation ⛵
 
@@ -407,6 +414,10 @@ Keep logging. The header shows **Not connected** and how many entries are waitin
 the time it was made, and sent in order as soon as the server answers again, with the position the track recorded at
 that time. An entry sent just before the connection dropped is never logged twice.
 
+The app tries again by itself every few seconds; **Reconnect** beside **Not connected** tries at once, and sends what is
+waiting if the server answers. A correction or a crew change cannot wait like an entry: if it fails for want of a
+connection, it says so with a **Reconnect** button, to do again once connected.
+
 If the server refuses a waiting entry when it comes back — typically nothing to attach it to — it is shown in red in the
 latest entries, to discard.
 
@@ -459,6 +470,8 @@ In the Signal K admin, **Apps & Plugins → Configuration → Chiplog**.
 | Map tiles for the summary                                        | `https://tile.openstreetmap.org/{z}/{x}/{y}.png` | The tiles the summary map is drawn over, e.g. a self-hosted server. Empty draws the track on a plain background.                                                                                             |
 | Logbook language (PDF and summary emails)                        | en                                               | Language of the PDF logbooks on the USB drive and of the summary emails (English or French).                                                                                                                 |
 | Ship's time zone (PDF and summary emails)                        | the server's                                     | Time zone of the PDF logbooks on the USB drive and of the summary emails, e.g. `Europe/Paris`.                                                                                                               |
+| Log Signal K alarms                                              | on                                               | Turn off to leave every alarm out of the log.                                                                                                                                                                |
+| Alarms left out of the log                                       | —                                                | Notification paths never logged; `*` stands for any characters, and the leading `notifications.` may be omitted.                                                                                             |
 | Wind speed thresholds                                            | 20, 30 kn                                        | Logged when the 2-minute average true wind crosses them.                                                                                                                                                     |
 | Barometric drop warning                                          | 4 hPa / 3 h                                      | 0 turns it off.                                                                                                                                                                                              |
 | Log heading changes                                              | on                                               | Turn off to leave heading changes out of the log.                                                                                                                                                            |

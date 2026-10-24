@@ -1,4 +1,6 @@
 import { html, render } from '../vendor/preact-htm.mjs';
+import { connection } from './api.mjs';
+import { watchConnection } from './connection.mjs';
 import { createLocale, LocaleProvider, useLocale, useRoute } from './context.mjs';
 import { pickLanguage } from './i18n.mjs';
 import { AnimationView } from './components/AnimationView.mjs';
@@ -8,6 +10,7 @@ import { PassageView } from './components/PassageView.mjs';
 import { ReplayView } from './components/ReplayView.mjs';
 import { StatisticsView } from './components/StatisticsView.mjs';
 import { StatusBar } from './components/StatusBar.mjs';
+import { ConnectionToast } from './components/common.mjs';
 
 function Page({ route }) {
   if (route.name === 'passage') {
@@ -50,12 +53,15 @@ function Shell() {
     <${StatusBar} />
     <main><${Page} route=${route} /></main>
     <footer class="attribution">${t('footer.attribution')}</footer>
+    <${ConnectionToast} />
   `;
 }
 
 const locale = createLocale(pickLanguage(navigator.languages, location.search));
 document.documentElement.lang = locale.language;
 document.title = locale.t('app.title');
+
+watchConnection(connection, { window, document });
 
 render(
   html`<${LocaleProvider} value=${locale}><${Shell} /></${LocaleProvider}>`,

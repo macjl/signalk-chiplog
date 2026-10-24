@@ -2,6 +2,7 @@ import { html, useState } from '../../vendor/preact-htm.mjs';
 import { get } from '../api.mjs';
 import { useLocale, usePolling } from '../context.mjs';
 import { fallbackMessage } from '../status.mjs';
+import { connectionProblem } from '../connection.mjs';
 import { ErrorNotice } from './common.mjs';
 
 const REFRESH_MS = 15 * 1000;
@@ -20,20 +21,34 @@ export function StatusBar() {
   const { t, format } = useLocale();
   const [state, setState] = useState(null);
   const [error, setError] = useState(null);
+  const [attempt, setAttempt] = useState(0);
 
-  usePolling((isCurrent) => {
-    get('/state')
-      .then((next) => {
-        if (isCurrent()) {
-          setState(next);
-          setError(null);
-        }
-      })
-      .catch((err) => isCurrent() && setError(err));
-  }, REFRESH_MS);
+  usePolling(
+    (isCurrent) => {
+      get('/state')
+        .then((next) => {
+          if (isCurrent()) {
+            setState(next);
+            setError(null);
+          }
+        })
+        .catch((err) => isCurrent() && setError(err));
+    },
+    REFRESH_MS,
+    [attempt]
+  );
 
+  // A lost link is the connection toast's to tell; the bar keeps what it last
+  // knew, and its notice only reloads it once the link is back.
+  if (error && connectionProblem(error) && state) {
+    return html`<div class=${`statusbar statusbar-${state.motion}`}>
+      <${ErrorNotice} error=${error} onRetry=${() => setAttempt((n) => n + 1)} />
+      <span class="status-dot" aria-hidden="true"></span>
+      <strong>${motionLabel(state, t)}</strong>
+    </div>`;
+  }
   if (error) {
-    return html`<div class="statusbar"><${ErrorNotice} error=${error} /></div>`;
+    return html`<div class="statusbar"><${ErrorNotice} error=${error} onRetry=${() => setAttempt((n) => n + 1)} /></div>`;
   }
   if (!state) {
     return html`<div class="statusbar">${t('common.loading')}</div>`;

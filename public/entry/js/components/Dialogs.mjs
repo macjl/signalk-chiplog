@@ -67,7 +67,7 @@ export function EventDialog({ title, event, bounds, onSave, onCancel }) {
 // say the entry is in, a countdown shows the banner will go on its own, and the
 // two follow-ups are secondary next to it — undoing is the destructive one, and
 // says what it undoes, since on its own "undo" reads as dismissing the banner.
-export function Toast({ toast, timeoutMs, onUndo, onComment, onClose }) {
+export function Toast({ toast, timeoutMs, onUndo, onComment, onClose, onReconnect }) {
   const { t, format } = useLocale();
   if (!toast) {
     return null;
@@ -85,6 +85,14 @@ export function Toast({ toast, timeoutMs, onUndo, onComment, onClose }) {
     return html`
       <div class="toast toast-error" role="alert">
         <span class="toast-text">${toast.message}</span>
+        ${
+          toast.reconnect &&
+          html`<span class="toast-actions">
+            <button type="button" class="tool-button" onClick=${onReconnect}>
+              ${t('connection.reconnect')}
+            </button>
+          </span>`
+        }
         ${close}
       </div>
     `;

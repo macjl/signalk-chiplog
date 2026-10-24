@@ -251,6 +251,51 @@ main {
   border-color: transparent;
 }
 
+.notice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Above the map's controls, wherever the page is scrolled. */
+.connection-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 1rem;
+  z-index: 1100;
+  transform: translateX(-50%);
+  width: min(40rem, calc(100% - 2rem));
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+  background: var(--error-bg);
+  color: var(--text);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+}
+
+.connection-toast p {
+  margin: 0;
+}
+
+.connection-toast-ok {
+  background: var(--ok-bg);
+}
+
+.connection-toast .toast-close {
+  border: none;
+  background: none;
+  color: inherit;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
 .notice-ok {
   background: var(--ok-bg);
   border-color: transparent;

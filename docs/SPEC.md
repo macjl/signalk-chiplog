@@ -378,7 +378,11 @@ As implemented (`lib/event-watcher.js`, checked every second):
   After a restart, the log itself says what was already recorded: an alarm still open is not repeated, and one that
   cleared meanwhile is closed. Unlike the other automatic lines, an alarm can be deleted from the webapp: deleting
   either the raise or the clearing takes its pair with it, so a false alarm leaves no orphan line (an escalation is not
-  a pair and is unaffected).
+  a pair and is unaffected). `alarmsEnabled` (on by default) turns alarm logging off altogether, and `ignoredAlarms`
+  lists paths never logged, `*` standing for any run of characters (dots included) and the leading `notifications.`
+  optional — for an instrument that keeps raising meaningless alarms, such as `notifications.chartplotter.unknown*`.
+  Either one stops new raises and escalations only: an alarm already in the log is still closed when it clears, so the
+  raise keeps its pair.
 - **Autopilot.** Engagement, disengagement, and mode changes while engaged, from `steering.autopilot.engaged` and
   `.mode` (the server's Autopilot API) or, for older autopilot plugins, `steering.autopilot.state` (`standby` meaning
   disengaged), each with an instrument snapshot. The target heading or wind angle goes with it. Only during a passage:
@@ -475,6 +479,15 @@ the name it recorded.
   plain HTTP — the usual boat set-up — the app works and queues entries, but needs the server to load. Signal K's own
   SSL setting provides HTTPS.
 - The list of manoeuvre shortcuts is remembered on the tablet, so an app started offline has its buttons.
+- **Lost connection.** Both apps follow the link to the server in one place, fed by every API request: a network failure
+  (or a proxy's 502/504) means the server does not answer; a 401 means the login or device token is gone, but only once
+  a probe (`GET /state`) is refused too, since Signal K also answers 401 to an account that lacks the rights for one
+  request. The webapp says which in a single toast fixed to the bottom of the screen — one per page, whatever failed,
+  and seen however far down the page the reader is — with **Reconnect**, which probes at once; the network coming back
+  and the page regaining focus (from signing in on another tab) probe too, and any successful response counts as the
+  link being back. Reloads then rerun on their own; a correction that failed is not replayed — it may have reached the
+  server — but the toast says it can be done again. On the tablet, entries keep going to the offline queue, which is
+  flushed as soon as the link is back; a lost login brings back the access screen.
 
 ### 4.10 Retrospective analysis
 
@@ -960,7 +973,7 @@ _(This MVP breakdown is a proposal — to be validated with you before committin
 | Author / crew list                                 | No per-event author in V1; a per-passage crew list is, picked from an editable global roster, carried over from the preceding passage (§4.11). Per-event authorship deferred to V2 if confirmed                                                                                                                                                                                           |
 | signalk-autostate dependency                       | Optional, with internal fallback (SOG threshold) if absent                                                                                                                                                                                                                                                                                                                                |
 | Engine/sail sources                                | `propulsion.*.revolutions`, then `propulsion.*.state`, then `navigation.state`, then a configurable default (`sail`); segments only cover time under way (§4.2)                                                                                                                                                                                                                           |
-| Critical notifications                             | Any notification in `alarm` or `emergency`, whatever its path (§4.6)                                                                                                                                                                                                                                                                                                                      |
+| Critical notifications                             | Any notification in `alarm` or `emergency`, whatever its path, unless turned off or matched by an ignored pattern (§4.6)                                                                                                                                                                                                                                                                  |
 | Weather thresholds                                 | True wind averaged over 2 min against configurable speeds (20 and 30 kn); barometric fall of 4 hPa over 3 h (§4.6)                                                                                                                                                                                                                                                                        |
 | Events between passages                            | Attached to the last passage while within 1 nm of its arrival; otherwise not logged (§4.6)                                                                                                                                                                                                                                                                                                |
 | Webapp stack                                       | Preact + htm as one vendored ES module, no build step, no CDN (a boat is usually offline); Leaflet for the map. The tablet PWA shares it                                                                                                                                                                                                                                                  |

@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState } from '../vendor/preact-htm.mjs';
+import { connection } from './api.mjs';
 import { parseAnimationHash } from './days.mjs';
 import { createFormatter } from './format.mjs';
 import { createTranslator } from './i18n.mjs';
@@ -85,4 +86,14 @@ export function usePolling(load, intervalMs, dependencies = []) {
       clearInterval(timer);
     };
   }, dependencies);
+}
+
+// The link to the server as the page last found it (see connection.mjs).
+export function useConnection() {
+  const [link, setLink] = useState(connection.snapshot);
+  useEffect(() => {
+    setLink(connection.snapshot());
+    return connection.subscribe(setLink);
+  }, []);
+  return link;
 }
