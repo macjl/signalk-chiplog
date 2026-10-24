@@ -6,6 +6,13 @@ All notable changes to Chiplog are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Alarms can be left out of the log.** **Log Signal K alarms** turns them off altogether, and **Alarms left out of the
+  log** lists the ones never to record, `*` standing for any characters: `notifications.chartplotter.unknown*` silences
+  a chart plotter raising `unknown114`, `unknown115` and so on. An alarm already in the log is still closed when it
+  clears.
+
 ## [2.10.0] - 2026-10-20
 
 ### Added
