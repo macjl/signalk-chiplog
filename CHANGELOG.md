@@ -16,6 +16,27 @@ All notable changes to Chiplog are documented here. The format follows
 
 - Event and crew deletion confirmations work inside sandboxed plotter panels.
 
+## [2.11.0] - 2026-10-24
+
+### Added
+
+- **Alarms can be left out of the log.** **Log Signal K alarms** turns them off altogether, and **Alarms left out of the
+  log** lists the ones never to record, `*` standing for any characters: `notifications.chartplotter.unknown*` silences
+  a chart plotter raising `unknown114`, `unknown115` and so on. An alarm already in the log is still closed when it
+  clears.
+- **Reconnecting after the server drops out.** When the Signal K server stops answering, or your login expires, the
+  webapp says which in a banner at the bottom of the screen, seen wherever you are on the page, and offers **Reconnect**
+  (with **Sign in** for an expired login, in another tab); once the server answers, pages reload on their own and the
+  banner says when a failed correction can be done again. On the tablet, **Not connected** gets a **Reconnect** button
+  that sends waiting entries at once, and corrections or crew changes that fail offline say so with the same button.
+
+### Changed
+
+- **The online backup sends only what the boat's plan keeps.** When the service says its plan keeps the passages from a
+  date on (Ti Bord's free plan: the last 30 days), older closed passages stay on board and are not sent, and the
+  passages counted for the backup's progress are those of that window. A passage under way is always sent; once the boat
+  is subscribed, everything is sent again, newest first.
+
 ## [2.10.0] - 2026-10-20
 
 ### Added
@@ -472,7 +493,8 @@ First release.
 - REST API under `/plugins/signalk-chiplog/api`, documented in [docs/API.md](docs/API.md).
 - Single SQLite database through Node's built-in `node:sqlite`: no native module to build.
 
-[Unreleased]: https://github.com/ricard33/signalk-chiplog/compare/v2.10.0...HEAD
+[Unreleased]: https://github.com/ricard33/signalk-chiplog/compare/v2.11.0...HEAD
+[2.11.0]: https://github.com/ricard33/signalk-chiplog/compare/v2.10.0...v2.11.0
 [2.10.0]: https://github.com/ricard33/signalk-chiplog/compare/v2.9.0...v2.10.0
 [2.9.0]: https://github.com/ricard33/signalk-chiplog/compare/v2.8.0...v2.9.0
 [2.8.0]: https://github.com/ricard33/signalk-chiplog/compare/v2.7.0...v2.8.0

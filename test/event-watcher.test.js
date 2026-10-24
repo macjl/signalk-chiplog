@@ -4,7 +4,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { describe, it, afterEach } = require('node:test');
 const { openDatabase } = require('../lib/database');
-const { createEventWatcher, EVENT_DEFAULTS } = require('../lib/event-watcher');
+const { createAlarmFilter, createEventWatcher, EVENT_DEFAULTS } = require('../lib/event-watcher');
 
 const KNOT = 1852 / 3600;
 const SECOND = 1000;
@@ -27,6 +27,7 @@ function createVessel({ settings = {} } = {}) {
     db,
     now: T0,
     snapshots,
+    settings: { ...EVENT_DEFAULTS, ...settings },
 
     publish(skPath, value) {
       const keys = skPath.split('.');
@@ -57,7 +58,7 @@ function createVessel({ settings = {} } = {}) {
       watcher = createEventWatcher({
         db,
         readSelfPath: (skPath) => skPath.split('.').reduce((node, key) => node?.[key], self),
-        settings: { ...EVENT_DEFAULTS, ...settings },
+        settings: vessel.settings,
         observe: (entryId, time) => snapshots.push({ entryId, time }),
         clock: () => vessel.now
       });
@@ -169,6 +170,56 @@ describe('automatic events', () => {
       vessel.run(3);
 
       assert.equal(vessel.events('sk_alarm').length, 0);
+    });
+
+    it('logs no alarm when alarms are turned off', () => {
+      vessel = createVessel({ settings: { alarmsEnabled: false } }).start();
+      vessel.openEntry();
+
+      vessel.publish('notifications.mob', { state: 'emergency', message: 'MOB' });
+      vessel.run(2);
+      vessel.publish('notifications.mob', { state: 'normal', message: 'Recovered' });
+      vessel.run(1);
+
+      assert.equal(vessel.events('sk_alarm').length, 0);
+      assert.equal(vessel.snapshots.length, 0);
+    });
+
+    it('leaves out the alarms matching an ignored pattern', () => {
+      vessel = createVessel({
+        settings: { ignoredAlarms: ['notifications.chartplotter.unknown*', 'ais.*'] }
+      }).start();
+      vessel.openEntry();
+
+      for (const code of [114, 115, 116]) {
+        vessel.publish(`notifications.chartplotter.unknown${code}`, { state: 'alarm' });
+      }
+      vessel.publish('notifications.ais.collision.123', { state: 'alarm' });
+      vessel.publish('notifications.chartplotter.depth', { state: 'alarm', message: 'Shallow' });
+      vessel.run(2);
+
+      assert.deepEqual(
+        vessel.events('sk_alarm').map((event) => event.subtype),
+        ['notifications.chartplotter.depth']
+      );
+    });
+
+    it('still closes an alarm logged before it was ignored', () => {
+      vessel = createVessel().start();
+      vessel.openEntry();
+      vessel.publish('notifications.chartplotter.unknown114', { state: 'alarm' });
+      vessel.run(1);
+
+      vessel.settings.ignoredAlarms = ['chartplotter.unknown*'];
+      vessel.start();
+      vessel.run(1);
+      vessel.remove('notifications.chartplotter.unknown114');
+      vessel.run(1);
+
+      assert.deepEqual(
+        vessel.events('sk_alarm').map((event) => event.payload.state),
+        ['alarm', 'normal']
+      );
     });
 
     it('logs an escalation, and a notification that disappears as cleared', () => {
@@ -532,5 +583,22 @@ describe('automatic events', () => {
 
       assert.equal(vessel.events('heading_change').length, 0);
     });
+  });
+});
+
+describe('ignored alarm patterns', () => {
+  it('matches whole paths, * standing for any characters', () => {
+    const ignored = createAlarmFilter(['notifications.chartplotter.unknown*', 'engine.?', '']);
+
+    assert.equal(ignored('notifications.chartplotter.unknown114'), true);
+    assert.equal(ignored('notifications.chartplotter.unknown'), true);
+    assert.equal(ignored('notifications.chartplotter.depth'), false);
+    assert.equal(ignored('notifications.engine.?'), true, 'no character but * is special');
+    assert.equal(ignored('notifications.engine.1'), false);
+    assert.equal(ignored('notifications.mob'), false, 'an empty pattern matches nothing');
+  });
+
+  it('matches nothing without patterns', () => {
+    assert.equal(createAlarmFilter(undefined)('notifications.mob'), false);
   });
 });

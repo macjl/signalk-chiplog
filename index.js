@@ -315,6 +315,21 @@ module.exports = function (app) {
         description:
           'IANA time zone the PDF logbook on the USB drive and the passage summary emails are kept in, e.g. Europe/Paris. Empty uses the server’s time zone; downloads from the webapp use the browser’s'
       },
+      alarmsEnabled: {
+        type: 'boolean',
+        title: 'Log Signal K alarms',
+        description:
+          'Records every notification reaching alarm or emergency, when raised and when cleared; turn off to leave alarms out of the log',
+        default: EVENT_DEFAULTS.alarmsEnabled
+      },
+      ignoredAlarms: {
+        type: 'array',
+        title: 'Alarms left out of the log',
+        description:
+          'Notification paths never logged, * standing for any characters: notifications.chartplotter.unknown* leaves out unknown114, unknown115 and so on. The leading notifications. may be omitted',
+        items: { type: 'string' },
+        default: EVENT_DEFAULTS.ignoredAlarms
+      },
       windSpeedThresholds: {
         type: 'array',
         title: 'Wind speed thresholds (knots)',
@@ -648,6 +663,10 @@ module.exports = function (app) {
           ? config.logbookLanguage
           : 'en',
         logbookTimeZone: config.logbookTimeZone || null,
+        alarmsEnabled: config.alarmsEnabled ?? EVENT_DEFAULTS.alarmsEnabled,
+        ignoredAlarms: Array.isArray(config.ignoredAlarms)
+          ? config.ignoredAlarms
+          : EVENT_DEFAULTS.ignoredAlarms,
         windSpeedThresholds: config.windSpeedThresholds ?? EVENT_DEFAULTS.windSpeedThresholds,
         pressureDropThreshold: config.pressureDropThreshold ?? EVENT_DEFAULTS.pressureDropThreshold,
         headingChangeEnabled: config.headingChangeEnabled ?? EVENT_DEFAULTS.headingChangeEnabled,

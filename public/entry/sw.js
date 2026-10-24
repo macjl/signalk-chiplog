@@ -33,6 +33,7 @@ const SHELL = [
   '../icon-small.svg',
   '../js/api.mjs',
   '../js/auth.mjs',
+  '../js/connection.mjs',
   '../js/context.mjs',
   '../js/days.mjs',
   '../js/format.mjs',

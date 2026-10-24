@@ -31,7 +31,8 @@ function fakeService() {
   // What the service holds of the logbook's places; `knowsPlaces` off is an older service.
   const places = { hash: null, list: [], knowsPlaces: true };
   const requests = [];
-  const control = { down: false, status: null };
+  // `historyFrom`: the first moment the boat's plan keeps, said in the sync state when set.
+  const control = { down: false, status: null, historyFrom: undefined };
 
   const reply = (status, body) =>
     new Response(body === undefined ? null : JSON.stringify(body), {
@@ -67,7 +68,8 @@ function fakeService() {
           complete: p.chunkHashes.every((hash, i) => p.chunks.get(i) === hash),
           light: p.light
         })),
-        ...(places.knowsPlaces ? { placesHash: places.hash } : {})
+        ...(places.knowsPlaces ? { placesHash: places.hash } : {}),
+        ...(control.historyFrom !== undefined ? { historyFrom: control.historyFrom } : {})
       });
     }
     if (route.endsWith('/places')) {
@@ -264,6 +266,47 @@ describe('online backup', () => {
       .filter((r) => r.method === 'PUT')
       .map((r) => Number(r.route.split('/').pop()));
     assert.deepEqual(order, [newer, older]);
+  });
+
+  it('leaves on board the passages older than the window the service keeps', async () => {
+    const older = insertEntry(db, { start_time: at(-48), end_time: at(-44) });
+    const newer = insertEntry(db);
+    service.control.historyFrom = at(-24);
+    const cloud = sync();
+
+    await cloud.resolveNext();
+    assert.deepEqual([...service.passages.keys()], [newer]);
+    // What the service held of it before is not deleted: the passage is still on board.
+    service.passages.set(older, {
+      contentHash: 'x',
+      light: false,
+      chunkHashes: [],
+      chunks: new Map()
+    });
+    service.requests.length = 0;
+
+    await cloud.resolveNext();
+    assert.ok(service.passages.has(older));
+    assert.deepEqual(
+      service.requests.map((r) => r.method),
+      ['GET']
+    );
+    // Counted by the window: the service tells how far the backup of what it keeps is.
+    assert.equal(service.requests[0].headers['x-chiplog-passages'], '1');
+  });
+
+  it('sends a passage under way however long ago it began, and everything once the window goes', async () => {
+    const old = insertEntry(db, { start_time: at(-96), end_time: at(-90) });
+    const underWay = insertEntry(db, { start_time: at(-48), state: 'active' });
+    service.control.historyFrom = at(-24);
+    const cloud = sync();
+
+    await cloud.resolveNext();
+    assert.deepEqual([...service.passages.keys()], [underWay]);
+
+    service.control.historyFrom = null;
+    await cloud.resolveNext();
+    assert.deepEqual([...service.passages.keys()].sort(), [old, underWay].sort());
   });
 
   it('does nothing while turned off or not configured', async () => {

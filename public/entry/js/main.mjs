@@ -1,6 +1,13 @@
 import { html, render, useEffect, useMemo, useState } from '../../vendor/preact-htm.mjs';
-import { fetchAll, get, onResponse, request } from '../../js/api.mjs';
-import { createLocale, LocaleProvider, useLocale, usePolling } from '../../js/context.mjs';
+import { connection, fetchAll, get, onResponse, request } from '../../js/api.mjs';
+import { connectionProblem, watchConnection } from '../../js/connection.mjs';
+import {
+  createLocale,
+  LocaleProvider,
+  useConnection,
+  useLocale,
+  usePolling
+} from '../../js/context.mjs';
 import { randomId } from '../../js/ids.mjs';
 import { pickLanguage } from '../../js/i18n.mjs';
 import { createServerClock } from './clock.mjs';
@@ -82,10 +89,8 @@ function writeSetting(key, value) {
 }
 
 const clock = createServerClock();
-let markOnline = () => {};
 onResponse((response, sentAt, receivedAt) => {
   clock.observe(response.headers.get('date'), sentAt, receivedAt);
-  markOnline(true);
 });
 
 function App({ journal }) {
@@ -95,7 +100,7 @@ function App({ journal }) {
   const [lastEntryId, setLastEntryId] = useState(null);
   const [types, setTypes] = useState(knownTypes);
   const [roster, setRoster] = useState(knownCrew);
-  const [online, setOnline] = useState(true);
+  const link = useConnection();
   const [forbidden, setForbidden] = useState(false);
   const [queue, setQueue] = useState(journal.outbox.snapshot());
   const [toast, setToast] = useState(null);
@@ -107,15 +112,48 @@ function App({ journal }) {
   const [version, setVersion] = useState(0);
   const [busy, setBusy] = useState(false);
 
-  markOnline = setOnline;
   const refresh = () => setVersion((v) => v + 1);
+  // The link itself is followed by `connection` (api.mjs), which every request
+  // reports to; a refusal is this tablet lacking access, which the gate asks for.
+  const online = link.state !== 'offline';
 
   const noteFailure = (error) => {
-    if (error?.code === 'network') {
-      setOnline(false);
-    }
     if (error?.code === 'forbidden') {
       setForbidden(true);
+    }
+  };
+
+  // Shows what was not done. Entries are queued rather than refused when the
+  // link is down, so this is for corrections and the crew list.
+  const showFailure = (error) => {
+    noteFailure(error);
+    const offline = connectionProblem(error) === 'offline';
+    setToast({
+      kind: 'error',
+      reconnect: offline,
+      message: offline ? t('entry.notDoneOffline') : t('entry.refused', { message: error.message })
+    });
+  };
+
+  const flushQueue = async () => {
+    if (journal.outbox.size === 0) {
+      return;
+    }
+    const outcome = await journal.flush();
+    noteFailure(outcome.blocked);
+    if (outcome.sent.length > 0) {
+      refresh();
+    }
+  };
+
+  // Asked for by the crew: says so when the server still does not answer,
+  // since nothing else on screen would change.
+  const reconnect = async () => {
+    const state = await connection.check();
+    if (state === 'offline') {
+      setToast({ kind: 'error', reconnect: true, message: t('entry.stillOffline') });
+    } else if (toast?.reconnect) {
+      setToast(null);
     }
   };
 
@@ -204,7 +242,7 @@ function App({ journal }) {
         .catch(noteFailure);
     },
     0,
-    [forbidden, online]
+    [forbidden, link.restored]
   );
 
   usePolling(
@@ -219,29 +257,27 @@ function App({ journal }) {
         .catch(noteFailure);
     },
     0,
-    [forbidden, online]
+    [forbidden, link.restored]
   );
 
   // Replays the queue while it holds anything, and as soon as the network is back.
   useEffect(() => {
-    const flush = async () => {
-      if (journal.outbox.size === 0) {
-        return;
-      }
-      const outcome = await journal.flush();
-      noteFailure(outcome.blocked);
-      if (outcome.sent.length > 0) {
-        refresh();
-      }
-    };
-    const timer = setInterval(flush, FLUSH_INTERVAL_MS);
-    window.addEventListener('online', flush);
-    flush();
+    const timer = setInterval(flushQueue, FLUSH_INTERVAL_MS);
+    window.addEventListener('online', flushQueue);
     return () => {
       clearInterval(timer);
-      window.removeEventListener('online', flush);
+      window.removeEventListener('online', flushQueue);
     };
   }, []);
+
+  // And whenever the link comes back, along with the state it missed.
+  useEffect(() => {
+    flushQueue();
+    if (link.restored > 0) {
+      setForbidden(false);
+      refresh();
+    }
+  }, [link.restored]);
 
   const manoeuvreLabels = useMemo(
     () => Object.fromEntries(types.map((type) => [type.key, type.label])),
@@ -306,8 +342,7 @@ function App({ journal }) {
       }
       refresh();
     } catch (error) {
-      noteFailure(error);
-      setToast({ kind: 'error', message: t('entry.refused', { message: error.message }) });
+      showFailure(error);
     }
   };
 
@@ -319,8 +354,7 @@ function App({ journal }) {
       await request('DELETE', `/events/${event.id}`);
       refresh();
     } catch (error) {
-      noteFailure(error);
-      setToast({ kind: 'error', message: t('entry.refused', { message: error.message }) });
+      showFailure(error);
     }
   };
 
@@ -335,8 +369,7 @@ function App({ journal }) {
       setManagingCrew(false);
       refresh();
     } catch (error) {
-      noteFailure(error);
-      setToast({ kind: 'error', message: t('entry.refused', { message: error.message }) });
+      showFailure(error);
     }
   };
 
@@ -346,8 +379,7 @@ function App({ journal }) {
       setRoster((prev) => [...prev, member]);
       return member;
     } catch (error) {
-      noteFailure(error);
-      setToast({ kind: 'error', message: t('entry.refused', { message: error.message }) });
+      showFailure(error);
       return null;
     }
   };
@@ -357,8 +389,7 @@ function App({ journal }) {
       const updated = await request('PATCH', `/crew/${id}`, patch);
       setRoster((prev) => prev.map((member) => (member.id === id ? updated : member)));
     } catch (error) {
-      noteFailure(error);
-      setToast({ kind: 'error', message: t('entry.refused', { message: error.message }) });
+      showFailure(error);
     }
   };
 
@@ -368,8 +399,7 @@ function App({ journal }) {
       setRoster((prev) => prev.filter((member) => member.id !== id));
       return true;
     } catch (error) {
-      noteFailure(error);
-      setToast({ kind: 'error', message: t('entry.refused', { message: error.message }) });
+      showFailure(error);
       return false;
     }
   };
@@ -382,17 +412,20 @@ function App({ journal }) {
       state=${state}
       entry=${entry}
       online=${online}
+      connecting=${link.checking}
+      onReconnect=${reconnect}
       queued=${queue.pending.length}
       night=${night}
       onToggleNight=${toggleNight}
     />
     <main class="entry-main">
       ${
-        forbidden &&
+        (forbidden || link.state === 'signedOut') &&
         html`<${AccessGate}
           onGranted=${() => {
             setForbidden(false);
-            journal.flush();
+            connection.check();
+            flushQueue();
             refresh();
           }}
         />`
@@ -469,6 +502,7 @@ function App({ journal }) {
       timeoutMs=${TOAST_MS}
       onClose=${() => setToast(null)}
       onUndo=${undo}
+      onReconnect=${reconnect}
       onComment=${() =>
         setEditing({ ref: toast.ref, what: toast.what, event: journal.entryFor(toast.ref) })}
     />
@@ -519,6 +553,8 @@ const journal = createJournal({
 journal.setListener = (next) => {
   listener = next;
 };
+
+watchConnection(connection, { window, document });
 
 render(
   html`<${LocaleProvider} value=${locale}><${App} journal=${journal} /></${LocaleProvider}>`,

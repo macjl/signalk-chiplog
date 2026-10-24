@@ -27,8 +27,17 @@ export const MESSAGES = {
       'Your Signal K account is not allowed to do this. Sign in with an account that has the rights.',
     'error.signIn': 'Open the Signal K admin',
     'error.notRunning': 'The Chiplog plugin is not running. Enable it in the Signal K admin.',
-    'error.network': 'The Signal K server cannot be reached.',
     'error.generic': 'Something went wrong: {message}',
+
+    'connection.offline':
+      'The Signal K server does not answer: the network may be down, or the server restarting.',
+    'connection.signedOut': 'Your Signal K session has ended. Sign in again, then reconnect.',
+    'connection.checking': 'Connecting to the Signal K server…',
+    'connection.reconnect': 'Reconnect',
+    'connection.stillDown': 'Still no luck.',
+    'connection.signIn': 'Sign in',
+    'connection.restored': 'The connection is back.',
+    'connection.tryAgain': 'What failed can be done again.',
 
     'status.underwaySail': 'Under way under sail',
     'status.underwayEngine': 'Under way under engine',
@@ -517,6 +526,10 @@ export const MESSAGES = {
     'entry.noteTime': 'Time (now if left empty)',
     'entry.noPassageError': 'No passage to log this in: cast off or weigh anchor first.',
     'entry.refused': 'Not logged: {message}',
+    'entry.notDoneOffline': 'Not done: the Signal K server does not answer.',
+    'entry.stillOffline':
+      'Still no answer from the Signal K server. Entries keep waiting on this tablet.',
+    'entry.reconnecting': 'Connecting…',
     'entry.chooseSail': 'Which sail is up?',
     'entry.otherSail': 'Other sail',
     'entry.sketchUndo': 'Undo',
@@ -591,8 +604,18 @@ export const MESSAGES = {
     'error.signIn': 'Ouvrir l’administration Signal K',
     'error.notRunning':
       'Le plugin Chiplog n’est pas démarré. Activez-le dans l’administration Signal K.',
-    'error.network': 'Le serveur Signal K est injoignable.',
     'error.generic': 'Une erreur est survenue : {message}',
+
+    'connection.offline':
+      'Le serveur Signal K ne répond pas : le réseau est peut-être coupé, ou le serveur redémarre.',
+    'connection.signedOut':
+      'Votre session Signal K a pris fin. Connectez-vous à nouveau, puis rétablissez la connexion.',
+    'connection.checking': 'Connexion au serveur Signal K…',
+    'connection.reconnect': 'Rétablir la connexion',
+    'connection.stillDown': 'Toujours sans succès.',
+    'connection.signIn': 'Se connecter',
+    'connection.restored': 'La connexion est rétablie.',
+    'connection.tryAgain': 'Vous pouvez refaire ce qui a échoué.',
 
     'status.underwaySail': 'En route à la voile',
     'status.underwayEngine': 'En route au moteur',
@@ -1092,6 +1115,10 @@ export const MESSAGES = {
     'entry.noPassageError':
       'Aucune navigation où consigner : appareillez ou levez l’ancre d’abord.',
     'entry.refused': 'Non consigné : {message}',
+    'entry.notDoneOffline': 'Non effectué : le serveur Signal K ne répond pas.',
+    'entry.stillOffline':
+      'Le serveur Signal K ne répond toujours pas. Les entrées restent en attente sur cette tablette.',
+    'entry.reconnecting': 'Connexion…',
     'entry.chooseSail': 'Quelle voile est envoyée ?',
     'entry.otherSail': 'Autre voile',
     'entry.sketchUndo': 'Annuler',

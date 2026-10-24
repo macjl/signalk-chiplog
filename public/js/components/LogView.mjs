@@ -178,7 +178,7 @@ export function LogView() {
 
   return html`
     <h1 class="page-title" tabindex="-1" ref=${title}>${t('log.title')}</h1>
-    <${ErrorNotice} error=${error} />
+    <${ErrorNotice} error=${error} onRetry=${() => reload()} />
     <${LogStats} stats=${log.stats} />
     ${groupByDay(log.items).map(
       (day) => html`
