@@ -12,6 +12,11 @@ All notable changes to Chiplog are documented here. The format follows
   log** lists the ones never to record, `*` standing for any characters: `notifications.chartplotter.unknown*` silences
   a chart plotter raising `unknown114`, `unknown115` and so on. An alarm already in the log is still closed when it
   clears.
+- **Reconnecting after the server drops out.** When the Signal K server stops answering, or your login expires, the
+  webapp says which in a banner at the bottom of the screen, seen wherever you are on the page, and offers **Reconnect**
+  (with **Sign in** for an expired login, in another tab); once the server answers, pages reload on their own and the
+  banner says when a failed correction can be done again. On the tablet, **Not connected** gets a **Reconnect** button
+  that sends waiting entries at once, and corrections or crew changes that fail offline say so with the same button.
 
 ## [2.10.0] - 2026-10-20
 

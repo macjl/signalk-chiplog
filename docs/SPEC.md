@@ -479,6 +479,15 @@ the name it recorded.
   plain HTTP — the usual boat set-up — the app works and queues entries, but needs the server to load. Signal K's own
   SSL setting provides HTTPS.
 - The list of manoeuvre shortcuts is remembered on the tablet, so an app started offline has its buttons.
+- **Lost connection.** Both apps follow the link to the server in one place, fed by every API request: a network failure
+  (or a proxy's 502/504) means the server does not answer; a 401 means the login or device token is gone, but only once
+  a probe (`GET /state`) is refused too, since Signal K also answers 401 to an account that lacks the rights for one
+  request. The webapp says which in a single toast fixed to the bottom of the screen — one per page, whatever failed,
+  and seen however far down the page the reader is — with **Reconnect**, which probes at once; the network coming back
+  and the page regaining focus (from signing in on another tab) probe too, and any successful response counts as the
+  link being back. Reloads then rerun on their own; a correction that failed is not replayed — it may have reached the
+  server — but the toast says it can be done again. On the tablet, entries keep going to the offline queue, which is
+  flushed as soon as the link is back; a lost login brings back the access screen.
 
 ### 4.10 Retrospective analysis
 

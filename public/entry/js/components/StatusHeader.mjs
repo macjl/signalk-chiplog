@@ -34,9 +34,40 @@ function passageLine(entry, t, format) {
   });
 }
 
-export function StatusHeader({ state, entry, online, queued, night, onToggleNight }) {
-  const { t, format } = useLocale();
+// While the server does not answer, the connection mark is a button that
+// tries again at once, rather than at the next poll.
+function ConnectionMark({ online, connecting, queued, onReconnect }) {
+  const { t } = useLocale();
   const connection = online ? t('entry.online') : t('entry.offline');
+  const label = queued > 0 ? `${connection} · ${t('entry.queued', { count: queued })}` : connection;
+  if (online) {
+    return html`<span class="connection connection-online">
+      <span class="connection-dot" aria-hidden="true"></span>
+      ${label}
+    </span>`;
+  }
+  return html`
+    <span class="connection connection-offline">
+      <span class="connection-dot" aria-hidden="true"></span>
+      ${label}
+      <button type="button" class="tool-button" disabled=${connecting} onClick=${onReconnect}>
+        ${connecting ? t('entry.reconnecting') : t('connection.reconnect')}
+      </button>
+    </span>
+  `;
+}
+
+export function StatusHeader({
+  state,
+  entry,
+  online,
+  connecting,
+  queued,
+  night,
+  onToggleNight,
+  onReconnect
+}) {
+  const { t, format } = useLocale();
   return html`
     <header class="entry-header">
       <div class="entry-status">
@@ -50,10 +81,12 @@ export function StatusHeader({ state, entry, online, queued, night, onToggleNigh
         }
       </div>
       <div class="entry-tools">
-        <span class=${online ? 'connection connection-online' : 'connection connection-offline'}>
-          <span class="connection-dot" aria-hidden="true"></span>
-          ${queued > 0 ? `${connection} · ${t('entry.queued', { count: queued })}` : connection}
-        </span>
+        <${ConnectionMark}
+          online=${online}
+          connecting=${connecting}
+          queued=${queued}
+          onReconnect=${onReconnect}
+        />
         <button
           type="button"
           class="tool-button"

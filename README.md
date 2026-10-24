@@ -261,6 +261,12 @@ shortcuts beside it; where any date is allowed, the calendar has an _Any date_ b
 
 **Helm entry** in the top bar opens the tablet entry app.
 
+**When the server drops out** — Wi-Fi gone, Signal K restarting — a banner at the bottom of the screen says the server
+does not answer and offers **Reconnect**, wherever you are on the page. Once it answers again, pages reload what they
+were showing, and the banner says when a correction that failed can be done again. If your Signal K login has expired
+instead, the message says so, with **Sign in** opening the admin in another tab: sign in there, come back, and the page
+picks up where you left it.
+
 ### Your own boat in the 3D animation ⛵
 
 The 3D view draws a cartoon sailboat. To see yours instead, use **Boat → Use my own boat…** under the animation and pick
@@ -407,6 +413,10 @@ connection can be corrected too — the change travels with it.
 Keep logging. The header shows **Not connected** and how many entries are waiting. Each entry is kept on the tablet with
 the time it was made, and sent in order as soon as the server answers again, with the position the track recorded at
 that time. An entry sent just before the connection dropped is never logged twice.
+
+The app tries again by itself every few seconds; **Reconnect** beside **Not connected** tries at once, and sends what is
+waiting if the server answers. A correction or a crew change cannot wait like an entry: if it fails for want of a
+connection, it says so with a **Reconnect** button, to do again once connected.
 
 If the server refuses a waiting entry when it comes back — typically nothing to attach it to — it is shown in red in the
 latest entries, to discard.

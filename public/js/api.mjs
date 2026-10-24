@@ -1,6 +1,8 @@
 import { deviceToken } from './auth.mjs';
+import { createConnection } from './connection.mjs';
 
 const BASE = '/plugins/signalk-chiplog/api';
+const PROBE_TIMEOUT_MS = 10 * 1000;
 
 export class RequestError extends Error {
   constructor(status, code, message) {
@@ -21,6 +23,17 @@ const responseListeners = new Set();
 export function onResponse(listener) {
   responseListeners.add(listener);
   return () => responseListeners.delete(listener);
+}
+
+// The link to the server, as every request finds it. Its probe is the cheapest
+// read there is, and one any client with access may make.
+export const connection = createConnection({
+  probe: () => request('GET', '/state', undefined, { timeoutMs: PROBE_TIMEOUT_MS })
+});
+
+function fail(error) {
+  connection.report(error);
+  return error;
 }
 
 export async function request(method, path, body, { timeoutMs } = {}) {
@@ -44,12 +57,13 @@ export async function request(method, path, body, { timeoutMs } = {}) {
       signal: controller?.signal
     });
   } catch (err) {
-    throw new RequestError(0, 'network', err.message);
+    throw fail(new RequestError(0, 'network', err.message));
   } finally {
     clearTimeout(timer);
   }
   const receivedAt = Date.now();
   responseListeners.forEach((listener) => listener(response, sentAt, receivedAt));
+  connection.observe(response.status);
 
   if (response.status === 204) {
     return null;
@@ -65,7 +79,9 @@ export async function request(method, path, body, { timeoutMs } = {}) {
       response.status === 401 || response.status === 403
         ? 'forbidden'
         : (data?.error?.code ?? 'http_error');
-    throw new RequestError(response.status, code, data?.error?.message ?? response.statusText);
+    throw fail(
+      new RequestError(response.status, code, data?.error?.message ?? response.statusText)
+    );
   }
   return data;
 }
