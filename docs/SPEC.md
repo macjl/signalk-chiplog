@@ -847,6 +847,13 @@ webhook.
   what was sent: the service's answer is the record, and a restart only costs working the hashes out again. Between runs
   the hashes are kept in memory against the passage's export fingerprint, so an unchanged passage is not read in full
   each time.
+- **What the boat's plan keeps.** The service's answer may carry `historyFrom`, the first moment the boat's plan keeps
+  (the free plan keeps the passages begun in the last 30 calendar days). Closed passages begun before it are not sent —
+  they stay on board, and the service is not asked to delete them — and are not counted in the number of passages on
+  board the run announces (counted by the window the service gave the run before). A passage under way is always sent.
+  When the service no longer says `historyFrom` — the boat was subscribed — the next run sends everything, newest first.
+  A service that does not say it keeps none of this from happening: older plugins send such passages, and the service
+  keeps only their hashes.
 - **When.** Every `cloudSyncIntervalMinutes` (15 by default), at each departure and arrival, and on demand
   (`POST /cloud-sync`). A passage under way is sent as it stands and completed as it goes.
 - **Offline is normal at sea.** A service out of reach is retried with a growing delay, from one minute to an hour. A

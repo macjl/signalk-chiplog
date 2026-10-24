@@ -6,6 +6,13 @@ All notable changes to Chiplog are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- **The online backup sends only what the boat's plan keeps.** When the service says its plan keeps the passages from a
+  date on (Ti Bord's free plan: the last 30 days), older closed passages stay on board and are not sent, and the
+  passages counted for the backup's progress are those of that window. A passage under way is always sent; once the boat
+  is subscribed, everything is sent again, newest first.
+
 ## [2.10.0] - 2026-10-20
 
 ### Added
